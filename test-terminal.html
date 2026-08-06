@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Field Terminal — Droid Catcher</title>
+<style>
+  :root {
+    --bg: #0a0d0f;
+    --panel: #12171a;
+    --panel-raised: #171d21;
+    --line: #253138;
+    --cyan: #5fd8e0;
+    --cyan-dim: #2b5e63;
+    --amber: #e8a94f;
+    --text: #cddbe0;
+    --text-dim: #6b7d84;
+    --common: #8296a0;
+    --uncommon: #4fbe7a;
+    --rare: #4c9fe8;
+    --legendary: #c98ce8;
+    --danger: #e8615f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(95,216,224,0.05), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(201,140,232,0.04), transparent 40%);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .display-font {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.08em;
+  }
+
+  /* ---- header ---- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 30px; height: 30px;
+    border: 2px solid var(--cyan);
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .brand-mark::after {
+    content: '';
+    position: absolute; inset: 7px;
+    border: 1px solid var(--cyan);
+    border-radius: 50%;
+  }
+  .brand-mark::before {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    width: 3px; height: 3px;
+    background: var(--cyan);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 6px var(--cyan);
+  }
+  h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  h1 span { color: var(--text-dim); font-weight: 400; }
+
+  .conn {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  .conn input {
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 5px 8px;
+    font-family: inherit;
+    font-size: 11px;
+    width: 170px;
+    border-radius: 3px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; transition: background 0.2s; }
+  .dot.live { background: var(--uncommon); box-shadow: 0 0 6px var(--uncommon); }
+
+  /* ---- layout ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 14px;
+  }
+  .panel-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--cyan);
+    margin: 0 0 12px 0;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  label { display: block; font-size: 10px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.06em; margin-bottom: 4px; margin-top: 10px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], input[type=number] {
+    width: 100%;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 7px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    border-radius: 3px;
+  }
+  input:focus { outline: 1px solid var(--cyan); border-color: var(--cyan); }
+
+  button {
+    font-family: inherit;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--panel-raised);
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dim);
+    padding: 9px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 12px;
+    transition: all 0.15s;
+  }
+  button:hover { background: var(--cyan-dim); color: #fff; }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button.primary { background: var(--cyan); color: #04181a; border-color: var(--cyan); font-weight: 600; }
+  button.primary:hover { background: #7fe4ea; }
+  button.ghost { background: transparent; }
+
+  .stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color: var(--text-dim); text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; }
+  .stat-val { color: #fff; font-weight: 600; }
+  .stat-val.amber { color: var(--amber); }
+
+  /* ---- spawn cards ---- */
+  .spawn-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .spawn-card {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--common);
+    border-radius: 3px;
+    padding: 10px 12px;
+    background: var(--panel-raised);
+  }
+  .spawn-card.uncommon { border-left-color: var(--uncommon); }
+  .spawn-card.rare { border-left-color: var(--rare); }
+  .spawn-card.legendary { border-left-color: var(--legendary); }
+  .spawn-card.variant-platinum {
+    border-color: #d9e6ea;
+    box-shadow: 0 0 12px rgba(217,230,234,0.35), inset 0 0 12px rgba(217,230,234,0.08);
+    animation: platinumPulse 2.2s ease-in-out infinite;
+  }
+  .spawn-card.variant-rusty {
+    border-color: #b5652f;
+    box-shadow: 0 0 10px rgba(181,101,47,0.3);
+  }
+  @keyframes platinumPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(217,230,234,0.25), inset 0 0 10px rgba(217,230,234,0.06); }
+    50% { box-shadow: 0 0 18px rgba(217,230,234,0.55), inset 0 0 16px rgba(217,230,234,0.12); }
+  }
+  .variant-tag {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-left: 6px;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .variant-tag.platinum { background: rgba(217,230,234,0.15); color: #e8f2f4; border: 1px solid #d9e6ea; }
+  .variant-tag.rusty { background: rgba(181,101,47,0.15); color: #d99a5f; border: 1px solid #b5652f; }
+  .spawn-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .spawn-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .spawn-rarity { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .spawn-rarity.common { color: var(--common); }
+  .spawn-rarity.uncommon { color: var(--uncommon); }
+  .spawn-rarity.rare { color: var(--rare); }
+  .spawn-rarity.legendary { color: var(--legendary); }
+  .spawn-meta { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+
+  /* ---- capture reticle ---- */
+  .reticle-wrap { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+  .reticle {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 2px solid var(--cyan-dim);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+  .reticle:hover { border-color: var(--cyan); }
+  .reticle::before, .reticle::after {
+    content: '';
+    position: absolute;
+    background: var(--cyan-dim);
+  }
+  .reticle::before { top: 50%; left: 6px; right: 6px; height: 1px; transform: translateY(-50%); }
+  .reticle::after { left: 50%; top: 6px; bottom: 6px; width: 1px; transform: translateX(-50%); }
+  .reticle-controls { flex: 1; }
+  .reticle-controls input[type=range] { width: 100%; accent-color: var(--cyan); }
+  .reticle-controls .row { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+
+  .empty { color: var(--text-dim); font-size: 11px; text-align: center; padding: 18px 0; }
+
+  /* ---- log console ---- */
+  .console {
+    margin-top: 16px;
+    background: #050708;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 12px 14px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .console-line { font-size: 11px; margin-bottom: 5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .console-line .tag { color: var(--cyan); }
+  .console-line .tag.err { color: var(--danger); }
+  .console-line .tag.ok { color: var(--uncommon); }
+  .console-line .body { color: var(--text-dim); }
+
+  .droid-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 11px; }
+  .droid-row:last-child { border-bottom: none; }
+  .droid-row select { background: var(--panel-raised); color: var(--text); border: 1px solid var(--line); font-family: inherit; font-size: 10px; border-radius: 3px; }
+
+  .slot-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .slot-grid .slot { flex: 0 0 calc(20% - 5px); }
+  .slot {
+    flex: 1;
+    aspect-ratio: 1;
+    border: 1px dashed var(--line);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: var(--text-dim); text-align: center; text-transform: uppercase;
+    flex-direction: column;
+  }
+  .slot.filled { border-style: solid; border-color: var(--amber); color: var(--amber); }
+  .slot.locked { opacity: 0.5; cursor: pointer; }
+  .slot.locked:hover { opacity: 0.8; border-color: var(--cyan-dim); }
+  .slot .unlock-cost { font-size: 8px; margin-top: 2px; }
+
+  .starter-option {
+    width: 100%;
+    text-align: left;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    color: var(--text);
+    margin-top: 6px;
+    padding: 8px 10px;
+  }
+  .starter-option:hover { border-color: var(--cyan); }
+  .starter-option .so-name { font-weight: 600; color: #fff; }
+
+  .event-chip {
+    display: block;
+    background: rgba(95,216,224,0.08);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 3px;
+    padding: 6px 8px;
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+  .event-chip .ev-name { color: var(--cyan); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .event-chip .ev-meta { color: var(--text-dim); }
+
+  .trade-card {
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 8px 10px;
+    background: var(--panel-raised);
+    margin-bottom: 6px;
+    font-size: 10px;
+  }
+  .trade-card .tc-status { text-transform: uppercase; letter-spacing: 0.06em; font-size: 9px; }
+  .trade-card .tc-status.pending { color: var(--amber); }
+  .trade-card .tc-status.accepted { color: var(--uncommon); }
+  .trade-card .tc-status.declined { color: var(--danger); }
+  .trade-card .tc-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .trade-card .tc-actions button { margin-top: 0; flex: 1; font-size: 9px; padding: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <h1>Field Terminal <span>// Droid Catcher API Console</span></h1>
+  </div>
+  <div class="conn">
+    <span class="dot" id="connDot"></span>
+    <span id="connLabel">Disconnected</span>
+    <input type="text" id="serverUrl" value="" placeholder="same as this page">
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- LEFT: Player / Pilot -->
+  <div class="panel">
+    <div class="panel-title">Pilot</div>
+    <div id="noPlayer">
+      <label>Callsign</label>
+      <input type="text" id="username" placeholder="e.g. rook-7" value="rook-7">
+      <button class="primary" id="btnCreatePlayer">Deploy Pilot</button>
+    </div>
+    <div id="playerStats" style="display:none;">
+      <div class="stat-row"><span class="stat-label">ID</span><span class="stat-val" id="statId">—</span></div>
+      <div class="stat-row"><span class="stat-label">Callsign</span><span class="stat-val" id="statUsername">—</span></div>
+      <div class="stat-row"><span class="stat-label">Crystals</span><span class="stat-val amber" id="statCrystals">0</span></div>
+      <div class="stat-row"><span class="stat-label">Droids</span><span class="stat-val" id="statDroidCount">0</span></div>
+      <button class="ghost" id="btnRefreshPlayer">Refresh</button>
+
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Control Pad</div>
+      <div class="stat-row"><span class="stat-label">Pad Level</span><span class="stat-val" id="statPadLevel">0</span></div>
+      <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-val" id="statCritChance">2%</span></div>
+      <button id="btnUpgradePad">Upgrade Pad — <span id="padUpgradeCost">100</span> ✦</button>
+    </div>
+    <div id="starterPicker" style="display:none; margin-top:14px;">
+      <div class="panel-title" style="margin-bottom:6px;">Choose Starter Droid</div>
+      <div style="font-size:10px; color:var(--text-dim); margin-bottom:8px;">Free — skips capture, starts farming immediately.</div>
+      <div id="starterOptions"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: Radar / Spawns -->
+  <div class="panel">
+    <div class="panel-title">Radar Sweep <span id="todBadge" style="color: var(--text-dim);"></span></div>
+    <div id="eventBanner"></div>
+    <label>Latitude</label>
+    <input type="text" id="lat" value="37.7749">
+    <label>Longitude</label>
+    <input type="text" id="lng" value="-122.4194">
+    <label>Radius (m)</label>
+    <input type="text" id="radius" value="1000">
+    <button class="primary" id="btnScan">Scan Area</button>
+
+    <div class="spawn-list" id="spawnList">
+      <div class="empty">No sweep yet — hit Scan Area</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Workshop -->
+  <div class="panel">
+    <div class="panel-title">Workshop</div>
+    <div class="stat-row"><span class="stat-label">Balance</span><span class="stat-val amber" id="wsBalance">0</span></div>
+    <div class="stat-row"><span class="stat-label">Last collect earned</span><span class="stat-val" id="wsEarned">0</span></div>
+    <button id="btnCollect">Collect Crystals</button>
+
+    <div class="slot-grid" id="slotGrid"></div>
+
+    <div style="margin-top:14px;">
+      <div class="panel-title" style="margin-bottom:6px;">Owned Droids</div>
+      <div id="droidList"><div class="empty">None captured yet</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- SECOND ROW: Events + Trading -->
+<div class="grid" style="grid-template-columns: 1fr 1fr; margin-top: 16px;">
+
+  <!-- Events -->
+  <div class="panel">
+    <div class="panel-title">Time-Exclusive Events</div>
+    <div id="activeEventsList" style="margin-bottom: 10px;"><div class="empty">No active events</div></div>
+    <label>Quick-launch a test event (1 hour, 5x weight)</label>
+    <div style="display:flex; gap:6px; margin-top:6px;">
+      <button id="btnEventNature" style="margin-top:0;">☘ Boost Nature</button>
+      <button id="btnEventMythical" style="margin-top:0;">✦ Boost Mythical</button>
+    </div>
+  </div>
+
+  <!-- Trading -->
+  <div class="panel">
+    <div class="panel-title">Trading</div>
+    <label>Target Player ID</label>
+    <input type="text" id="tradeTargetId" placeholder="e.g. 2">
+    <button id="btnLoadTradeTarget">Load Their Droids</button>
+
+    <div id="tradeBuilder" style="display:none; margin-top:10px;">
+      <label>Your droid to offer</label>
+      <select id="tradeOfferDroid"></select>
+      <label>Their droid to request</label>
+      <select id="tradeRequestDroid"></select>
+      <button class="primary" id="btnCreateTrade">Send Trade Offer</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Your Trades</div>
+    <div id="tradeList"><div class="empty">No trades yet</div></div>
+  </div>
+
+</div>
+
+<div class="console" id="console">
+  <div class="console-line"><span class="tag">SYS</span> <span class="body">Terminal ready. Deploy a pilot to begin.</span></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [] };
+let tickInterval = null;
+
+function serverUrl() {
+  const val = $('serverUrl').value.trim();
+  return val ? val.replace(/\/$/, '') : window.location.origin;
+}
+
+function log(tag, body, isErr) {
+  const el = document.createElement('div');
+  el.className = 'console-line';
+  el.innerHTML = `<span class="tag ${isErr ? 'err' : 'ok'}">${tag}</span> <span class="body">${body}</span>`;
+  $('console').appendChild(el);
+  $('console').scrollTop = $('console').scrollHeight;
+}
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(serverUrl() + path, opts);
+    const json = await res.json();
+    setConn(true);
+    if (!res.ok) {
+      log(`${method} ${path}`, JSON.stringify(json), true);
+      throw json;
+    }
+    log(`${method} ${path}`, JSON.stringify(json));
+    return json;
+  } catch (e) {
+    setConn(false);
+    throw e;
+  }
+}
+
+function setConn(live) {
+  $('connDot').classList.toggle('live', live);
+  $('connLabel').textContent = live ? 'Connected' : 'Disconnected';
+}
+
+// ---- Player ----
+$('btnCreatePlayer').onclick = async () => {
+  const username = $('username').value.trim() || 'rook-7';
+  try {
+    const player = await api('POST', '/players', { username });
+    state.playerId = player.id;
+    $('noPlayer').style.display = 'none';
+    $('playerStats').style.display = 'block';
+    updatePlayerStats(player);
+
+    const { species } = await api('GET', '/species');
+    state.species = species;
+
+    if (!player.hasStarterDroid) {
+      showStarterPicker();
+    } else {
+      await refreshWorkshop();
+    }
+  } catch (e) {}
+};
+
+$('btnRefreshPlayer').onclick = () => refreshWorkshop();
+
+function updatePlayerStats(player) {
+  $('statId').textContent = player.id;
+  $('statUsername').textContent = player.username;
+  $('statCrystals').textContent = Math.floor(player.crystalBalance);
+}
+
+function showStarterPicker() {
+  const commonSpecies = state.species.filter((s) => s.rarity === 'common');
+  const container = $('starterOptions');
+  container.innerHTML = '';
+  commonSpecies.forEach((s) => {
+    const btn = document.createElement('button');
+    btn.className = 'starter-option';
+    btn.innerHTML = `<span class="so-name">${s.alignment === 'light' ? '☀' : '🌑'} ${s.name}</span><br><span style="font-size:9px; color:var(--text-dim);">${s.baseCrystalRate} crystals/hr base</span>`;
+    btn.onclick = async () => {
+      try {
+        await api('POST', `/players/${state.playerId}/starter`, { speciesId: s.id });
+        $('starterPicker').style.display = 'none';
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+    container.appendChild(btn);
+  });
+  $('starterPicker').style.display = 'block';
+}
+
+// ---- Radar / spawns ----
+$('btnScan').onclick = async () => {
+  const lat = $('lat').value, lng = $('lng').value, radius = $('radius').value;
+  try {
+    const data = await api('GET', `/spawns?lat=${lat}&lng=${lng}&radius=${radius}`);
+    state.spawns = data.spawns;
+    const badge = $('todBadge');
+    badge.textContent = data.timeOfDay === 'day' ? '☀ Daytime here' : '🌑 Nighttime here';
+    badge.style.color = data.timeOfDay === 'day' ? 'var(--amber)' : 'var(--legendary)';
+    renderEvents(data.activeEvents);
+    renderSpawns();
+  } catch (e) {}
+};
+
+function renderSpawns() {
+  const list = $('spawnList');
+  if (!state.spawns.length) {
+    list.innerHTML = '<div class="empty">No signals in range</div>';
+    return;
+  }
+  list.innerHTML = '';
+  state.spawns.forEach((spawn) => {
+    const card = document.createElement('div');
+    card.className = `spawn-card ${spawn.rarity}` + (spawn.variant !== 'standard' ? ` variant-${spawn.variant}` : '');
+    const variantTag = spawn.variant !== 'standard'
+      ? `<span class="variant-tag ${spawn.variant}">${spawn.variant}</span>`
+      : '';
+    const minCost = spawn.minCrystalCost;
+    const sliderMax = Math.max(minCost * 3, 50);
+    card.innerHTML = `
+      <div class="spawn-top">
+        <span class="spawn-name">${spawn.alignment === 'light' ? '☀' : '🌑'} ${spawn.speciesName}${variantTag}</span>
+        <span class="spawn-rarity ${spawn.rarity}">${spawn.rarity}</span>
+      </div>
+      <div class="spawn-meta">${spawn.distanceMeters}m away · expires ${new Date(spawn.expiresAt).toLocaleTimeString()} · needs ${minCost}+ crystals</div>
+      <div class="reticle-wrap">
+        <div class="reticle" title="Engage"></div>
+        <div class="reticle-controls">
+          <div class="row"><span>Accuracy</span><span class="acc-val">80%</span></div>
+          <input type="range" min="0" max="100" value="80" class="acc-slider">
+          <div class="row" style="margin-top:6px;"><span>Crystals</span><span class="cr-val">${minCost}</span></div>
+          <input type="range" min="${minCost}" max="${sliderMax}" value="${minCost}" class="cr-slider">
+        </div>
+      </div>
+    `;
+    const accSlider = card.querySelector('.acc-slider');
+    const accVal = card.querySelector('.acc-val');
+    accSlider.oninput = () => accVal.textContent = accSlider.value + '%';
+    const crSlider = card.querySelector('.cr-slider');
+    const crVal = card.querySelector('.cr-val');
+    crSlider.oninput = () => crVal.textContent = crSlider.value;
+
+    card.querySelector('.reticle').onclick = () => attemptCapture(spawn, accSlider.value / 100, Number(crSlider.value));
+    list.appendChild(card);
+  });
+}
+
+async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  try {
+    const result = await api('POST', '/capture-attempt', {
+      playerId: state.playerId,
+      spawnId: spawn.id,
+      crystalsSpent,
+      padAccuracy,
+      attemptDurationMs: 800 + Math.random() * 800,
+      playerLat: spawn.lat,
+      playerLng: spawn.lng,
+    });
+    if (result.success) {
+      log('CAPTURE', `${spawn.speciesName} secured! (${Math.round(result.successChance * 100)}% chance)`);
+    } else {
+      log('CAPTURE', `${spawn.speciesName} broke free. (${Math.round(result.successChance * 100)}% chance)`, true);
+    }
+    $('statCrystals').textContent = Math.floor(result.crystalBalance);
+    state.spawns = state.spawns.filter((s) => s.id !== spawn.id);
+    renderSpawns();
+    await refreshWorkshop();
+  } catch (e) {}
+}
+
+// ---- Workshop ----
+async function refreshWorkshop() {
+  if (!state.playerId) return;
+  try {
+    const data = await api('GET', `/workshop/${state.playerId}`);
+    $('wsBalance').textContent = Math.floor(data.crystalBalance);
+    $('wsEarned').textContent = Math.floor(data.earned);
+    $('statCrystals').textContent = Math.floor(data.crystalBalance);
+    state.slots = data.slots;
+    state.droids = data.droids;
+    state.crystalsPerSecond = data.crystalsPerSecond || 0;
+    state.displayBalance = data.crystalBalance; // baseline for the live ticker
+    $('statPadLevel').textContent = data.padLevel;
+    $('statCritChance').textContent = Math.round(data.critChance * 100) + '%';
+    $('padUpgradeCost').textContent = data.nextPadUpgradeCost;
+    renderSlots();
+    renderDroids();
+    startTicker();
+    refreshTrades();
+  } catch (e) {}
+}
+
+$('btnUpgradePad').onclick = async () => {
+  try {
+    await api('POST', `/players/${state.playerId}/upgrade-pad`);
+    await refreshWorkshop();
+  } catch (e) {}
+};
+
+// Purely cosmetic client-side ticker: the server is still the source of
+// truth (compute-on-read), this just makes the number visibly climb every
+// second between refreshes so farming feels alive rather than static.
+function startTicker() {
+  if (tickInterval) clearInterval(tickInterval);
+  if (state.crystalsPerSecond <= 0) return;
+  tickInterval = setInterval(() => {
+    state.displayBalance += state.crystalsPerSecond;
+    $('wsBalance').textContent = Math.floor(state.displayBalance);
+  }, 1000);
+}
+
+$('btnCollect').onclick = () => refreshWorkshop();
+
+function renderSlots() {
+  const grid = $('slotGrid');
+  grid.innerHTML = '';
+  state.slots.forEach((slot) => {
+    const droid = state.droids.find((d) => d.workshopSlotId === slot.id);
+    const div = document.createElement('div');
+    div.className = 'slot' + (droid ? ' filled' : '') + (!slot.unlocked ? ' locked' : '');
+    if (!slot.unlocked) {
+      div.innerHTML = `Locked<span class="unlock-cost">${slot.unlockCost} ✦</span>`;
+      div.title = `Spend ${slot.unlockCost} crystals to unlock this slot`;
+      div.onclick = async () => {
+        try {
+          await api('POST', '/workshop/unlock-slot', { playerId: state.playerId, slotId: slot.id });
+          log('SYS', `Slot ${slot.slotIndex + 1} unlocked!`);
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    } else {
+      div.textContent = droid ? 'Farming' : 'Empty';
+    }
+    grid.appendChild(div);
+  });
+}
+
+function renderDroids() {
+  const list = $('droidList');
+  if (!state.droids.length) {
+    list.innerHTML = '<div class="empty">None captured yet</div>';
+    return;
+  }
+  list.innerHTML = '';
+  state.droids.forEach((droid) => {
+    const row = document.createElement('div');
+    row.className = 'droid-row';
+    row.style.flexWrap = 'wrap';
+    const unlockedSlots = state.slots.filter((s) => s.unlocked);
+    const options = unlockedSlots.map((s) =>
+      `<option value="${s.id}" ${droid.workshopSlotId === s.id ? 'selected' : ''}>Slot ${s.slotIndex + 1}</option>`
+    ).join('');
+    const levelBtnLabel = droid.nextLevelCost === null ? 'MAX' : `Lv Up (${droid.nextLevelCost}✦)`;
+    row.innerHTML = `
+      <span style="flex-basis:100%;">${droid.alignment === 'light' ? '☀' : '🌑'} ${droid.speciesName} · Lv${droid.level}${droid.variant && droid.variant !== 'standard' ? ` · <span class="variant-tag ${droid.variant}">${droid.variant}</span>` : ''}<br>
+      <span style="color:var(--text-dim); font-size:9px;">${droid.crystalsPerMinute}/min</span></span>
+      <select style="margin-top:4px;">
+        <option value="">Unassigned</option>
+        ${options}
+      </select>
+      <button class="level-up-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;" ${droid.nextLevelCost === null ? 'disabled' : ''}>${levelBtnLabel}</button>
+    `;
+    row.querySelector('select').onchange = async (e) => {
+      const slotId = e.target.value;
+      try {
+        if (slotId) {
+          await api('POST', '/workshop/assign', { playerId: state.playerId, droidId: droid.id, slotId: Number(slotId) });
+        } else {
+          await api('POST', '/workshop/unassign', { playerId: state.playerId, droidId: droid.id });
+        }
+        await refreshWorkshop();
+      } catch (err) {}
+    };
+    const levelBtn = row.querySelector('.level-up-btn');
+    if (droid.nextLevelCost !== null) {
+      levelBtn.onclick = async () => {
+        try {
+          await api('POST', `/droids/${droid.id}/level-up`, { playerId: state.playerId });
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    }
+    list.appendChild(row);
+  });
+}
+
+// ---- Time-exclusive events ----
+function renderEvents(events) {
+  const banner = $('eventBanner');
+  const listEl = $('activeEventsList');
+  if (!events || !events.length) {
+    banner.innerHTML = '';
+    listEl.innerHTML = '<div class="empty">No active events</div>';
+    return;
+  }
+  const chips = events.map((e) => {
+    const mins = Math.max(0, Math.round((e.endTime - Date.now()) / 60000));
+    return `<span class="event-chip"><span class="ev-name">⚡ ${e.name}</span><br><span class="ev-meta">${e.collection || 'select species'} · ${e.spawnWeightMultiplier}x weight · ${mins}m left</span></span>`;
+  }).join('');
+  banner.innerHTML = chips;
+  listEl.innerHTML = chips;
+}
+
+async function launchTestEvent(collection, label) {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  try {
+    const now = Date.now();
+    await api('POST', '/events', {
+      name: label,
+      collection,
+      spawnWeightMultiplier: 5,
+      startTime: now,
+      endTime: now + 60 * 60 * 1000,
+    });
+    const data = await api('GET', '/events');
+    renderEvents(data.events);
+  } catch (e) {}
+}
+$('btnEventNature').onclick = () => launchTestEvent('nature', 'Nature Festival');
+$('btnEventMythical').onclick = () => launchTestEvent('mythical', 'Mythical Surge');
+
+// ---- Trading ----
+$('btnLoadTradeTarget').onclick = async () => {
+  const targetId = Number($('tradeTargetId').value);
+  if (!targetId) { log('SYS', 'Enter a target player ID', true); return; }
+  try {
+    const data = await api('GET', `/workshop/${targetId}`);
+    state.tradeTargetDroids = data.droids;
+
+    const offerSelect = $('tradeOfferDroid');
+    offerSelect.innerHTML = state.droids.map((d) =>
+      `<option value="${d.id}">${d.speciesName} Lv${d.level} (#${d.id})</option>`
+    ).join('') || '<option value="">No droids owned</option>';
+
+    const requestSelect = $('tradeRequestDroid');
+    requestSelect.innerHTML = state.tradeTargetDroids.map((d) =>
+      `<option value="${d.id}">${d.speciesName} Lv${d.level} (#${d.id})</option>`
+    ).join('') || '<option value="">They own no droids</option>';
+
+    $('tradeBuilder').style.display = 'block';
+  } catch (e) {}
+};
+
+$('btnCreateTrade').onclick = async () => {
+  const toPlayerId = Number($('tradeTargetId').value);
+  const offeredId = Number($('tradeOfferDroid').value);
+  const requestedId = Number($('tradeRequestDroid').value);
+  if (!offeredId || !requestedId) { log('SYS', 'Select a droid on both sides', true); return; }
+  try {
+    await api('POST', '/trades', {
+      fromPlayerId: state.playerId,
+      toPlayerId,
+      offeredDroidIds: [offeredId],
+      requestedDroidIds: [requestedId],
+    });
+    await refreshTrades();
+  } catch (e) {}
+};
+
+async function refreshTrades() {
+  if (!state.playerId) return;
+  try {
+    const data = await api('GET', `/trades/${state.playerId}`);
+    renderTrades(data.trades);
+  } catch (e) {}
+}
+
+function renderTrades(trades) {
+  const list = $('tradeList');
+  if (!trades || !trades.length) {
+    list.innerHTML = '<div class="empty">No trades yet</div>';
+    return;
+  }
+  list.innerHTML = '';
+  trades.slice().reverse().forEach((t) => {
+    const card = document.createElement('div');
+    card.className = 'trade-card';
+    const direction = t.fromPlayerId === state.playerId ? `→ Player ${t.toPlayerId}` : `← Player ${t.fromPlayerId}`;
+    card.innerHTML = `
+      <div>${direction} <span class="tc-status ${t.status}">${t.status}</span></div>
+      <div style="color:var(--text-dim); margin-top:3px;">Offered: [${t.offeredDroidIds.join(',') || '—'}] ${t.offeredCrystals ? '+' + t.offeredCrystals + '✦' : ''} · Requested: [${t.requestedDroidIds.join(',') || '—'}] ${t.requestedCrystals ? '+' + t.requestedCrystals + '✦' : ''}</div>
+    `;
+    if (t.status === 'pending' && t.toPlayerId === state.playerId) {
+      const actions = document.createElement('div');
+      actions.className = 'tc-actions';
+      actions.innerHTML = `<button class="accept-btn">Accept</button><button class="decline-btn">Decline</button>`;
+      actions.querySelector('.accept-btn').onclick = async () => {
+        try {
+          await api('POST', `/trades/${t.id}/accept`, { playerId: state.playerId });
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+      actions.querySelector('.decline-btn').onclick = async () => {
+        try {
+          await api('POST', `/trades/${t.id}/decline`, { playerId: state.playerId });
+          await refreshTrades();
+        } catch (e) {}
+      };
+      card.appendChild(actions);
+    } else if (t.status === 'pending' && t.fromPlayerId === state.playerId) {
+      const actions = document.createElement('div');
+      actions.className = 'tc-actions';
+      actions.innerHTML = `<button class="cancel-btn">Cancel</button>`;
+      actions.querySelector('.cancel-btn').onclick = async () => {
+        try {
+          await api('POST', `/trades/${t.id}/decline`, { playerId: state.playerId });
+          await refreshTrades();
+        } catch (e) {}
+      };
+      card.appendChild(actions);
+    }
+    list.appendChild(card);
+  });
+}
+</script>
+
+</body>
+</html>
