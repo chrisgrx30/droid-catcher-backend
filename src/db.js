@@ -38,10 +38,10 @@ function statsFor(rarity) {
 
 const droidSpecies = [
   // -- common (60 total / 8 species now = 7.5 each) --
-  { id: id(), name: 'Puffkin',     alignment: 'light', rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
-  { id: id(), name: 'Gloomrat',    alignment: 'dark',  rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
-  { id: id(), name: 'Leafkin',     alignment: 'light', rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
-  { id: id(), name: 'Thornstalk',  alignment: 'dark',  rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
+  { id: id(), name: 'Puffkin',     alignment: 'light', rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, isStarterOption: true, ...statsFor('common') },
+  { id: id(), name: 'Gloomrat',    alignment: 'dark',  rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, isStarterOption: true, ...statsFor('common') },
+  { id: id(), name: 'Leafkin',     alignment: 'light', rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, isStarterOption: true, ...statsFor('common') },
+  { id: id(), name: 'Thornstalk',  alignment: 'dark',  rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, isStarterOption: true, ...statsFor('common') },
   { id: id(), name: 'Teacupper',   alignment: 'light', rarity: 'common',    collection: 'wildcard', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
   { id: id(), name: 'Pangolynk',   alignment: 'light', rarity: 'common',    collection: 'wildcard', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
   { id: id(), name: 'Binx',        alignment: 'dark',  rarity: 'common',    collection: 'wildcard', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
@@ -78,7 +78,7 @@ const droidSpecies = [
   { id: id(), name: 'Vaantheris',  alignment: 'dark',  rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
 
   // -- evolution-only (spawnWeight 0 -> never appears in the wild, only obtained by evolving) --
-  { id: id(), name: 'Bushy',      alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, ...statsFor('uncommon') },
+  { id: id(), name: 'Bushy',      alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('uncommon') },
 
   // -- companion (cosmic tier — rarer than legendary, doesn't farm, provides a % buff instead; see COMPANION_BUFF_PERCENT) --
   { id: id(), name: 'StarSprite', alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'crystal', companionBuffPercent: 50, ...statsFor('cosmic') },
@@ -337,16 +337,45 @@ const TRADE_FEE_BY_RARITY = {
   legendary: 15,
 };
 
-// ---- companion droids (StarSprite) ----
-// Structurally different from farming droids: doesn't occupy a workshop
-// slot, doesn't farm crystals itself, instead applies a flat % buff to the
-// player's total crystals/min. Only one can be active ("held") at a time.
 // ---- companion droids (StarSprite, Nebulfox) ----
 // Structurally different from farming droids: doesn't occupy a workshop
 // slot, doesn't farm crystals itself. Each companion species defines its
 // own buff via companionBuffType ('crystal' | 'capture_rate') and
 // companionBuffPercent — see workshop.js's companionBuffMultiplier and
 // capture.js's companionCaptureRateMultiplier.
+//
+// capture_rate buffs (Nebulfox) are strong enough to need gating: rather
+// than always-on while equipped (like StarSprite's crystal buff), they
+// require an explicit activation, run for a limited window, then go on
+// cooldown — timed per DROID, not per player, so owning two Nebulfoxes
+// gives two independent timers you can stagger.
+const CAPTURE_RATE_BUFF_DURATION_MS = 60 * 60 * 1000; // 1 hour active
+const CAPTURE_RATE_BUFF_COOLDOWN_MS = 8 * 60 * 60 * 1000; // 8 hours after it ends, before that droid can reactivate
+
+function activateCompanionBuff(playerId, droidId) {
+  const player = players.get(playerId);
+  const droid = ownedDroids.get(droidId);
+  if (!player) throw new Error('Player not found');
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+  const species = droidSpecies.find((s) => s.id === droid.speciesId);
+  if (!species || !species.isCompanion || species.companionBuffType !== 'capture_rate') {
+    throw new Error('Only capture-rate companions (e.g. Nebulfox) need activating');
+  }
+  if (player.companionDroidId !== droidId) throw new Error('Equip this companion before activating its buff');
+
+  const now = Date.now();
+  if (droid.buffActiveUntil && now < droid.buffActiveUntil) {
+    throw new Error('Buff is already active');
+  }
+  if (droid.buffCooldownUntil && now < droid.buffCooldownUntil) {
+    const minsLeft = Math.ceil((droid.buffCooldownUntil - now) / (60 * 1000));
+    throw new Error(`This droid's buff is on cooldown for another ~${minsLeft}m`);
+  }
+
+  droid.buffActiveUntil = now + CAPTURE_RATE_BUFF_DURATION_MS;
+  droid.buffCooldownUntil = droid.buffActiveUntil + CAPTURE_RATE_BUFF_COOLDOWN_MS;
+  return { buffActiveUntil: droid.buffActiveUntil, buffCooldownUntil: droid.buffCooldownUntil };
+}
 
 // ---- cosmetics ----
 // Purely cosmetic, no gameplay effect — crystal sinks for players who've
@@ -361,6 +390,9 @@ const COSMETICS_CATALOG = [
 // foundation for a future PVP/guild system. Small friend-group cap.
 const guilds = new Map(); // id -> guild row
 const GUILD_MAX_MEMBERS = 12;
+
+const GUILD_KICK_GLOBAL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 1 day before joining ANY guild
+const GUILD_KICK_SAME_GUILD_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days before rejoining THAT guild
 
 function createGuild(playerId, name) {
   const player = players.get(playerId);
@@ -379,6 +411,18 @@ function joinGuild(playerId, guildId) {
   if (!guild) throw new Error('Guild not found');
   if (player.guildId) throw new Error('Already in a guild - leave it first');
   if (guild.memberIds.length >= GUILD_MAX_MEMBERS) throw new Error('Guild is full');
+
+  const now = Date.now();
+  if (player.guildJoinCooldownUntil && now < player.guildJoinCooldownUntil) {
+    const hoursLeft = Math.ceil((player.guildJoinCooldownUntil - now) / (60 * 60 * 1000));
+    throw new Error(`You were recently kicked from a guild — can join a new one in ~${hoursLeft}h`);
+  }
+  const sameGuildBlockUntil = player.guildRejoinBlocks && player.guildRejoinBlocks[guildId];
+  if (sameGuildBlockUntil && now < sameGuildBlockUntil) {
+    const daysLeft = Math.ceil((sameGuildBlockUntil - now) / (24 * 60 * 60 * 1000));
+    throw new Error(`You were kicked from this guild — can rejoin it in ~${daysLeft}d`);
+  }
+
   guild.memberIds.push(playerId);
   player.guildId = guildId;
   return guild;
@@ -392,6 +436,66 @@ function leaveGuild(playerId) {
   if (guild) guild.memberIds = guild.memberIds.filter((mid) => mid !== playerId);
   player.guildId = null;
   return guild;
+}
+
+// Creator-only. Kicked player gets a 1-day cooldown before joining ANY
+// guild, and a separate 30-day block specifically on rejoining this one.
+function kickFromGuild(kickerId, guildId, targetPlayerId) {
+  const guild = guilds.get(guildId);
+  const target = players.get(targetPlayerId);
+  if (!guild) throw new Error('Guild not found');
+  if (!target) throw new Error('Player not found');
+  if (guild.creatorId !== kickerId) throw new Error('Only the guild creator can kick members');
+  if (targetPlayerId === kickerId) throw new Error('Cannot kick yourself — use Leave instead');
+  if (!guild.memberIds.includes(targetPlayerId)) throw new Error('That player is not in this guild');
+
+  guild.memberIds = guild.memberIds.filter((mid) => mid !== targetPlayerId);
+  target.guildId = null;
+  const now = Date.now();
+  target.guildJoinCooldownUntil = now + GUILD_KICK_GLOBAL_COOLDOWN_MS;
+  if (!target.guildRejoinBlocks) target.guildRejoinBlocks = {};
+  target.guildRejoinBlocks[guildId] = now + GUILD_KICK_SAME_GUILD_COOLDOWN_MS;
+  return guild;
+}
+
+// ---- guild chat (refresh-based — no real-time push in this app) ----
+const guildMessages = new Map(); // guildId -> array of message rows
+const GUILD_CHAT_MAX_HISTORY = 200; // per guild, oldest trimmed off
+
+function postGuildMessage(playerId, guildId, text) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (player.guildId !== guildId) throw new Error('Not a member of this guild');
+  const trimmed = (text || '').trim().slice(0, 500);
+  if (!trimmed) throw new Error('Message cannot be empty');
+
+  const message = { id: id(), playerId, username: player.username, text: trimmed, createdAt: Date.now() };
+  const history = guildMessages.get(guildId) || [];
+  history.push(message);
+  if (history.length > GUILD_CHAT_MAX_HISTORY) history.shift();
+  guildMessages.set(guildId, history);
+  return message;
+}
+
+function getGuildMessages(guildId) {
+  return guildMessages.get(guildId) || [];
+}
+
+// Dex completion leaderboard for a guild's members — reuses getDex's
+// counting logic (defined further down) via a lazy require-free call
+// since getDex is in the same module.
+function getGuildLeaderboard(guildId) {
+  const guild = guilds.get(guildId);
+  if (!guild) throw new Error('Guild not found');
+  return guild.memberIds
+    .map((pid) => {
+      const player = players.get(pid);
+      if (!player) return null;
+      const dex = getDex(pid);
+      return { playerId: pid, username: player.username, totalCaught: dex.totalCaught, totalSpecies: dex.totalSpecies, percentComplete: dex.percentComplete };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.totalCaught - a.totalCaught);
 }
 
 // ---- wishlist (public "looking for" board) ----
@@ -536,6 +640,7 @@ function createPlayer(username, pin) {
     crystalBalance: 0,
     lastCrystalCollection: Date.now(),
     createdAt: Date.now(),
+    lastOnline: Date.now(),
     hasStarterDroid: false,
     padLevel: 0,
     dexSeen: [],         // speciesIds ever successfully captured — survives trading the droid away later
@@ -545,6 +650,8 @@ function createPlayer(username, pin) {
     companionDroidId: null,
     cosmetics: [],
     guildId: null,
+    guildJoinCooldownUntil: null,
+    guildRejoinBlocks: {},
   };
   players.set(player.id, player);
 
@@ -576,9 +683,11 @@ function loginOrCreatePlayer(username, pin) {
   if (existing) {
     if (existing.pin === null) {
       existing.pin = pin; // claim: first login after the login system was added
+      existing.lastOnline = Date.now();
       return existing;
     }
     if (existing.pin !== pin) throw new Error('Wrong PIN for that username');
+    existing.lastOnline = Date.now();
     return existing;
   }
 
@@ -594,8 +703,8 @@ function grantStarterDroid(playerId, speciesId) {
   if (player.hasStarterDroid) throw new Error('Starter droid already claimed');
 
   const species = droidSpecies.find((s) => s.id === speciesId);
-  if (!species || species.rarity !== 'common') {
-    throw new Error('Starter droid must be a common-tier species');
+  if (!species || !species.isStarterOption) {
+    throw new Error('That species is not a valid starter option');
   }
 
   const droid = {
@@ -677,6 +786,54 @@ function getDex(playerId) {
   };
 }
 
+// ---- admin: player management ----
+// Lists every player with basic identifying info + last-online, for
+// cleaning up throwaway/duplicate test accounts.
+function listPlayersAdmin() {
+  return [...players.values()]
+    .map((p) => ({
+      id: p.id,
+      username: p.username,
+      crystalBalance: p.crystalBalance,
+      droidCount: [...ownedDroids.values()].filter((d) => d.playerId === p.id).length,
+      lastOnline: p.lastOnline,
+      createdAt: p.createdAt,
+      guildId: p.guildId,
+    }))
+    .sort((a, b) => (b.lastOnline || 0) - (a.lastOnline || 0));
+}
+
+// Cascading delete — removes everything attached to this player so
+// nothing is left orphaned (a trade offer pointing at a player who no
+// longer exists, a guild membership that never gets cleaned up, etc).
+function deletePlayerAdmin(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+
+  for (const [did, droid] of ownedDroids.entries()) {
+    if (droid.playerId === playerId) ownedDroids.delete(did);
+  }
+  for (const [sid, slot] of workshopSlots.entries()) {
+    if (slot.playerId === playerId) workshopSlots.delete(sid);
+  }
+  for (const offer of tradeOffers.values()) {
+    if (offer.status === 'pending' && (offer.fromPlayerId === playerId || offer.toPlayerId === playerId)) {
+      offer.status = 'declined'; // don't delete the record, just resolve it — keeps trade history consistent
+      offer.resolvedAt = Date.now();
+    }
+  }
+  for (const [wid, wish] of wishlist.entries()) {
+    if (wish.playerId === playerId) wishlist.delete(wid);
+  }
+  if (player.guildId) {
+    const guild = guilds.get(player.guildId);
+    if (guild) guild.memberIds = guild.memberIds.filter((mid) => mid !== playerId);
+  }
+
+  players.delete(playerId);
+  return { deleted: true, playerId };
+}
+
 // ---- persistence snapshot (used by persistence.js) ----
 // Deliberately excludes `spawns` (ephemeral — stale/expired ones shouldn't
 // come back after a restore) and `captureAttempts` (pure audit log, not
@@ -725,6 +882,9 @@ function importState(state) {
     companionDroidId: null,
     cosmetics: [],
     guildId: null,
+    lastOnline: null,
+    guildJoinCooldownUntil: null,
+    guildRejoinBlocks: {},
   };
   (state.players || []).forEach((p) => players.set(p.id, { ...playerDefaults, ...p }));
 
@@ -785,6 +945,13 @@ module.exports = {
   createGuild,
   joinGuild,
   leaveGuild,
+  kickFromGuild,
+  postGuildMessage,
+  getGuildMessages,
+  getGuildLeaderboard,
+  activateCompanionBuff,
+  listPlayersAdmin,
+  deletePlayerAdmin,
   redeemCodes,
   createRedeemCode,
   redeemCodeFn,

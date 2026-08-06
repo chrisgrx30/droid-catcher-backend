@@ -233,6 +233,7 @@ const server = http.createServer(async (req, res) => {
       const playerId = Number(pathname.split('/')[2]);
       const settled = workshopModule.settleEarnings(playerId);
       const player = db.players.get(playerId);
+      if (player) player.lastOnline = Date.now();
       const slots = [...db.workshopSlots.values()]
         .filter((s) => s.playerId === playerId)
         .map((s) => ({ ...s, unlockCost: s.unlocked ? null : db.slotUnlockCost(s.slotIndex) }));
@@ -370,6 +371,17 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // POST /companion/activate  { playerId, droidId } -> starts a capture-rate buff's 1hr active window
+    if (req.method === 'POST' && pathname === '/companion/activate') {
+      const { playerId, droidId } = await readBody(req);
+      try {
+        const result = db.activateCompanionBuff(playerId, droidId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'COMPANION_ERROR', message: e.message });
+      }
+    }
+
     // POST /companion/unassign  { playerId }
     if (req.method === 'POST' && pathname === '/companion/unassign') {
       const { playerId } = await readBody(req);
@@ -439,6 +451,46 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // POST /guilds/:id/kick  { kickerId, targetPlayerId }
+    if (req.method === 'POST' && pathname.match(/^\/guilds\/\d+\/kick$/)) {
+      const guildId = Number(pathname.split('/')[2]);
+      const { kickerId, targetPlayerId } = await readBody(req);
+      try {
+        const guild = db.kickFromGuild(kickerId, guildId, targetPlayerId);
+        return sendJson(res, 200, { guild });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'GUILD_ERROR', message: e.message });
+      }
+    }
+
+    // GET /guilds/:id/chat
+    if (req.method === 'GET' && pathname.match(/^\/guilds\/\d+\/chat$/)) {
+      const guildId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, { messages: db.getGuildMessages(guildId) });
+    }
+
+    // POST /guilds/:id/chat  { playerId, text }
+    if (req.method === 'POST' && pathname.match(/^\/guilds\/\d+\/chat$/)) {
+      const guildId = Number(pathname.split('/')[2]);
+      const { playerId, text } = await readBody(req);
+      try {
+        const message = db.postGuildMessage(playerId, guildId, text);
+        return sendJson(res, 201, { message });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'CHAT_ERROR', message: e.message });
+      }
+    }
+
+    // GET /guilds/:id/leaderboard
+    if (req.method === 'GET' && pathname.match(/^\/guilds\/\d+\/leaderboard$/)) {
+      const guildId = Number(pathname.split('/')[2]);
+      try {
+        return sendJson(res, 200, { leaderboard: db.getGuildLeaderboard(guildId) });
+      } catch (e) {
+        return sendJson(res, 404, { error: 'GUILD_ERROR', message: e.message });
+      }
+    }
+
     // POST /guilds/leave  { playerId }
     if (req.method === 'POST' && pathname === '/guilds/leave') {
       const { playerId } = await readBody(req);
@@ -474,6 +526,30 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 201, { code: row });
       } catch (e) {
         return sendJson(res, 400, { error: 'REDEEM_CODE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /admin/players  { adminCode } -> lists every player with last-online, for account cleanup
+    if (req.method === 'POST' && pathname === '/admin/players') {
+      const { adminCode } = await readBody(req);
+      if (adminCode !== ADMIN_CODES.events) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
+      return sendJson(res, 200, { players: db.listPlayersAdmin() });
+    }
+
+    // POST /admin/players/:id/delete  { adminCode } -> cascading delete
+    if (req.method === 'POST' && pathname.match(/^\/admin\/players\/\d+\/delete$/)) {
+      const targetId = Number(pathname.split('/')[3]);
+      const { adminCode } = await readBody(req);
+      if (adminCode !== ADMIN_CODES.events) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
+      try {
+        const result = db.deletePlayerAdmin(targetId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'ADMIN_ERROR', message: e.message });
       }
     }
 

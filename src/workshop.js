@@ -37,18 +37,26 @@ function enrichDroid(droid) {
   const lvlMult = levelMultiplier(droid.level);
   const evolution = db.EVOLUTION_TABLE[droid.speciesId];
   const evolvesToSpecies = evolution ? speciesById(evolution.evolvesTo) : null;
+  const now = Date.now();
+  const buffIsActive = droid.buffActiveUntil ? now < droid.buffActiveUntil : false;
+  const buffIsOnCooldown = !buffIsActive && droid.buffCooldownUntil ? now < droid.buffCooldownUntil : false;
   return {
     ...droid,
     speciesName: species?.name,
     rarity: species?.rarity,
     alignment: species?.alignment,
     isCompanion: species?.isCompanion || false,
+    companionBuffType: species?.companionBuffType || null,
+    companionBuffPercent: species?.companionBuffPercent || null,
+    buffIsActive,
+    buffIsOnCooldown,
     crystalsPerMinute: Math.round(droidCrystalsPerMinute(droid) * 100) / 100,
     hp: species ? Math.round(species.baseHP * lvlMult) : null,
     attack: species ? Math.round(species.baseAttack * lvlMult) : null,
     nextLevelCost: droid.level >= db.DROID_LEVEL_CAP ? null : db.levelUpCost(droid.level, species?.rarity),
     evolvesToName: evolvesToSpecies?.name || null,
     evolveNovaChipCost: evolution?.novaChipCost || null,
+    isEvolutionOnly: species?.isEvolutionOnly || false,
   };
 }
 
@@ -376,6 +384,7 @@ function companionCaptureRateMultiplier(playerId) {
   if (!droid || droid.playerId !== playerId) return 1;
   const species = speciesById(droid.speciesId);
   if (!species || !species.isCompanion || species.companionBuffType !== 'capture_rate') return 1;
+  if (!droid.buffActiveUntil || Date.now() >= droid.buffActiveUntil) return 1; // must be actively toggled on, not just equipped
   return 1 + species.companionBuffPercent / 100;
 }
 

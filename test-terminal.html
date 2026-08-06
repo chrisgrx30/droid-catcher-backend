@@ -447,6 +447,7 @@
   <button class="tab-btn" data-tab="inventory">Inventory</button>
   <button class="tab-btn" data-tab="social">Events &amp; Trading</button>
   <button class="tab-btn" data-tab="dex">Dex</button>
+  <button class="tab-btn" data-tab="admin">Admin</button>
 </div>
 
 <!-- PLAYER TAB -->
@@ -506,6 +507,8 @@
     <div class="panel-title">Workshop</div>
     <div class="stat-row"><span class="stat-label">Balance</span><span class="stat-val amber" id="wsBalance">0</span></div>
     <div class="stat-row"><span class="stat-label">Last collect earned</span><span class="stat-val" id="wsEarned">0</span></div>
+    <div class="stat-row"><span class="stat-label">Total Rate</span><span class="stat-val" id="wsTotalRate">0/min</span></div>
+    <div class="stat-row"><span class="stat-label">Active Buff</span><span class="stat-val" id="wsActiveBuff" style="font-size:11px;">None</span></div>
     <button id="btnCollect">Collect Crystals</button>
 
     <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Workshop Slots <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(tap a farming slot to level up or unassign)</span></div>
@@ -542,12 +545,26 @@
     <div class="panel-title">Guild</div>
     <div id="guildStatus"><div class="empty">Not in a guild</div></div>
     <div id="guildMembers"></div>
-    <label style="margin-top:10px;">Guild name (to create)</label>
-    <input type="text" id="guildName" placeholder="e.g. The Nightfangs">
-    <button id="btnCreateGuild">Create Guild</button>
-    <label style="margin-top:8px;">Guild ID (to join)</label>
-    <input type="text" id="joinGuildId" placeholder="e.g. 3">
-    <button id="btnJoinGuild">Join Guild</button>
+    <div id="guildCreateJoin">
+      <label style="margin-top:10px;">Guild name (to create)</label>
+      <input type="text" id="guildName" placeholder="e.g. The Nightfangs">
+      <button id="btnCreateGuild">Create Guild</button>
+      <label style="margin-top:8px;">Guild ID (to join)</label>
+      <input type="text" id="joinGuildId" placeholder="e.g. 3">
+      <button id="btnJoinGuild">Join Guild</button>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px; display:none;" id="guildLeaderboardPanel">
+    <div class="panel-title">Dex Leaderboard</div>
+    <div id="guildLeaderboard"></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px; display:none;" id="guildChatPanel">
+    <div class="panel-title">Guild Chat <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— refreshes when you open this tab, not instant</span></div>
+    <div id="guildChatMessages" style="max-height:220px; overflow-y:auto; margin-bottom:10px;"></div>
+    <input type="text" id="guildChatInput" placeholder="Say something...">
+    <button id="btnSendGuildChat">Send</button>
   </div>
 </div>
 
@@ -555,6 +572,7 @@
 <div class="tab-page" id="tab-inventory">
   <div class="panel">
     <div class="panel-title">Inventory</div>
+    <div class="stat-row"><span class="stat-label">✦ Crystals</span><span class="stat-val amber" id="statInvCrystals">0</span></div>
     <div class="stat-row"><span class="stat-label">🎨 Paint</span><span class="stat-val" id="statPaint">0</span></div>
     <div class="stat-row"><span class="stat-label">🔷 Nova Chips</span><span class="stat-val" id="statNovaChips">0</span></div>
 
@@ -566,41 +584,26 @@
 
 <!-- EVENTS & TRADING TAB -->
 <div class="tab-page" id="tab-social">
-  <div class="grid" style="grid-template-columns: 1fr 1fr;">
-    <div class="panel">
-      <div class="panel-title">Time-Exclusive Events</div>
-      <div style="font-size:9px; color:var(--danger); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">🔒 Chris Admin Only — no access</div>
-      <div id="activeEventsList" style="margin-bottom: 10px;"><div class="empty">No active events</div></div>
-      <label>Quick-launch a test event (1 hour, 5x weight)</label>
-      <div style="display:flex; gap:6px; margin-top:6px;">
-        <button id="btnEventNature" style="margin-top:0;">☘ Boost Nature</button>
-        <button id="btnEventMythical" style="margin-top:0;">✦ Boost Mythical</button>
-      </div>
-      <label style="margin-top:10px;">Solar collection (only spawns during this event)</label>
-      <button id="btnEventSummer" style="margin-top:6px; background:linear-gradient(90deg,#ff9a3d,#ffcf5c); color:#3a1e00; font-weight:700;">☀ Start Summer Event (7 days)</button>
+  <div class="panel">
+    <div class="panel-title">Trading</div>
+    <label>Target Player ID</label>
+    <input type="text" id="tradeTargetId" placeholder="e.g. 2">
+    <button id="btnLoadTradeTarget">Load Their Droids</button>
+
+    <div id="tradeBuilder" style="display:none; margin-top:10px;">
+      <label>Your droid to offer</label>
+      <select id="tradeOfferDroid"></select>
+      <label>Their droid to request</label>
+      <select id="tradeRequestDroid">
+        <option value="">Nothing (just their choice, or ask crystals below)</option>
+      </select>
+      <label>Crystals to request (optional)</label>
+      <input type="text" id="tradeRequestCrystals" placeholder="0">
+      <button class="primary" id="btnCreateTrade">Send Trade Offer</button>
     </div>
 
-    <div class="panel">
-      <div class="panel-title">Trading</div>
-      <label>Target Player ID</label>
-      <input type="text" id="tradeTargetId" placeholder="e.g. 2">
-      <button id="btnLoadTradeTarget">Load Their Droids</button>
-
-      <div id="tradeBuilder" style="display:none; margin-top:10px;">
-        <label>Your droid to offer</label>
-        <select id="tradeOfferDroid"></select>
-        <label>Their droid to request</label>
-        <select id="tradeRequestDroid">
-          <option value="">Nothing (just their choice, or ask crystals below)</option>
-        </select>
-        <label>Crystals to request (optional)</label>
-        <input type="text" id="tradeRequestCrystals" placeholder="0">
-        <button class="primary" id="btnCreateTrade">Send Trade Offer</button>
-      </div>
-
-      <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Your Trades</div>
-      <div id="tradeList"><div class="empty">No trades yet</div></div>
-    </div>
+    <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Your Trades</div>
+    <div id="tradeList"><div class="empty">No trades yet</div></div>
   </div>
 
   <div class="panel" style="margin-top:16px;">
@@ -640,6 +643,29 @@
   <div class="panel" style="margin-top:16px;">
     <div class="panel-title">☀ Event Dex <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— doesn't count toward main Dex completion</span></div>
     <div class="dex-grid" id="eventDexGrid"></div>
+  </div>
+</div>
+
+<!-- ADMIN TAB -->
+<div class="tab-page" id="tab-admin">
+  <div class="panel">
+    <div class="panel-title">Time-Exclusive Events</div>
+    <div style="font-size:9px; color:var(--danger); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">🔒 Chris Admin Only — no access</div>
+    <div id="activeEventsList" style="margin-bottom: 10px;"><div class="empty">No active events</div></div>
+    <label>Quick-launch a test event (1 hour, 5x weight)</label>
+    <div style="display:flex; gap:6px; margin-top:6px;">
+      <button id="btnEventNature" style="margin-top:0;">☘ Boost Nature</button>
+      <button id="btnEventMythical" style="margin-top:0;">✦ Boost Mythical</button>
+    </div>
+    <label style="margin-top:10px;">Solar collection (only spawns during this event)</label>
+    <button id="btnEventSummer" style="margin-top:6px; background:linear-gradient(90deg,#ff9a3d,#ffcf5c); color:#3a1e00; font-weight:700;">☀ Start Summer Event (7 days)</button>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">Player Accounts</div>
+    <div style="font-size:9px; color:var(--danger); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">🔒 Chris Admin Only — no access</div>
+    <button id="btnLoadAdminPlayers">Load Player List</button>
+    <div id="adminPlayerList" style="margin-top:10px;"></div>
   </div>
 </div>
 
@@ -720,6 +746,7 @@ async function activatePlayer(player) {
   await refreshCosmeticsShop();
   populateWishSpeciesDropdown();
   refreshWishlist();
+  api('GET', '/events').then((data) => renderEvents(data.events)).catch(() => {});
 
   if (!player.hasStarterDroid) {
     showStarterPicker();
@@ -980,6 +1007,20 @@ async function refreshWorkshop() {
     state.droids = data.droids;
     state.crystalsPerSecond = data.crystalsPerSecond || 0;
     state.displayBalance = data.crystalBalance; // baseline for the live ticker
+    $('wsTotalRate').textContent = Math.round(state.crystalsPerSecond * 60 * 100) / 100 + '/min';
+    if (data.companionDroid && data.companionBuffType) {
+      const companion = data.companionDroid;
+      if (data.companionBuffType === 'crystal') {
+        $('wsActiveBuff').textContent = `+${data.companionBuffPercent}% crystals (${companion.speciesName})`;
+      } else {
+        const isActive = companion.buffIsActive;
+        $('wsActiveBuff').textContent = isActive
+          ? `+${data.companionBuffPercent}% capture (${companion.speciesName}, ACTIVE)`
+          : `${companion.speciesName} equipped — not activated`;
+      }
+    } else {
+      $('wsActiveBuff').textContent = 'None';
+    }
     $('statPadLevel').textContent = data.padLevel;
     $('statCritChance').textContent = Math.round(data.critChance * 100) + '%';
     $('padUpgradeCost').textContent = data.nextPadUpgradeCost;
@@ -987,6 +1028,7 @@ async function refreshWorkshop() {
     state.paint = data.paint;
     state.novaChips = data.novaChips;
     $('statPaint').textContent = data.paint;
+    $('statInvCrystals').textContent = Math.floor(data.crystalBalance);
     $('statNovaChips').textContent = data.novaChips;
     state.cosmetics = data.cosmetics;
     state.companionDroid = data.companionDroid;
@@ -1056,7 +1098,7 @@ function renderSlots() {
 
     const isExpanded = expandedSlotId === slot.id;
     div.innerHTML = `
-      <div class="sc-header"><span style="font-size:14px;">${droid.alignment === 'light' ? '☀' : '🌑'}</span><span class="sc-name">${droid.speciesName}</span></div>
+      <div class="sc-header"><span style="font-size:14px;">${droid.alignment === 'light' ? '☀' : '🌑'}</span><span class="sc-name">${droid.speciesName}</span>${droid.variant !== 'standard' ? `<span class="variant-tag ${droid.variant}" style="font-size:8px;">${droid.variant}</span>` : ''}</div>
       <div class="sc-meta">Lv${droid.level} · ${droid.crystalsPerMinute}/min</div>
       ${isExpanded ? `
         <div class="sc-expand">
@@ -1313,10 +1355,26 @@ function renderCompanion() {
       ? `+${state.companionBuffPercent}% capture success chance`
       : `+${state.companionBuffPercent}% total farm rate`;
     tag.textContent = buffLabel;
+
+    let activationHTML = '';
+    if (state.companionBuffType === 'capture_rate') {
+      const now = Date.now();
+      if (c.buffIsActive) {
+        const minsLeft = Math.ceil((c.buffActiveUntil - now) / 60000);
+        activationHTML = `<div style="color:var(--uncommon); font-size:10px; margin-top:6px;">⚡ ACTIVE — ${minsLeft}m remaining</div>`;
+      } else if (c.buffIsOnCooldown) {
+        const minsLeft = Math.ceil((c.buffCooldownUntil - now) / 60000);
+        activationHTML = `<div style="color:var(--text-dim); font-size:10px; margin-top:6px;">On cooldown — ready in ${minsLeft}m</div>`;
+      } else {
+        activationHTML = `<button class="activate-buff-btn" style="margin-top:8px;">Activate Buff (1hr, then 8hr cooldown)</button>`;
+      }
+    }
+
     el.innerHTML = `
       <div class="trade-card">
         <div>✦ ${c.speciesName} · Lv${c.level}${c.variant !== 'standard' ? ` · <span class="variant-tag ${c.variant}">${c.variant}</span>` : ''}</div>
         <div style="color:var(--text-dim); font-size:9px; margin-top:3px;">${buffLabel}</div>
+        ${activationHTML}
         <div class="tc-actions">
           <button class="unequip-companion-btn">Unequip</button>
         </div>
@@ -1328,6 +1386,16 @@ function renderCompanion() {
         await refreshWorkshop();
       } catch (e) {}
     };
+    const activateBtn = el.querySelector('.activate-buff-btn');
+    if (activateBtn) {
+      activateBtn.onclick = async () => {
+        try {
+          await api('POST', '/companion/activate', { playerId: state.playerId, droidId: c.id });
+          log('SYS', `${c.speciesName}'s buff is active for 1 hour!`);
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    }
   }
 
   // List every owned companion (StarSprite/Nebulfox), equipped or not, for quick swapping.
@@ -1428,11 +1496,23 @@ function renderCosmetics() {
 async function renderGuild() {
   const el = $('guildStatus');
   const membersEl = $('guildMembers');
+  const createJoinEl = $('guildCreateJoin');
+  const leaderboardPanel = $('guildLeaderboardPanel');
+  const chatPanel = $('guildChatPanel');
+
   if (!state.guildId) {
     el.innerHTML = '<div class="empty">Not in a guild</div>';
     membersEl.innerHTML = '';
+    createJoinEl.style.display = 'block';
+    leaderboardPanel.style.display = 'none';
+    chatPanel.style.display = 'none';
     return;
   }
+
+  createJoinEl.style.display = 'none';
+  leaderboardPanel.style.display = 'block';
+  chatPanel.style.display = 'block';
+
   el.innerHTML = `<div class="trade-card">In guild #${state.guildId} <div class="tc-actions"><button class="leave-guild-btn">Leave</button></div></div>`;
   el.querySelector('.leave-guild-btn').onclick = async () => {
     try {
@@ -1440,14 +1520,61 @@ async function renderGuild() {
       await refreshWorkshop();
     } catch (e) {}
   };
+
   try {
     const guild = await api('GET', `/guilds/${state.guildId}`);
+    const isCreator = guild.creatorId === state.playerId;
     membersEl.innerHTML = `
       <div class="panel-title" style="margin-top:12px; margin-bottom:6px;">${guild.name} — ${guild.members.length} member${guild.members.length === 1 ? '' : 's'}</div>
-      ${guild.members.map((m) => `<div class="stat-row"><span class="stat-label">${m.id === guild.creatorId ? '👑 ' : ''}${m.username}</span><span class="stat-val" style="font-size:9px; color:var(--text-dim);">#${m.id}</span></div>`).join('')}
+      ${guild.members.map((m) => `
+        <div class="stat-row">
+          <span class="stat-label">${m.id === guild.creatorId ? '👑 ' : ''}${m.username} <span style="color:var(--text-dim);">#${m.id}</span></span>
+          ${isCreator && m.id !== state.playerId ? `<button class="kick-btn" data-id="${m.id}" data-name="${m.username}" style="margin-top:0; width:auto; padding:3px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Kick</button>` : ''}
+        </div>
+      `).join('')}
     `;
+    membersEl.querySelectorAll('.kick-btn').forEach((btn) => {
+      btn.onclick = async () => {
+        if (!confirm(`Kick ${btn.dataset.name}? They can't rejoin this guild for 30 days, and can't join any guild for 24h.`)) return;
+        try {
+          await api('POST', `/guilds/${state.guildId}/kick`, { kickerId: state.playerId, targetPlayerId: Number(btn.dataset.id) });
+          await renderGuild();
+        } catch (e) {}
+      };
+    });
+
+    const leaderboard = await api('GET', `/guilds/${state.guildId}/leaderboard`);
+    $('guildLeaderboard').innerHTML = leaderboard.leaderboard.map((row, i) => `
+      <div class="stat-row">
+        <span class="stat-label">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.'} ${row.username}</span>
+        <span class="stat-val">${row.totalCaught}/${row.totalSpecies} (${row.percentComplete}%)</span>
+      </div>
+    `).join('') || '<div class="empty">No members yet</div>';
+
+    await refreshGuildChat();
   } catch (e) {}
 }
+
+async function refreshGuildChat() {
+  if (!state.guildId) return;
+  try {
+    const data = await api('GET', `/guilds/${state.guildId}/chat`);
+    const box = $('guildChatMessages');
+    box.innerHTML = data.messages.slice().reverse().map((m) => `
+      <div style="font-size:10px; margin-bottom:6px;"><strong>${m.username}</strong> <span style="color:var(--text-dim); font-size:9px;">${new Date(m.createdAt).toLocaleTimeString()}</span><br>${m.text}</div>
+    `).join('') || '<div class="empty">No messages yet</div>';
+  } catch (e) {}
+}
+
+$('btnSendGuildChat').onclick = async () => {
+  const text = $('guildChatInput').value.trim();
+  if (!text) return;
+  try {
+    await api('POST', `/guilds/${state.guildId}/chat`, { playerId: state.playerId, text });
+    $('guildChatInput').value = '';
+    await refreshGuildChat();
+  } catch (e) {}
+};
 
 $('btnCreateGuild').onclick = async () => {
   const name = $('guildName').value.trim();
@@ -1585,6 +1712,7 @@ function renderDex(entries) {
     const platinumCaught = caughtVariants.includes('platinum');
     const funkyCaught = caughtVariants.includes('funky');
     card.innerHTML = `
+      ${s.isEvolutionOnly ? '<span title="Only obtained by evolving another species" style="position:absolute; top:4px; left:4px; font-size:9px; font-weight:700; color:var(--cyan); background:rgba(95,216,224,0.15); border:1px solid var(--cyan-dim); border-radius:3px; width:14px; height:14px; display:flex; align-items:center; justify-content:center;">e</span>' : ''}
       <div class="dc-icon"></div>
       <div class="dc-name">${s.caught ? s.name : '???'}</div>
       <div class="dc-rarity ${s.rarity}">${s.rarity}</div>
@@ -1594,6 +1722,7 @@ function renderDex(entries) {
         <span class="variant-dot funky ${funkyCaught ? 'caught' : ''}" title="Funky${funkyCaught ? ' — caught' : ' — not yet caught'}"></span>
       </div>
     `;
+    card.style.position = 'relative';
     card.querySelector('.dc-icon').appendChild(createDroidVisual(s, 40));
     grid.appendChild(card);
   });
@@ -1626,20 +1755,35 @@ function renderEventDex(entries) {
   });
 }
 
+function formatTimeLeft(endTime) {
+  const msLeft = Math.max(0, endTime - Date.now());
+  const days = Math.floor(msLeft / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((msLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const mins = Math.floor((msLeft % (60 * 60 * 1000)) / 60000);
+  if (days > 0) return `${days}d ${hours}h left`;
+  if (hours > 0) return `${hours}h ${mins}m left`;
+  return `${mins}m left`;
+}
+
+function eventCardHTML(e) {
+  const target = e.collection ? e.collection : (e.speciesIds && e.speciesIds.length ? `${e.speciesIds.length} species` : 'unknown target');
+  const effect = e.mode === 'grant'
+    ? `now spawning (event-exclusive)`
+    : `${e.spawnWeightMultiplier}x spawn weight`;
+  return `<span class="event-chip"><span class="ev-name">⚡ ${e.name}</span><br><span class="ev-meta">${target} · ${effect} · ${formatTimeLeft(e.endTime)}</span></span>`;
+}
+
 function renderEvents(events) {
   const banner = $('eventBanner');
   const listEl = $('activeEventsList');
   if (!events || !events.length) {
-    banner.innerHTML = '';
-    listEl.innerHTML = '<div class="empty">No active events</div>';
+    if (banner) banner.innerHTML = '<div class="empty" style="padding:8px 0;">No active events right now</div>';
+    if (listEl) listEl.innerHTML = '<div class="empty">No active events</div>';
     return;
   }
-  const chips = events.map((e) => {
-    const mins = Math.max(0, Math.round((e.endTime - Date.now()) / 60000));
-    return `<span class="event-chip"><span class="ev-name">⚡ ${e.name}</span><br><span class="ev-meta">${e.collection || 'select species'} · ${e.spawnWeightMultiplier}x weight · ${mins}m left</span></span>`;
-  }).join('');
-  banner.innerHTML = chips;
-  listEl.innerHTML = chips;
+  const chips = events.map(eventCardHTML).join('');
+  if (banner) banner.innerHTML = chips;
+  if (listEl) listEl.innerHTML = chips;
 }
 
 function promptAdminCode(purpose) {
@@ -1688,6 +1832,47 @@ $('btnEventSummer').onclick = async () => {
     log('SYS', '☀ Summer Event started — Solar-collection droids now spawning for 7 days!');
   } catch (e) {}
 };
+
+// ---- Admin: player accounts ----
+$('btnLoadAdminPlayers').onclick = async () => {
+  const adminCode = promptAdminCode('player list');
+  if (!adminCode) return;
+  try {
+    const data = await api('POST', '/admin/players', { adminCode });
+    renderAdminPlayerList(data.players, adminCode);
+  } catch (e) {}
+};
+
+function renderAdminPlayerList(players, adminCode) {
+  const list = $('adminPlayerList');
+  if (!players.length) {
+    list.innerHTML = '<div class="empty">No players yet</div>';
+    return;
+  }
+  list.innerHTML = '';
+  players.forEach((p) => {
+    const lastOnlineStr = p.lastOnline ? new Date(p.lastOnline).toLocaleString() : 'never';
+    const row = document.createElement('div');
+    row.className = 'trade-card';
+    row.innerHTML = `
+      <div><strong>${p.username}</strong> <span style="color:var(--text-dim); font-size:9px;">#${p.id}</span></div>
+      <div style="color:var(--text-dim); font-size:9px; margin-top:2px;">Last online: ${lastOnlineStr} · ${p.droidCount} droids · ${Math.floor(p.crystalBalance)}✦${p.guildId ? ' · in guild #' + p.guildId : ''}</div>
+      <div class="tc-actions">
+        <button class="admin-delete-btn" style="color:var(--danger); border-color:var(--danger);">Delete Account</button>
+      </div>
+    `;
+    row.querySelector('.admin-delete-btn').onclick = async () => {
+      if (!confirm(`Permanently delete ${p.username} (#${p.id})? This removes their droids, guild membership, and pending trades. Cannot be undone.`)) return;
+      try {
+        await api('POST', `/admin/players/${p.id}/delete`, { adminCode });
+        log('SYS', `Deleted player ${p.username}`);
+        const data = await api('POST', '/admin/players', { adminCode });
+        renderAdminPlayerList(data.players, adminCode);
+      } catch (e) {}
+    };
+    list.appendChild(row);
+  });
+}
 
 // ---- Trading ----
 $('btnLoadTradeTarget').onclick = async () => {
@@ -1845,7 +2030,7 @@ function renderWishlist(wishes) {
       ? `${w.speciesName}${w.variantWanted !== 'any' ? ` (${w.variantWanted})` : ''}`
       : `Paint${w.colorWanted !== 'any' ? ` (${w.colorWanted})` : ''}`;
     card.innerHTML = `
-      <div><strong>${w.playerUsername}</strong> wants: ${desc}${w.note ? ` — <span style="color:var(--text-dim);">${w.note}</span>` : ''}</div>
+      <div><strong>${w.playerUsername}</strong> <span style="color:var(--text-dim); font-size:9px;">#${w.playerId}</span> wants: ${desc}${w.note ? ` — <span style="color:var(--text-dim);">${w.note}</span>` : ''}</div>
     `;
     if (w.playerId !== state.playerId) {
       const actions = document.createElement('div');
