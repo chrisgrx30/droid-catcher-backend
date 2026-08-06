@@ -322,6 +322,30 @@
   .droid-row select { background: var(--panel-raised); color: var(--text); border: 1px solid var(--line); font-family: inherit; font-size: 10px; border-radius: 3px; }
 
   .slot-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+  .slot-grid-detailed { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 8px; }
+  .slot-card {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 8px;
+    background: var(--panel-raised);
+    cursor: pointer;
+    min-height: 60px;
+  }
+  .slot-card.filled { border-color: var(--amber); background: rgba(232,169,79,0.10); }
+  .slot-card.locked { opacity: 0.5; }
+  .slot-card.empty-slot { border-style: dashed; }
+  .slot-card .sc-header { display: flex; align-items: center; gap: 6px; }
+  .slot-card .sc-name { font-size: 10px; color: #fff; font-weight: 600; }
+  .slot-card .sc-meta { font-size: 9px; color: var(--text-dim); margin-top: 2px; }
+  .slot-card .sc-expand { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .slot-card .sc-expand button { margin-top: 0; font-size: 9px; padding: 5px; }
+  .droid-checkbox { flex-shrink: 0; width: 14px; height: 14px; accent-color: var(--cyan); }
+  .droid-row .stats-btn { flex-shrink: 0; width: auto; margin-top: 4px; padding: 4px 8px; font-size: 9px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; text-align: left; }
+  .stat-grid .sg-item { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 3px; padding: 8px; }
+  .stat-grid .sg-label { font-size: 9px; text-transform: uppercase; color: var(--text-dim); }
+  .stat-grid .sg-val { font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px; }
   .slot-grid .slot { flex: 0 0 calc(20% - 5px); }
   .slot {
     flex: 1;
@@ -417,6 +441,7 @@
   <button class="tab-btn active" data-tab="player">Player</button>
   <button class="tab-btn" data-tab="capture">Capture</button>
   <button class="tab-btn" data-tab="farm">Farm</button>
+  <button class="tab-btn" data-tab="companion">Companion</button>
   <button class="tab-btn" data-tab="storage">Storage</button>
   <button class="tab-btn" data-tab="guilds">Guilds</button>
   <button class="tab-btn" data-tab="inventory">Inventory</button>
@@ -483,18 +508,30 @@
     <div class="stat-row"><span class="stat-label">Last collect earned</span><span class="stat-val" id="wsEarned">0</span></div>
     <button id="btnCollect">Collect Crystals</button>
 
-    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Companion <span id="companionBuffTag" style="color:var(--text-dim);"></span></div>
-    <div id="companionSlot"><div class="empty">No companion equipped</div></div>
+    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Workshop Slots <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(tap a farming slot to level up or unassign)</span></div>
+    <div class="slot-grid-detailed" id="slotGrid"></div>
+  </div>
+</div>
 
-    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Workshop Slots</div>
-    <div class="slot-grid" id="slotGrid"></div>
+<!-- COMPANION TAB -->
+<div class="tab-page" id="tab-companion">
+  <div class="panel">
+    <div class="panel-title">Companion <span id="companionBuffTag" style="color:var(--text-dim);"></span></div>
+    <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">Companions don't farm crystals themselves — instead, whichever one you equip gives your whole pilot a passive buff. Only one active at a time.</div>
+    <div id="companionSlot"><div class="empty">No companion equipped</div></div>
+    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Your Companions</div>
+    <div id="companionOptions"><div class="empty">Capture a StarSprite or Nebulfox to equip one</div></div>
   </div>
 </div>
 
 <!-- STORAGE TAB -->
 <div class="tab-page" id="tab-storage">
   <div class="panel">
-    <div class="panel-title">Owned Droids <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(farming first, then rarity, species, variant)</span></div>
+    <div class="panel-title">Owned Droids <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(not farming — rarity, species, variant)</span></div>
+    <div style="display:flex; gap:6px; margin-bottom:10px;">
+      <button id="btnSelectAllDroids" class="ghost" style="margin-top:0;">Select All</button>
+      <button id="btnReleaseSelected" class="ghost" style="margin-top:0; color:var(--danger); border-color:var(--danger);">Release Selected</button>
+    </div>
     <div id="droidList"><div class="empty">None captured yet</div></div>
   </div>
 </div>
@@ -538,6 +575,8 @@
         <button id="btnEventNature" style="margin-top:0;">☘ Boost Nature</button>
         <button id="btnEventMythical" style="margin-top:0;">✦ Boost Mythical</button>
       </div>
+      <label style="margin-top:10px;">Solar collection (only spawns during this event)</label>
+      <button id="btnEventSummer" style="margin-top:6px; background:linear-gradient(90deg,#ff9a3d,#ffcf5c); color:#3a1e00; font-weight:700;">☀ Start Summer Event (7 days)</button>
     </div>
 
     <div class="panel">
@@ -550,13 +589,44 @@
         <label>Your droid to offer</label>
         <select id="tradeOfferDroid"></select>
         <label>Their droid to request</label>
-        <select id="tradeRequestDroid"></select>
+        <select id="tradeRequestDroid">
+          <option value="">Nothing (just their choice, or ask crystals below)</option>
+        </select>
+        <label>Crystals to request (optional)</label>
+        <input type="text" id="tradeRequestCrystals" placeholder="0">
         <button class="primary" id="btnCreateTrade">Send Trade Offer</button>
       </div>
 
       <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Your Trades</div>
       <div id="tradeList"><div class="empty">No trades yet</div></div>
     </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">Wishlist <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— public board, anyone can offer</span></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+      <select id="wishType" style="flex:1; min-width:100px;">
+        <option value="droid">Droid</option>
+        <option value="paint">Paint</option>
+      </select>
+      <select id="wishSpecies" style="flex:1; min-width:120px;"></select>
+      <select id="wishVariant" style="flex:1; min-width:100px;">
+        <option value="any">Any variant</option>
+        <option value="rusty">Rusty</option>
+        <option value="platinum">Platinum</option>
+      </select>
+      <select id="wishColor" style="flex:1; min-width:100px;">
+        <option value="any">Any color</option>
+        <option value="red">Red</option>
+        <option value="yellow">Yellow</option>
+        <option value="blue">Blue</option>
+      </select>
+    </div>
+    <input type="text" id="wishNote" placeholder="Optional note">
+    <button class="primary" id="btnPostWish">Post to Wishlist</button>
+
+    <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Open Wishes</div>
+    <div id="wishlistBoard"><div class="empty">No open wishes</div></div>
   </div>
 </div>
 
@@ -565,6 +635,10 @@
   <div class="panel">
     <div class="panel-title">Droid Dex <span id="dexProgress" style="color:var(--text-dim);">0 / 19</span></div>
     <div class="dex-grid" id="dexGrid"></div>
+  </div>
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">☀ Event Dex <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— doesn't count toward main Dex completion</span></div>
+    <div class="dex-grid" id="eventDexGrid"></div>
   </div>
 </div>
 
@@ -643,6 +717,8 @@ async function activatePlayer(player) {
   const { species } = await api('GET', '/species');
   state.species = species;
   await refreshCosmeticsShop();
+  populateWishSpeciesDropdown();
+  refreshWishlist();
 
   if (!player.hasStarterDroid) {
     showStarterPicker();
@@ -776,7 +852,9 @@ function renderSpawns() {
     const zoneWidth = RARITY_ZONE_WIDTH[spawn.rarity] || 30;
     const zoneCenter = 15 + Math.random() * 70; // keep the zone fully on-track (15%-85% range)
 
-    const alreadyCaught = state.dexCaughtIds && state.dexCaughtIds.has(spawn.speciesId);
+    const alreadyCaught = spawn.variant === 'standard'
+      ? (state.dexCaughtIds && state.dexCaughtIds.has(spawn.speciesId))
+      : (state.dexCaughtVariants && state.dexCaughtVariants.has(`${spawn.speciesId}:${spawn.variant}`));
     const dexPadIcon = alreadyCaught ? '<span title="Already in your Dex" style="margin-left:4px;">🎮</span>' : '';
 
     card.innerHTML = `
@@ -912,6 +990,7 @@ async function refreshWorkshop() {
     state.cosmetics = data.cosmetics;
     state.companionDroid = data.companionDroid;
     state.companionBuffPercent = data.companionBuffPercent;
+    state.companionBuffType = data.companionBuffType;
     state.guildId = data.guildId;
     renderSlots();
     renderDroids();
@@ -944,15 +1023,18 @@ function startTicker() {
 
 $('btnCollect').onclick = () => refreshWorkshop();
 
+let expandedSlotId = null;
+
 function renderSlots() {
   const grid = $('slotGrid');
   grid.innerHTML = '';
   state.slots.forEach((slot) => {
     const droid = state.droids.find((d) => d.workshopSlotId === slot.id);
     const div = document.createElement('div');
-    div.className = 'slot' + (droid ? ' filled' : '') + (!slot.unlocked ? ' locked' : '');
+    div.className = 'slot-card' + (droid ? ' filled' : (slot.unlocked ? ' empty-slot' : ' locked'));
+
     if (!slot.unlocked) {
-      div.innerHTML = `Locked<span class="unlock-cost">${slot.unlockCost} ✦</span>`;
+      div.innerHTML = `<div class="sc-name">Slot ${slot.slotIndex + 1}</div><div class="sc-meta">🔒 Locked — ${slot.unlockCost}✦</div>`;
       div.title = `Spend ${slot.unlockCost} crystals to unlock this slot`;
       div.onclick = async () => {
         try {
@@ -961,8 +1043,48 @@ function renderSlots() {
           await refreshWorkshop();
         } catch (e) {}
       };
-    } else {
-      div.textContent = droid ? 'Farming' : 'Empty';
+      grid.appendChild(div);
+      return;
+    }
+
+    if (!droid) {
+      div.innerHTML = `<div class="sc-name">Slot ${slot.slotIndex + 1}</div><div class="sc-meta">Empty — assign from Storage</div>`;
+      grid.appendChild(div);
+      return;
+    }
+
+    const isExpanded = expandedSlotId === slot.id;
+    div.innerHTML = `
+      <div class="sc-header"><span style="font-size:14px;">${droid.alignment === 'light' ? '☀' : '🌑'}</span><span class="sc-name">${droid.speciesName}</span></div>
+      <div class="sc-meta">Lv${droid.level} · ${droid.crystalsPerMinute}/min</div>
+      ${isExpanded ? `
+        <div class="sc-expand">
+          <button class="slot-levelup-btn" ${droid.nextLevelCost === null ? 'disabled' : ''}>${droid.nextLevelCost === null ? 'MAX Level' : `Level Up (${droid.nextLevelCost}✦)`}</button>
+          <button class="slot-unassign-btn">Unassign</button>
+        </div>
+      ` : ''}
+    `;
+    div.onclick = (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      expandedSlotId = isExpanded ? null : slot.id;
+      renderSlots();
+    };
+    if (isExpanded) {
+      div.querySelector('.slot-levelup-btn').onclick = async (e) => {
+        e.stopPropagation();
+        try {
+          await api('POST', `/droids/${droid.id}/level-up`, { playerId: state.playerId });
+          await refreshWorkshop();
+        } catch (err) {}
+      };
+      div.querySelector('.slot-unassign-btn').onclick = async (e) => {
+        e.stopPropagation();
+        try {
+          await api('POST', '/workshop/unassign', { playerId: state.playerId, droidId: droid.id });
+          expandedSlotId = null;
+          await refreshWorkshop();
+        } catch (err) {}
+      };
     }
     grid.appendChild(div);
   });
@@ -989,23 +1111,19 @@ function sortedDroidsForDisplay() {
   });
 }
 
+let selectedDroidIds = new Set();
+
 function renderDroids() {
   const list = $('droidList');
-  if (!state.droids.length) {
-    list.innerHTML = '<div class="empty">None captured yet</div>';
+  const sorted = sortedDroidsForDisplay().filter((d) => !d.workshopSlotId); // farming droids live on the Farm tab now
+  selectedDroidIds = new Set([...selectedDroidIds].filter((id) => sorted.some((d) => d.id === id)));
+
+  if (!sorted.length) {
+    list.innerHTML = '<div class="empty">Nothing in storage — everything is farming, or you haven\'t captured anything yet</div>';
     return;
   }
   list.innerHTML = '';
-  const sorted = sortedDroidsForDisplay();
-  let dividerShown = false;
   sorted.forEach((droid) => {
-    if (!droid.workshopSlotId && !dividerShown && sorted.some((d) => d.workshopSlotId)) {
-      const divider = document.createElement('div');
-      divider.style.cssText = 'font-size:9px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:8px 0 4px; border-top:1px dashed var(--line); padding-top:6px;';
-      divider.textContent = 'Not Farming (by rarity)';
-      list.appendChild(divider);
-      dividerShown = true;
-    }
     const row = document.createElement('div');
     row.className = 'droid-row';
     row.style.flexWrap = 'wrap';
@@ -1019,13 +1137,11 @@ function renderDroids() {
       const isEquipped = state.companionDroid && state.companionDroid.id === droid.id;
       assignmentControl = `<button class="companion-assign-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;" ${isEquipped ? 'disabled' : ''}>${isEquipped ? 'Equipped' : 'Set as Companion'}</button>`;
     } else {
-      const unlockedSlots = state.slots.filter((s) => s.unlocked);
-      const options = unlockedSlots.map((s) =>
-        `<option value="${s.id}" ${droid.workshopSlotId === s.id ? 'selected' : ''}>Slot ${s.slotIndex + 1}</option>`
-      ).join('');
+      const unlockedSlots = state.slots.filter((s) => s.unlocked && !state.droids.some((d) => d.workshopSlotId === s.id));
+      const options = unlockedSlots.map((s) => `<option value="${s.id}">Slot ${s.slotIndex + 1}</option>`).join('');
       assignmentControl = `
         <select style="margin-top:4px;">
-          <option value="">Unassigned</option>
+          <option value="">Assign to slot...</option>
           ${options}
         </select>`;
     }
@@ -1039,8 +1155,9 @@ function renderDroids() {
       : '';
 
     row.innerHTML = `
-      <span class="droid-icon" style="flex-shrink:0;"></span>
-      <span style="flex:1;">
+      <input type="checkbox" class="droid-checkbox" ${selectedDroidIds.has(droid.id) ? 'checked' : ''}>
+      <span class="droid-icon" style="flex-shrink:0; cursor:pointer;"></span>
+      <span style="flex:1; cursor:pointer;" class="droid-info-click">
         ${droid.alignment === 'light' ? '☀' : droid.alignment === 'cosmic' ? '✦' : '🌑'} ${droid.speciesName} · Lv${droid.level}
         <span class="spawn-rarity ${droid.rarity}" style="margin-left:4px;">${droid.rarity}</span>${variantTag}<br>
         <span style="color:var(--text-dim); font-size:9px;">${droid.crystalsPerMinute}/min · HP ${droid.hp} · ATK ${droid.attack}</span>
@@ -1052,6 +1169,12 @@ function renderDroids() {
       <button class="release-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Release (${Math.floor((droid.captureCost||0)*1.5)}✦)</button>
     `;
     row.querySelector('.droid-icon').appendChild(createDroidVisual(droid, 26));
+
+    row.querySelector('.droid-checkbox').onchange = (e) => {
+      if (e.target.checked) selectedDroidIds.add(droid.id); else selectedDroidIds.delete(droid.id);
+    };
+    row.querySelector('.droid-icon').onclick = () => showStatsModal(droid);
+    row.querySelector('.droid-info-click').onclick = () => showStatsModal(droid);
 
     if (droid.isCompanion) {
       const btn = row.querySelector('.companion-assign-btn');
@@ -1066,12 +1189,9 @@ function renderDroids() {
     } else {
       row.querySelector('select').onchange = async (e) => {
         const slotId = e.target.value;
+        if (!slotId) return;
         try {
-          if (slotId) {
-            await api('POST', '/workshop/assign', { playerId: state.playerId, droidId: droid.id, slotId: Number(slotId) });
-          } else {
-            await api('POST', '/workshop/unassign', { playerId: state.playerId, droidId: droid.id });
-          }
+          await api('POST', '/workshop/assign', { playerId: state.playerId, droidId: droid.id, slotId: Number(slotId) });
           await refreshWorkshop();
         } catch (err) {}
       };
@@ -1113,7 +1233,7 @@ function renderDroids() {
       if (!confirm(`Release this ${droid.speciesName}? This cannot be undone.`)) return;
       try {
         const result = await api('POST', `/droids/${droid.id}/release`, { playerId: state.playerId });
-        log('SYS', `Released for ${result.refund} crystals${result.gotNovaChip ? ' + 1 Nova Chip!' : ''}`);
+        showReleaseResultPopup([droid.speciesName], result.refund, result.gotNovaChip ? 1 : 0);
         await refreshWorkshop();
       } catch (e) {}
     };
@@ -1122,6 +1242,63 @@ function renderDroids() {
   });
 }
 
+function showStatsModal(droid) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon"></div>
+    <div id="statsModalIcon" style="margin-bottom:10px;"></div>
+    <div class="mb-title" style="color:#fff;">${droid.speciesName}</div>
+    <div class="mb-detail">Level ${droid.level} · ${droid.rarity} · ${droid.variant !== 'standard' ? droid.variant : 'standard'}</div>
+    <div class="stat-grid">
+      <div class="sg-item"><div class="sg-label">HP</div><div class="sg-val">${droid.hp}</div></div>
+      <div class="sg-item"><div class="sg-label">Attack</div><div class="sg-val">${droid.attack}</div></div>
+      <div class="sg-item"><div class="sg-label">Crystals/min</div><div class="sg-val">${droid.crystalsPerMinute}</div></div>
+      <div class="sg-item"><div class="sg-label">Next Level</div><div class="sg-val" style="font-size:11px;">${droid.nextLevelCost === null ? 'MAX' : droid.nextLevelCost + '✦'}</div></div>
+    </div>
+    <button class="primary mb-close" style="margin-top:16px;">Close</button>
+  `;
+  box.querySelector('#statsModalIcon').appendChild(createDroidVisual(droid, 64));
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
+
+function showReleaseResultPopup(names, totalRefund, novaChipsGained) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">♻️</div>
+    <div class="mb-title" style="color:#fff;">Released</div>
+    <div class="mb-detail">${names.join(', ')}</div>
+    <div class="mb-detail" style="color:var(--amber);">+${totalRefund} crystals</div>
+    ${novaChipsGained > 0 ? `<div class="mb-detail" style="color:var(--cyan);">🔷 +${novaChipsGained} Nova Chip${novaChipsGained > 1 ? 's' : ''}!</div>` : ''}
+    <button class="primary mb-close">Nice</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
+
+$('btnSelectAllDroids').onclick = () => {
+  const sorted = sortedDroidsForDisplay().filter((d) => !d.workshopSlotId);
+  if (selectedDroidIds.size === sorted.length) {
+    selectedDroidIds.clear();
+  } else {
+    selectedDroidIds = new Set(sorted.map((d) => d.id));
+  }
+  renderDroids();
+};
+
+$('btnReleaseSelected').onclick = async () => {
+  if (!selectedDroidIds.size) { log('SYS', 'Select at least one droid first', true); return; }
+  if (!confirm(`Release ${selectedDroidIds.size} droid(s)? This cannot be undone.`)) return;
+  try {
+    const result = await api('POST', '/droids/release-bulk', { playerId: state.playerId, droidIds: [...selectedDroidIds] });
+    showReleaseResultPopup(result.releasedNames, result.totalRefund, result.novaChipsGained);
+    selectedDroidIds.clear();
+    await refreshWorkshop();
+  } catch (e) {}
+};
+
 // ---- Companion ----
 function renderCompanion() {
   const el = $('companionSlot');
@@ -1129,24 +1306,57 @@ function renderCompanion() {
   if (!state.companionDroid) {
     el.innerHTML = '<div class="empty">No companion equipped</div>';
     tag.textContent = '';
+  } else {
+    const c = state.companionDroid;
+    const buffLabel = state.companionBuffType === 'capture_rate'
+      ? `+${state.companionBuffPercent}% capture success chance`
+      : `+${state.companionBuffPercent}% total farm rate`;
+    tag.textContent = buffLabel;
+    el.innerHTML = `
+      <div class="trade-card">
+        <div>✦ ${c.speciesName} · Lv${c.level}${c.variant !== 'standard' ? ` · <span class="variant-tag ${c.variant}">${c.variant}</span>` : ''}</div>
+        <div style="color:var(--text-dim); font-size:9px; margin-top:3px;">${buffLabel}</div>
+        <div class="tc-actions">
+          <button class="unequip-companion-btn">Unequip</button>
+        </div>
+      </div>
+    `;
+    el.querySelector('.unequip-companion-btn').onclick = async () => {
+      try {
+        await api('POST', '/companion/unassign', { playerId: state.playerId });
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+  }
+
+  // List every owned companion (StarSprite/Nebulfox), equipped or not, for quick swapping.
+  const optionsEl = $('companionOptions');
+  const ownedCompanions = state.droids.filter((d) => d.isCompanion);
+  if (!ownedCompanions.length) {
+    optionsEl.innerHTML = '<div class="empty">Capture a StarSprite or Nebulfox to equip one</div>';
     return;
   }
-  const c = state.companionDroid;
-  tag.textContent = `+${state.companionBuffPercent}% total farm rate`;
-  el.innerHTML = `
-    <div class="trade-card">
-      <div>✦ ${c.speciesName} · Lv${c.level}${c.variant !== 'standard' ? ` · <span class="variant-tag ${c.variant}">${c.variant}</span>` : ''}</div>
-      <div class="tc-actions">
-        <button class="unequip-companion-btn">Unequip</button>
-      </div>
-    </div>
-  `;
-  el.querySelector('.unequip-companion-btn').onclick = async () => {
-    try {
-      await api('POST', '/companion/unassign', { playerId: state.playerId });
-      await refreshWorkshop();
-    } catch (e) {}
-  };
+  optionsEl.innerHTML = '';
+  ownedCompanions.forEach((c) => {
+    const isEquipped = state.companionDroid && state.companionDroid.id === c.id;
+    const row = document.createElement('div');
+    row.className = 'droid-row';
+    row.innerHTML = `
+      <span class="droid-icon" style="flex-shrink:0;"></span>
+      <span style="flex:1;">${c.speciesName} · Lv${c.level}${c.variant !== 'standard' ? ` · <span class="variant-tag ${c.variant}">${c.variant}</span>` : ''}</span>
+      <button class="equip-btn" style="margin-top:0; width:auto; padding:5px 10px; font-size:9px;" ${isEquipped ? 'disabled' : ''}>${isEquipped ? 'Equipped' : 'Equip'}</button>
+    `;
+    row.querySelector('.droid-icon').appendChild(createDroidVisual(c, 26));
+    if (!isEquipped) {
+      row.querySelector('.equip-btn').onclick = async () => {
+        try {
+          await api('POST', '/companion/assign', { playerId: state.playerId, droidId: c.id });
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    }
+    optionsEl.appendChild(row);
+  });
 }
 
 // ---- Cosmetics ----
@@ -1353,7 +1563,10 @@ async function refreshDex() {
     const data = await api('GET', `/players/${state.playerId}/dex`);
     $('dexProgress').textContent = `${data.totalCaught} / ${data.totalSpecies} (${data.percentComplete}%)`;
     state.dexCaughtIds = new Set(data.entries.filter((e) => e.caught).map((e) => e.id));
+    state.dexCaughtVariants = new Set();
+    data.entries.forEach((e) => (e.variantsCaught || []).forEach((v) => state.dexCaughtVariants.add(`${e.id}:${v}`)));
     renderDex(data.entries);
+    renderEventDex(data.eventEntries || []);
     renderSpawns(); // refresh "already caught" pad icons on the radar with the latest dex
   } catch (e) {}
 }
@@ -1378,6 +1591,33 @@ function renderDex(entries) {
         <span class="variant-dot rusty ${rustyCaught ? 'caught' : ''}" title="Rusty${rustyCaught ? ' — caught' : ' — not yet caught'}"></span>
         <span class="variant-dot platinum ${platinumCaught ? 'caught' : ''}" title="Platinum${platinumCaught ? ' — caught' : ' — not yet caught'}"></span>
         <span class="variant-dot funky ${funkyCaught ? 'caught' : ''}" title="Funky${funkyCaught ? ' — caught' : ' — not yet caught'}"></span>
+      </div>
+    `;
+    card.querySelector('.dc-icon').appendChild(createDroidVisual(s, 40));
+    grid.appendChild(card);
+  });
+}
+
+function renderEventDex(entries) {
+  const grid = $('eventDexGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!entries.length) {
+    grid.innerHTML = '<div class="empty">No event-exclusive species yet</div>';
+    return;
+  }
+  entries.forEach((s) => {
+    const card = document.createElement('div');
+    card.className = 'dex-card ' + (s.caught ? 'caught' : 'uncaught');
+    const caughtVariants = s.variantsCaught || [];
+    card.innerHTML = `
+      <div class="dc-icon"></div>
+      <div class="dc-name">${s.caught ? s.name : '???'}</div>
+      <div class="dc-rarity ${s.rarity}">${s.rarity}</div>
+      <div class="variant-dots">
+        <span class="variant-dot rusty ${caughtVariants.includes('rusty') ? 'caught' : ''}" title="Rusty"></span>
+        <span class="variant-dot platinum ${caughtVariants.includes('platinum') ? 'caught' : ''}" title="Platinum"></span>
+        <span class="variant-dot funky ${caughtVariants.includes('funky') ? 'caught' : ''}" title="Funky"></span>
       </div>
     `;
     card.querySelector('.dc-icon').appendChild(createDroidVisual(s, 40));
@@ -1419,6 +1659,24 @@ async function launchTestEvent(collection, label) {
 $('btnEventNature').onclick = () => launchTestEvent('nature', 'Nature Festival');
 $('btnEventMythical').onclick = () => launchTestEvent('mythical', 'Mythical Surge');
 
+$('btnEventSummer').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  try {
+    const solarSpeciesIds = state.species.filter((s) => s.collection === 'solar').map((s) => s.id);
+    const now = Date.now();
+    await api('POST', '/events', {
+      name: 'Summer Event',
+      mode: 'grant',
+      speciesIds: solarSpeciesIds,
+      startTime: now,
+      endTime: now + 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    const data = await api('GET', '/events');
+    renderEvents(data.events);
+    log('SYS', '☀ Summer Event started — Solar-collection droids now spawning for 7 days!');
+  } catch (e) {}
+};
+
 // ---- Trading ----
 $('btnLoadTradeTarget').onclick = async () => {
   const targetId = Number($('tradeTargetId').value);
@@ -1433,9 +1691,9 @@ $('btnLoadTradeTarget').onclick = async () => {
     ).join('') || '<option value="">No droids owned</option>';
 
     const requestSelect = $('tradeRequestDroid');
-    requestSelect.innerHTML = state.tradeTargetDroids.map((d) =>
+    requestSelect.innerHTML = '<option value="">Nothing (a gift, or ask crystals below)</option>' + state.tradeTargetDroids.map((d) =>
       `<option value="${d.id}">${d.speciesName} Lv${d.level} (#${d.id})</option>`
-    ).join('') || '<option value="">They own no droids</option>';
+    ).join('');
 
     $('tradeBuilder').style.display = 'block';
   } catch (e) {}
@@ -1444,16 +1702,22 @@ $('btnLoadTradeTarget').onclick = async () => {
 $('btnCreateTrade').onclick = async () => {
   const toPlayerId = Number($('tradeTargetId').value);
   const offeredId = Number($('tradeOfferDroid').value);
-  const requestedId = Number($('tradeRequestDroid').value);
-  if (!offeredId || !requestedId) { log('SYS', 'Select a droid on both sides', true); return; }
+  const requestedId = $('tradeRequestDroid').value ? Number($('tradeRequestDroid').value) : null;
+  const requestedCrystals = Number($('tradeRequestCrystals').value) || 0;
+  if (!offeredId) { log('SYS', 'Select a droid to offer', true); return; }
   try {
     await api('POST', '/trades', {
       fromPlayerId: state.playerId,
       toPlayerId,
       offeredDroidIds: [offeredId],
-      requestedDroidIds: [requestedId],
+      requestedDroidIds: requestedId ? [requestedId] : [],
+      requestedCrystals,
+      wishId: state.activeWishId || null,
     });
+    state.activeWishId = null;
+    $('tradeRequestCrystals').value = '';
     await refreshTrades();
+    log('SYS', 'Trade offer sent.');
   } catch (e) {}
 };
 
@@ -1510,6 +1774,97 @@ function renderTrades(trades) {
       card.appendChild(actions);
     }
     list.appendChild(card);
+  });
+}
+
+// ---- Wishlist ----
+function populateWishSpeciesDropdown() {
+  const select = $('wishSpecies');
+  select.innerHTML = state.species.map((s) =>
+    `<option value="${s.id}">${s.alignment === 'light' ? '☀' : s.alignment === 'cosmic' ? '✦' : '🌑'} ${s.name} (${s.rarity})</option>`
+  ).join('');
+}
+
+$('wishType').onchange = () => {
+  const isDroid = $('wishType').value === 'droid';
+  $('wishSpecies').style.display = isDroid ? 'block' : 'none';
+  $('wishVariant').style.display = isDroid ? 'block' : 'none';
+};
+
+$('btnPostWish').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  const wishType = $('wishType').value;
+  const body = {
+    playerId: state.playerId,
+    wishType,
+    note: $('wishNote').value.trim(),
+    colorWanted: $('wishColor').value,
+  };
+  if (wishType === 'droid') {
+    body.speciesId = Number($('wishSpecies').value);
+    body.variantWanted = $('wishVariant').value;
+  }
+  try {
+    await api('POST', '/wishlist', body);
+    $('wishNote').value = '';
+    await refreshWishlist();
+    log('SYS', 'Posted to the wishlist board.');
+  } catch (e) {}
+};
+
+async function refreshWishlist() {
+  try {
+    const data = await api('GET', '/wishlist');
+    renderWishlist(data.wishes);
+  } catch (e) {}
+}
+
+function renderWishlist(wishes) {
+  const board = $('wishlistBoard');
+  if (!wishes.length) {
+    board.innerHTML = '<div class="empty">No open wishes</div>';
+    return;
+  }
+  board.innerHTML = '';
+  wishes.forEach((w) => {
+    const card = document.createElement('div');
+    card.className = 'trade-card';
+    const desc = w.wishType === 'droid'
+      ? `${w.speciesName}${w.variantWanted !== 'any' ? ` (${w.variantWanted})` : ''}`
+      : `Paint${w.colorWanted !== 'any' ? ` (${w.colorWanted})` : ''}`;
+    card.innerHTML = `
+      <div><strong>${w.playerUsername}</strong> wants: ${desc}${w.note ? ` — <span style="color:var(--text-dim);">${w.note}</span>` : ''}</div>
+    `;
+    if (w.playerId !== state.playerId) {
+      const actions = document.createElement('div');
+      actions.className = 'tc-actions';
+      if (w.wishType === 'droid') {
+        actions.innerHTML = `<button class="offer-wish-btn">Offer a Trade</button>`;
+        actions.querySelector('.offer-wish-btn').onclick = () => {
+          // Pre-fill the Trading tab with this wisher as the target, then switch to it.
+          $('tradeTargetId').value = w.playerId;
+          state.activeWishId = w.id;
+          document.querySelector('.tab-btn[data-tab="social"]').click();
+          $('btnLoadTradeTarget').click();
+          log('SYS', `Pick a matching droid to offer ${w.playerUsername} for their wish.`);
+        };
+      } else {
+        actions.innerHTML = `<span style="font-size:9px; color:var(--text-dim);">Coordinate manually — Paint isn't trade-transferable yet</span>`;
+      }
+      card.appendChild(actions);
+    } else {
+      const actions = document.createElement('div');
+      actions.className = 'tc-actions';
+      actions.innerHTML = `<button class="cancel-wish-btn">Remove</button>`;
+      actions.querySelector('.cancel-wish-btn').onclick = async () => {
+        try {
+          await api('POST', `/wishlist/${w.id}/cancel`, { playerId: state.playerId });
+          await refreshWishlist();
+        } catch (e) {}
+      };
+      card.appendChild(actions);
+    }
+    board.appendChild(card);
   });
 }
 </script>

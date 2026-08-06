@@ -27,7 +27,7 @@ function tradeFeeFor(droidIds) {
   }, 0);
 }
 
-function createTradeOffer({ fromPlayerId, toPlayerId, offeredDroidIds = [], offeredCrystals = 0, requestedDroidIds = [], requestedCrystals = 0 }) {
+function createTradeOffer({ fromPlayerId, toPlayerId, offeredDroidIds = [], offeredCrystals = 0, requestedDroidIds = [], requestedCrystals = 0, wishId = null }) {
   if (fromPlayerId === toPlayerId) throw new TradeError('INVALID_TARGET', 'Cannot trade with yourself');
 
   const fromPlayer = db.players.get(fromPlayerId);
@@ -60,6 +60,7 @@ function createTradeOffer({ fromPlayerId, toPlayerId, offeredDroidIds = [], offe
     offeredCrystals,
     requestedDroidIds,
     requestedCrystals,
+    wishId,
     status: 'pending',
     createdAt: Date.now(),
     resolvedAt: null,
@@ -141,6 +142,7 @@ function acceptTradeOffer(tradeId, playerId) {
 
   offer.status = 'accepted';
   offer.resolvedAt = Date.now();
+  if (offer.wishId) db.markWishFulfilled(offer.wishId);
 
   return offer;
 }

@@ -37,29 +37,45 @@ function statsFor(rarity) {
 }
 
 const droidSpecies = [
-  // -- common (60 total / 4 species = 15 each) --
-  { id: id(), name: 'Puffkin',    alignment: 'light', rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15, ...statsFor('common') },
-  { id: id(), name: 'Gloomrat',   alignment: 'dark',  rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15, ...statsFor('common') },
-  { id: id(), name: 'Leafkin',    alignment: 'light', rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15, ...statsFor('common') },
-  { id: id(), name: 'Thornstalk', alignment: 'dark',  rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15, ...statsFor('common') },
+  // -- common (60 total / 8 species now = 7.5 each) --
+  { id: id(), name: 'Puffkin',     alignment: 'light', rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
+  { id: id(), name: 'Gloomrat',    alignment: 'dark',  rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
+  { id: id(), name: 'Leafkin',     alignment: 'light', rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
+  { id: id(), name: 'Thornstalk',  alignment: 'dark',  rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
+  { id: id(), name: 'Teacupper',   alignment: 'light', rarity: 'common',    collection: 'wildcard', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
+  { id: id(), name: 'Pangolynk',   alignment: 'light', rarity: 'common',    collection: 'wildcard', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
+  { id: id(), name: 'Binx',        alignment: 'dark',  rarity: 'common',    collection: 'wildcard', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
+  { id: id(), name: 'Shadowtad',   alignment: 'dark',  rarity: 'common',    collection: 'wildcard', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 7.5, ...statsFor('common') },
 
-  // -- uncommon (25 total / 4 species = 6.25 each) --
-  { id: id(), name: 'Emberfox',   alignment: 'light', rarity: 'uncommon',  collection: 'mythical', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25, ...statsFor('uncommon') },
-  { id: id(), name: 'Nightfang',  alignment: 'dark',  rarity: 'uncommon',  collection: 'mythical', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25, ...statsFor('uncommon') },
-  { id: id(), name: 'Bloombot',   alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25, ...statsFor('uncommon') },
-  { id: id(), name: 'Sporecap',   alignment: 'dark',  rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25, ...statsFor('uncommon') },
+  // -- uncommon (25 total / 8 species now = 3.125 each) --
+  { id: id(), name: 'Emberfox',    alignment: 'light', rarity: 'uncommon',  collection: 'mythical', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 3.125, ...statsFor('uncommon') },
+  { id: id(), name: 'Nightfang',   alignment: 'dark',  rarity: 'uncommon',  collection: 'mythical', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 3.125, ...statsFor('uncommon') },
+  { id: id(), name: 'Bloombot',    alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 3.125, ...statsFor('uncommon') },
+  { id: id(), name: 'Sporecap',    alignment: 'dark',  rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 3.125, ...statsFor('uncommon') },
+  { id: id(), name: 'Toastybob',   alignment: 'light', rarity: 'uncommon',  collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 3.125, ...statsFor('uncommon') },
+  { id: id(), name: 'Redwolfe',    alignment: 'light', rarity: 'uncommon',  collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 3.125, ...statsFor('uncommon') },
+  { id: id(), name: 'Tiktoker',    alignment: 'dark',  rarity: 'uncommon',  collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 3.125, ...statsFor('uncommon') },
+  { id: id(), name: 'Indrashark',  alignment: 'dark',  rarity: 'uncommon',  collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 3.125, ...statsFor('uncommon') },
 
-  // -- rare (12 total / 4 species = 3 each) --
-  { id: id(), name: 'Skylantern', alignment: 'light', rarity: 'rare',      collection: 'mythical', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3, ...statsFor('rare') },
-  { id: id(), name: 'Ravencowl',  alignment: 'dark',  rarity: 'rare',      collection: 'mythical', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3, ...statsFor('rare') },
-  { id: id(), name: 'Vineweave',  alignment: 'light', rarity: 'rare',      collection: 'nature',   baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3, ...statsFor('rare') },
-  { id: id(), name: 'Wiltroot',   alignment: 'dark',  rarity: 'rare',      collection: 'nature',   baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3, ...statsFor('rare') },
+  // -- rare (12 total / 8 species now = 1.5 each) --
+  { id: id(), name: 'Skylantern',  alignment: 'light', rarity: 'rare',      collection: 'mythical', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 1.5, ...statsFor('rare') },
+  { id: id(), name: 'Ravencowl',   alignment: 'dark',  rarity: 'rare',      collection: 'mythical', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 1.5, ...statsFor('rare') },
+  { id: id(), name: 'Vineweave',   alignment: 'light', rarity: 'rare',      collection: 'nature',   baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 1.5, ...statsFor('rare') },
+  { id: id(), name: 'Wiltroot',    alignment: 'dark',  rarity: 'rare',      collection: 'nature',   baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 1.5, ...statsFor('rare') },
+  { id: id(), name: 'Brollybot',   alignment: 'light', rarity: 'rare',      collection: 'wildcard', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 1.5, ...statsFor('rare') },
+  { id: id(), name: 'Snowleopardon', alignment: 'light', rarity: 'rare',    collection: 'wildcard', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 1.5, ...statsFor('rare') },
+  { id: id(), name: 'Snapshot',    alignment: 'dark',  rarity: 'rare',      collection: 'wildcard', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 1.5, ...statsFor('rare') },
+  { id: id(), name: 'Ghostcrane',  alignment: 'dark',  rarity: 'rare',      collection: 'wildcard', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 1.5, ...statsFor('rare') },
 
-  // -- legendary (3 total / 4 species = 0.75 each) --
-  { id: id(), name: 'Aurumwing',  alignment: 'light', rarity: 'legendary', collection: 'mythical', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75, ...statsFor('legendary') },
-  { id: id(), name: 'Voidforge',  alignment: 'dark',  rarity: 'legendary', collection: 'mythical', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75, ...statsFor('legendary') },
-  { id: id(), name: 'Elderwood',  alignment: 'light', rarity: 'legendary', collection: 'nature',   baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75, ...statsFor('legendary') },
-  { id: id(), name: 'Voidtree',   alignment: 'dark',  rarity: 'legendary', collection: 'nature',   baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75, ...statsFor('legendary') },
+  // -- legendary (3 total / 8 species now = 0.375 each) --
+  { id: id(), name: 'Aurumwing',   alignment: 'light', rarity: 'legendary', collection: 'mythical', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
+  { id: id(), name: 'Voidforge',   alignment: 'dark',  rarity: 'legendary', collection: 'mythical', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
+  { id: id(), name: 'Elderwood',   alignment: 'light', rarity: 'legendary', collection: 'nature',   baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
+  { id: id(), name: 'Voidtree',    alignment: 'dark',  rarity: 'legendary', collection: 'nature',   baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
+  { id: id(), name: 'Packmate',    alignment: 'light', rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
+  { id: id(), name: 'Oricalypse',  alignment: 'light', rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
+  { id: id(), name: 'Gamebot',     alignment: 'dark',  rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
+  { id: id(), name: 'Vaantheris',  alignment: 'dark',  rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.375, ...statsFor('legendary') },
 
   // -- evolution-only (spawnWeight 0 -> never appears in the wild, only obtained by evolving) --
   { id: id(), name: 'Bushy',      alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, ...statsFor('uncommon') },
@@ -67,6 +83,23 @@ const droidSpecies = [
   // -- companion (cosmic tier — rarer than legendary, doesn't farm, provides a % buff instead; see COMPANION_BUFF_PERCENT) --
   { id: id(), name: 'StarSprite', alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'crystal', companionBuffPercent: 50, ...statsFor('cosmic') },
   { id: id(), name: 'Nebulfox',   alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'capture_rate', companionBuffPercent: 100, ...statsFor('cosmic') },
+
+  // -- Summer event-exclusive (Solar collection) — spawnWeight 0 outside the
+  // event window. A normal "boost" event can't make these spawn (0 x any
+  // multiplier is still 0) — they need a "grant" event instead, which adds
+  // a temporary real weight rather than multiplying the existing one. See
+  // createEvent()'s `mode` param and spawns.js's grant-weight handling.
+  // Also flagged eventOnly so they live in a separate Event Dex, not the
+  // main one (otherwise players would see permanent "???" entries they can
+  // only fill during a few days a year).
+  { id: id(), name: 'Sunbud',       alignment: 'light', rarity: 'common',    collection: 'solar', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, eventOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Solara',       alignment: 'light', rarity: 'uncommon',  collection: 'solar', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, eventOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Sundrift',     alignment: 'light', rarity: 'rare',      collection: 'solar', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Solaris Rex',  alignment: 'light', rarity: 'legendary', collection: 'solar', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, eventOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Scorchling',   alignment: 'dark',  rarity: 'common',    collection: 'solar', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, eventOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Heatfang',     alignment: 'dark',  rarity: 'uncommon',  collection: 'solar', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, eventOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Dustwraith',   alignment: 'dark',  rarity: 'rare',      collection: 'solar', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Infernotitan', alignment: 'dark',  rarity: 'legendary', collection: 'solar', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, eventOnly: true, ...statsFor('legendary') },
 ];
 
 // Leafkin -> Bushy is the first (and template) evolution pair. Keyed by
@@ -211,7 +244,14 @@ function eventTargetKey({ speciesIds = [], collection = null }) {
   return collection ? `collection:${collection}` : `species:${[...speciesIds].sort().join(',')}`;
 }
 
-function createEvent({ name, speciesIds = [], collection = null, spawnWeightMultiplier = 2, startTime, endTime }) {
+// Per-rarity spawn weight granted to Solar-collection species while a
+// "grant" event targeting them is active — mirrors the internal
+// common/uncommon/rare/legendary proportions the Mythical/Nature
+// collections already use (15 / 6.25 / 3 / 0.75), so Summer feels
+// consistent with the base spawn rates once it's live.
+const SOLAR_GRANT_WEIGHT_BY_RARITY = { common: 15, uncommon: 6.25, rare: 3, legendary: 0.75 };
+
+function createEvent({ name, mode = 'boost', speciesIds = [], collection = null, spawnWeightMultiplier = 2, grantWeights = null, startTime, endTime }) {
   const targetKey = eventTargetKey({ speciesIds, collection });
   const lastLaunch = lastEventLaunchByTarget.get(targetKey);
   if (lastLaunch && Date.now() - lastLaunch < EVENT_COOLDOWN_MS) {
@@ -219,13 +259,28 @@ function createEvent({ name, speciesIds = [], collection = null, spawnWeightMult
     const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
     throw new Error(`This event target is on cooldown for another ~${remainingHours}h`);
   }
+  if (mode === 'grant' && !speciesIds.length) {
+    throw new Error('Grant-mode events need explicit speciesIds (grants don\'t make sense for a whole collection)');
+  }
+
+  // Auto-fill grant weights from rarity if the caller didn't specify exact values.
+  let resolvedGrantWeights = grantWeights;
+  if (mode === 'grant' && !resolvedGrantWeights) {
+    resolvedGrantWeights = {};
+    speciesIds.forEach((sid) => {
+      const sp = droidSpecies.find((s) => s.id === sid);
+      if (sp) resolvedGrantWeights[sid] = SOLAR_GRANT_WEIGHT_BY_RARITY[sp.rarity] ?? 3;
+    });
+  }
 
   const event = {
     id: id(),
     name,
+    mode,         // 'boost' (multiplies existing weight) | 'grant' (adds a real weight to a zero-weight species)
     speciesIds,   // explicit species targets, OR
-    collection,   // 'mythical' | 'nature' — targets every species in that collection
+    collection,   // 'mythical' | 'nature' — targets every species in that collection (boost mode only)
     spawnWeightMultiplier,
+    grantWeights: resolvedGrantWeights, // { speciesId: weight } — grant mode only
     startTime,
     endTime,
   };
@@ -238,10 +293,24 @@ function listActiveEvents(now = Date.now()) {
   return [...events.values()].filter((e) => now >= e.startTime && now <= e.endTime);
 }
 
+// Extra spawn weight granted to a species by any active grant-mode event
+// targeting it — additive, not multiplicative, so it works even when the
+// species' own base weight is 0.
+function getActiveEventGrant(species, now = Date.now()) {
+  let grant = 0;
+  for (const event of listActiveEvents(now)) {
+    if (event.mode === 'grant' && event.grantWeights && event.grantWeights[species.id] != null) {
+      grant += event.grantWeights[species.id];
+    }
+  }
+  return grant;
+}
+
 // Combined multiplier for a species from all currently-active events (multiplicative if several overlap).
 function getActiveEventMultiplier(species, now = Date.now()) {
   let multiplier = 1;
   for (const event of listActiveEvents(now)) {
+    if (event.mode !== 'boost') continue;
     const matches =
       (event.speciesIds && event.speciesIds.includes(species.id)) ||
       (event.collection && event.collection === species.collection);
@@ -323,6 +392,66 @@ function leaveGuild(playerId) {
   if (guild) guild.memberIds = guild.memberIds.filter((mid) => mid !== playerId);
   player.guildId = null;
   return guild;
+}
+
+// ---- wishlist (public "looking for" board) ----
+// Visible to everyone — any player can browse what others want and offer
+// a trade. Two wish types: a specific droid (species + optional
+// variant/color preference) or Paint (with a color preference, since
+// Paint itself isn't tied to any species). Not linked to trades directly
+// except via an optional wishId on a trade offer — see trades.js — which
+// auto-marks the wish fulfilled once that trade is accepted.
+const wishlist = new Map(); // id -> wish row
+
+function createWish(playerId, opts) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const wishType = opts.wishType;
+  const speciesId = opts.speciesId || null;
+  const variantWanted = opts.variantWanted || 'any';
+  const colorWanted = opts.colorWanted || 'any';
+  const note = opts.note || '';
+  if (!['droid', 'paint'].includes(wishType)) throw new Error('wishType must be "droid" or "paint"');
+  if (wishType === 'droid' && !speciesId) throw new Error('speciesId required for a droid wish');
+  if (!['any', 'rusty', 'platinum'].includes(variantWanted)) throw new Error('variantWanted must be any/rusty/platinum');
+  if (!['any', ...PRIMARY_COLORS].includes(colorWanted)) throw new Error(`colorWanted must be any/${PRIMARY_COLORS.join('/')}`);
+
+  const wish = {
+    id: id(),
+    playerId,
+    wishType,
+    speciesId,
+    variantWanted,
+    colorWanted,
+    note,
+    createdAt: Date.now(),
+    fulfilled: false,
+  };
+  wishlist.set(wish.id, wish);
+  return wish;
+}
+
+function listWishes(activeOnly = true) {
+  const all = [...wishlist.values()];
+  const filtered = activeOnly ? all.filter((w) => !w.fulfilled) : all;
+  return filtered.map((w) => {
+    const wisher = players.get(w.playerId);
+    const species = w.speciesId ? droidSpecies.find((s) => s.id === w.speciesId) : null;
+    return { ...w, playerUsername: wisher ? wisher.username : '(unknown)', speciesName: species ? species.name : null };
+  }).sort((a, b) => b.createdAt - a.createdAt);
+}
+
+function cancelWish(playerId, wishId) {
+  const wish = wishlist.get(wishId);
+  if (!wish) throw new Error('Wish not found');
+  if (wish.playerId !== playerId) throw new Error('Not your wish to cancel');
+  wishlist.delete(wishId);
+  return { deleted: true };
+}
+
+function markWishFulfilled(wishId) {
+  const wish = wishlist.get(wishId);
+  if (wish) wish.fulfilled = true;
 }
 
 // ---- redeem codes ----
@@ -509,20 +638,23 @@ function getDex(playerId) {
 
   // Evolution targets (e.g. Bushy) are placed right after their origin
   // species (e.g. Leafkin) instead of wherever they happen to sit in the
-  // catalog array, so the Dex reads as a natural progression.
+  // catalog array, so the Dex reads as a natural progression. Excludes
+  // eventOnly species (e.g. the Solar collection) — those go in a
+  // separate Event Dex below, not interleaved here.
   const evolvesToIds = new Set(Object.values(EVOLUTION_TABLE).map((e) => e.evolvesTo));
+  const mainSpeciesPool = droidSpecies.filter((s) => !s.eventOnly);
   const orderedSpecies = [];
-  droidSpecies.forEach((s) => {
+  mainSpeciesPool.forEach((s) => {
     if (evolvesToIds.has(s.id)) return; // placed inline below instead
     orderedSpecies.push(s);
     const evolution = EVOLUTION_TABLE[s.id];
     if (evolution) {
-      const evolvedSpecies = droidSpecies.find((e) => e.id === evolution.evolvesTo);
+      const evolvedSpecies = mainSpeciesPool.find((e) => e.id === evolution.evolvesTo);
       if (evolvedSpecies) orderedSpecies.push(evolvedSpecies);
     }
   });
 
-  const entries = orderedSpecies.map((s) => {
+  const buildEntry = (s) => {
     const funkyColorsCaught = PRIMARY_COLORS.filter((c) => variantsSeen.includes(`${s.id}:funky:${c}`));
     return {
       ...s,
@@ -530,13 +662,18 @@ function getDex(playerId) {
       variantsCaught: ['platinum', 'rusty', 'funky'].filter((v) => variantsSeen.includes(`${s.id}:${v}`)),
       funkyColorsCaught,
     };
-  });
+  };
+
+  const entries = orderedSpecies.map(buildEntry);
+  const eventEntries = droidSpecies.filter((s) => s.eventOnly).map(buildEntry);
   const totalCaught = entries.filter((e) => e.caught).length;
   return {
+
     entries,
+    eventEntries,
     totalCaught,
-    totalSpecies: droidSpecies.length,
-    percentComplete: Math.round((totalCaught / droidSpecies.length) * 100),
+    totalSpecies: entries.length,
+    percentComplete: Math.round((totalCaught / entries.length) * 100),
   };
 }
 
@@ -636,6 +773,8 @@ module.exports = {
   createEvent,
   listActiveEvents,
   getActiveEventMultiplier,
+  getActiveEventGrant,
+  SOLAR_GRANT_WEIGHT_BY_RARITY,
   EVENT_COOLDOWN_MS,
   tradeOffers,
   TRADE_COOLDOWN_MS,
@@ -649,6 +788,11 @@ module.exports = {
   redeemCodes,
   createRedeemCode,
   redeemCodeFn,
+  wishlist,
+  createWish,
+  listWishes,
+  cancelWish,
+  markWishFulfilled,
   players,
   ownedDroids,
   workshopSlots,

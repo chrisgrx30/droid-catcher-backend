@@ -263,6 +263,52 @@ function releaseDroid(playerId, droidId) {
   return { refund, gotNovaChip, novaChips: player.novaChips, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
 }
 
+// Bulk release: settles earnings ONCE for the whole batch (not once per
+// droid) and returns a single summed result, so a multi-select release in
+// the UI reads as one action with one outcome, not N separate ones.
+function releaseDroidsBulk(playerId, droidIds) {
+  const settled = settleEarnings(playerId);
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+
+  let totalRefund = 0;
+  let novaChipsGained = 0;
+  const releasedNames = [];
+  const skipped = [];
+
+  for (const droidId of droidIds) {
+    const droid = db.ownedDroids.get(droidId);
+    if (!droid || droid.playerId !== playerId) {
+      skipped.push(droidId);
+      continue;
+    }
+    const species = speciesById(droid.speciesId);
+    const refund = Math.floor((droid.captureCost || 0) * RELEASE_REFUND_MULTIPLIER);
+    totalRefund += refund;
+    if (Math.random() < NOVA_CHIP_DROP_CHANCE) novaChipsGained += 1;
+    if (player.companionDroidId === droidId) player.companionDroidId = null;
+    releasedNames.push(species?.name || 'Unknown');
+    db.ownedDroids.delete(droidId);
+  }
+
+  player.crystalBalance += totalRefund;
+  if (totalRefund > 0) {
+    db.crystalTransactions.push({ id: db.nextId(), playerId, amount: totalRefund, source: 'droid_release_bulk', createdAt: Date.now() });
+  }
+  player.novaChips += novaChipsGained;
+
+  return {
+    releasedCount: releasedNames.length,
+    releasedNames,
+    skipped,
+    totalRefund,
+    novaChipsGained,
+    novaChips: player.novaChips,
+    crystalBalance: player.crystalBalance,
+    settledEarned: settled.earned,
+  };
+}
+
 // Species evolution (e.g. Leafkin -> Bushy): spends Nova Chips, swaps the
 // droid's speciesId in place — keeps its level/variant/slot, just becomes
 // a stronger species going forward.
@@ -370,6 +416,7 @@ module.exports = {
   companionCaptureRateMultiplier,
   enrichDroid,
   releaseDroid,
+  releaseDroidsBulk,
   evolveSpecies,
   evolveFunky,
   assignCompanion,

@@ -55,6 +55,25 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 - **Time-exclusive events** — `POST /events` creates a time-boxed spawn-weight boost targeting either explicit species IDs or a whole `collection` (`mythical`/`nature`). Generalizes the same multiplier pattern the day/night bias already uses. Verified: a 5x Nature-collection event skewed spawns from the normal ~50/50 split to roughly 82/17 in favor of Nature.
 - **Trading** — offer/accept/decline flow (`POST /trades`, `POST /trades/:id/accept`, `POST /trades/:id/decline`) rather than an instant swap, with two anti-abuse guardrails built in from the start: a 10-minute cooldown before a freshly-captured or freshly-traded droid can be traded again (closes the "launder rarity through fake trades on throwaway accounts" exploit), and a small rarity-scaled crystal fee paid by whoever *receives* each droid (`TRADE_FEE_BY_RARITY` in `db.js`) so trading stays a convenience rather than a strictly-better alternative to capturing.
 
+## Beta feedback round 6 (Wildcard collection — 16 new droids)
+
+- **Testers were completing the Dex too quickly**, so added a third full collection, **Wildcard**: Teacupper, Pangolynk, Toastybob, Redwolfe, Brollybot, Snowleopardon, Packmate, Oricalypse (Light) and Binx, Shadowtad, Tiktoker, Indrashark, Snapshot, Ghostcrane, Gamebot, Vaantheris (Dark) — 2 per rarity tier per alignment, same as Mythical/Nature.
+- **Spawn weights rebalanced, not just added on top** — every existing species' weight was reduced so the *total* probability mass per rarity tier is exactly unchanged (common 60 / uncommon 25 / rare 12 / legendary 3, verified identical before and after). This means overall catch cadence by rarity feels the same as before, but each specific species is individually rarer — directly addresses "completing too fast" by both adding more targets and diluting per-species odds.
+- Main Dex now covers 35 species (up from 19); Event Dex (Solar collection) unaffected at 8.
+
+## Beta feedback round 5 (Farm/Storage rework, wishlist, Summer event)
+
+- **Farming droids moved to the Farm tab** — a farming droid no longer appears in Storage at all; it shows inline in its Workshop slot card (tap to expand Level Up / Unassign). Storage now only shows droids *not* currently farming, with an "Assign to slot..." dropdown to move one into a slot. This also resolves the earlier "unassign doesn't re-sort" report — there's no longer a farming/not-farming split to get stale, since a droid simply moves between tabs.
+- **Companion got its own tab** — previously buried under the Farm panel, easy to miss. New Companion tab shows the equipped companion, its buff (crystal-boost or capture-rate, worded correctly per companion type), and a list of every owned companion with one-tap equip/swap.
+- **Click a Storage droid for full stats** — a popup shows HP, Attack, level, crystals/min, and next-level cost, without needing to scan a cramped row.
+- **Bulk release** — select multiple droids in Storage (checkboxes + Select All) and release them all in one action, with a single result popup summing total crystals refunded and Nova Chips gained across the batch, rather than one popup per droid. New `POST /droids/release-bulk` endpoint settles earnings once for the whole batch, not once per droid.
+- **Variant-aware "already caught" radar icon** — the 🎮 pad icon on spawn cards now checks the *specific* variant shown (a Rusty spawn only shows caught if you've caught a Rusty of that species before), not just "have I ever caught any version of this species."
+- **Public wishlist** — post a "looking for" (a specific droid + optional variant, or Paint + optional color) visible to every player. Anyone can offer a trade against an open wish; accepting that trade automatically removes the wish from the board (linked via a new optional `wishId` on trade offers — no separate fulfillment step to forget). Verified the full loop directly: posted a wish, created a linked gift-trade (droid offered, nothing requested back), accepted it, confirmed ownership transferred and the wish vanished from the active list.
+  - Also fixed a real gap this surfaced: the trade builder previously *required* selecting a droid on both sides, which made a pure gift (fulfilling a wish for free, or for crystals only) impossible. Requesting a droid back is now optional, and a crystal-ask field was added alongside it.
+  - Known limitation: Paint wishes show on the board but aren't auto-fulfillable via trade yet (Paint isn't a trade-transferable item in this build) — noted directly in the UI rather than silently doing nothing.
+- **Summer Event + Solar collection** — 8 new event-exclusive droids (Sunbud/Solara/Sundrift/Solaris Rex on Light, Scorchling/Heatfang/Dustwraith/Infernotitan on Dark), all `spawnWeight: 0` outside the event. This required a real addition, not just data: the existing event system only *multiplies* a species' spawn weight, which can't make a zero-weight species spawn at all (0 × anything is still 0). Added a second event mode — `grant` — that adds a real temporary weight instead of multiplying one. Verified directly: confirmed the old boost-mode approach truly does nothing for a zero-weight species, then confirmed the new grant-mode event produces real Solar-collection spawns at roughly the expected rate (88/291 ≈ 30% against a ~33% theoretical share).
+- **Event Dex** — the 8 Solar species live in a separate Dex section so they don't sit as permanent "???" entries in the main Dex outside the event window; catching one is permanent once achieved, but doesn't count toward main Dex completion %.
+
 ## Beta feedback round 4 (tabbed layout + polish)
 
 - **Tabbed navigation** — the terminal is no longer one long scrolling page. 8 tabs: Player, Capture, Farm, Storage, Guilds, Inventory, Events & Trading, Dex. Companion moved onto the Farm tab (it buffs farming), Cosmetics stayed on Player, Redeem Code moved to Inventory. Verified zero broken element references and zero duplicate IDs after the reorg (checked programmatically, not just visually).
@@ -156,6 +175,10 @@ Open `test-terminal.html` directly in a browser (double-click it, or drag it int
 | GET | `/cosmetics` | — | Cosmetics catalog |
 | POST | `/players/:id/cosmetics/buy` | `{ cosmeticId }` | Purchase a cosmetic |
 | GET | `/guilds` | — | List all guilds (for browsing to join) |
+| POST | `/droids/release-bulk` | `{ playerId, droidIds: [] }` | Release multiple droids in one settled action |
+| GET | `/wishlist` | — | Public board of active (unfulfilled) wishes |
+| POST | `/wishlist` | `{ playerId, wishType, speciesId?, variantWanted?, colorWanted?, note? }` | Post a wish |
+| POST | `/wishlist/:id/cancel` | `{ playerId }` | Remove your own wish |
 | GET | `/guilds/:id` | — | Guild details/members |
 | POST | `/guilds` | `{ playerId, name }` | Create a guild (auto-joins creator) |
 | POST | `/guilds/:id/join` | `{ playerId }` | Join a guild |

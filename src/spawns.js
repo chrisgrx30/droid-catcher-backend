@@ -45,7 +45,8 @@ function weightedRandomSpecies(refLng) {
       if (sp.alignment === 'dark') w *= ALIGNMENT_BIAS;
       if (sp.alignment === 'light') w /= ALIGNMENT_BIAS;
     }
-    w *= db.getActiveEventMultiplier(sp, now); // time-exclusive event boost, if any
+    w *= db.getActiveEventMultiplier(sp, now); // time-exclusive boost event, if any (multiplicative)
+    w += db.getActiveEventGrant(sp, now); // time-exclusive grant event, if any (additive — works even at 0 base weight)
     return w;
   });
 

@@ -316,6 +316,18 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // POST /droids/release-bulk  { playerId, droidIds: [] } -> settles once, returns one summed result
+    if (req.method === 'POST' && pathname === '/droids/release-bulk') {
+      const { playerId, droidIds } = await readBody(req);
+      try {
+        if (!Array.isArray(droidIds) || !droidIds.length) throw new Error('droidIds must be a non-empty array');
+        const result = workshopModule.releaseDroidsBulk(playerId, droidIds);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'RELEASE_BULK_ERROR', message: e.message });
+      }
+    }
+
     // POST /droids/:id/evolve-species  { playerId } -> spend Nova Chips (e.g. Leafkin -> Bushy)
     if (req.method === 'POST' && pathname.match(/^\/droids\/\d+\/evolve-species$/)) {
       const droidId = Number(pathname.split('/')[2]);
@@ -460,7 +472,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { events: db.listActiveEvents() });
     }
 
-    // POST /events  { name, speciesIds?, collection?, spawnWeightMultiplier, startTime, endTime }
+    // POST /events  { name, mode? ('boost'|'grant'), speciesIds?, collection?, spawnWeightMultiplier?, grantWeights?, startTime, endTime }
     // Dev/admin endpoint for this prototype — production would gate this behind admin auth.
     if (req.method === 'POST' && pathname === '/events') {
       const body = await readBody(req);
@@ -519,6 +531,34 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 409, { error: e.code, message: e.message });
         }
         throw e;
+      }
+    }
+
+    // GET /wishlist -> public board of active (unfulfilled) wishes
+    if (req.method === 'GET' && pathname === '/wishlist') {
+      return sendJson(res, 200, { wishes: db.listWishes(true) });
+    }
+
+    // POST /wishlist  { playerId, wishType, speciesId?, variantWanted?, colorWanted?, note? }
+    if (req.method === 'POST' && pathname === '/wishlist') {
+      const { playerId, ...opts } = await readBody(req);
+      try {
+        const wish = db.createWish(playerId, opts);
+        return sendJson(res, 201, { wish });
+      } catch (e) {
+        return sendJson(res, 400, { error: 'WISH_ERROR', message: e.message });
+      }
+    }
+
+    // POST /wishlist/:id/cancel  { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/wishlist\/\d+\/cancel$/)) {
+      const wishId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = db.cancelWish(playerId, wishId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'WISH_ERROR', message: e.message });
       }
     }
 
