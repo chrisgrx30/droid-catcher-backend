@@ -1520,7 +1520,7 @@ function createDroidVisual(species, size = 44) {
   wrapper.style.height = size + 'px';
   wrapper.style.verticalAlign = 'middle';
 
-  const baseSlug = displayName.toLowerCase();
+  const baseSlug = displayName.toLowerCase().replace(/\s+/g, '');
   const variant = species.variant && species.variant !== 'standard' ? species.variant : null;
 
   // Try variant-specific art first (e.g. puffkin-platinum.png), then the
