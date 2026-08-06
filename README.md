@@ -57,7 +57,7 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 
 ## Beta feedback round 7 (admin-lock events + redeem codes)
 
-- **Two endpoints that were open to anyone who found the URL are now admin-gated**: `POST /events` (spawn manipulation) requires `adminCode: "2026"`, `POST /redeem-codes` (creating promo codes) requires `adminCode: "3103"` — deliberately different codes, so one leaking doesn't expose both. Verified live: both correctly reject with no code or the wrong code, and confirmed the two codes are genuinely separate (2026 does *not* unlock redeem-codes, and vice versa).
+- **Two endpoints that were open to anyone who found the URL are now admin-gated**: `POST /events` (spawn manipulation) requires `adminCode: "xxxxxx"`, `POST /redeem-codes` (creating promo codes) requires `adminCode: "xxxxxx"` — deliberately different codes, so one leaking doesn't expose both. Verified live: both correctly reject with no code or the wrong code, and confirmed the two codes are genuinely separate (xxxxxx does *not* unlock redeem-codes, and vice versa).
 - The event buttons stay visible in the UI (Boost Nature/Mythical, Start Summer Event) rather than being hidden, with a "🔒 Chris Admin Only — no access" caption above them. Clicking one prompts for the code; entering it wrong surfaces the same rejection message in the console log.
 - This is still a shared-secret code, not real authentication — fine for a closed friends beta where the risk is "a curious tester pokes at the API," not fine if this ever opens up more widely.
 
