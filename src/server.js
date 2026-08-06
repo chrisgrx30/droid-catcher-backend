@@ -19,6 +19,19 @@ const persistence = require('./persistence');
 
 const PORT = process.env.PORT || 3000;
 
+// Static image assets — drop droid art here (see assets/droids/README.md
+// for the exact filenames each species expects). Served directly, not read
+// into memory at startup, so images added later don't need a restart.
+const ASSETS_DROIDS_DIR = path.join(__dirname, '..', 'assets', 'droids');
+const IMAGE_MIME_TYPES = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+};
+
 // Serve the test terminal directly from this server so testers only need
 // one URL (no separate static host, no CORS config to juggle). Read once
 // at startup — restart the process to pick up terminal edits.
@@ -78,6 +91,30 @@ const server = http.createServer(async (req, res) => {
       return res.end(terminalHtml);
     }
 
+    // GET /assets/droids/<filename> -> serves droid artwork if present.
+    // Filename is strictly whitelisted (letters/digits/-/_ + one extension)
+    // before touching the filesystem — this is public-internet-facing, so
+    // no room for path-traversal ("../../etc/passwd" etc).
+    if (req.method === 'GET' && pathname.startsWith('/assets/droids/')) {
+      const filename = pathname.slice('/assets/droids/'.length);
+      if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+        return sendJson(res, 400, { error: 'invalid filename' });
+      }
+      const filePath = path.join(ASSETS_DROIDS_DIR, filename);
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+        res.writeHead(200, {
+          'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return res.end(data);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
     // GET /species -> full species catalog, incl. min crystal cost to attempt capture
     if (req.method === 'GET' && pathname === '/species') {
       const species = db.droidSpecies.map((s) => ({
@@ -87,12 +124,19 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { species });
     }
 
-    // POST /players  { username }
+    // POST /players  { username, pin }
+    // Unified login/signup: existing username+matching PIN resumes that
+    // player (any device); new username creates a fresh one; an existing
+    // username with no PIN yet set (pre-login-system account) claims the
+    // PIN provided now, so old testers don't lose progress after this update.
     if (req.method === 'POST' && pathname === '/players') {
-      const { username } = await readBody(req);
-      if (!username) return sendJson(res, 400, { error: 'username required' });
-      const player = db.createPlayer(username);
-      return sendJson(res, 201, player);
+      const { username, pin } = await readBody(req);
+      try {
+        const player = db.loginOrCreatePlayer(username, pin);
+        return sendJson(res, 200, player);
+      } catch (e) {
+        return sendJson(res, 400, { error: 'LOGIN_ERROR', message: e.message });
+      }
     }
 
     // GET /players/:id
@@ -166,8 +210,12 @@ const server = http.createServer(async (req, res) => {
       const droids = [...db.ownedDroids.values()]
         .filter((d) => d.playerId === playerId)
         .map(workshopModule.enrichDroid);
+      const companionMultiplier = workshopModule.companionBuffMultiplier(playerId);
       const crystalsPerSecond =
-        droids.reduce((sum, d) => sum + (d.crystalsPerMinute || 0), 0) / 60;
+        (droids.reduce((sum, d) => sum + (d.crystalsPerMinute || 0), 0) / 60) * companionMultiplier;
+      const companionDroid = player.companionDroidId
+        ? workshopModule.enrichDroid(db.ownedDroids.get(player.companionDroidId))
+        : null;
       return sendJson(res, 200, {
         ...settled,
         slots,
@@ -176,6 +224,12 @@ const server = http.createServer(async (req, res) => {
         padLevel: player.padLevel,
         critChance: db.critChanceForPadLevel(player.padLevel),
         nextPadUpgradeCost: db.padUpgradeCost(player.padLevel),
+        paint: player.paint,
+        novaChips: player.novaChips,
+        cosmetics: player.cosmetics,
+        guildId: player.guildId,
+        companionDroid,
+        companionBuffPercent: db.COMPANION_BUFF_PERCENT,
       });
     }
 
@@ -224,6 +278,153 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, result);
       } catch (e) {
         return sendJson(res, 409, { error: 'PAD_UPGRADE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /droids/:id/release  { playerId } -> scrap for 1.5x captureCost refund + 10% Nova Chip chance
+    if (req.method === 'POST' && pathname.match(/^\/droids\/\d+\/release$/)) {
+      const droidId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = workshopModule.releaseDroid(playerId, droidId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'RELEASE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /droids/:id/evolve-species  { playerId } -> spend Nova Chips (e.g. Leafkin -> Bushy)
+    if (req.method === 'POST' && pathname.match(/^\/droids\/\d+\/evolve-species$/)) {
+      const droidId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = workshopModule.evolveSpecies(playerId, droidId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'EVOLVE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /droids/:id/evolve-funky  { playerId, color } -> spend Paint on a Rusty droid
+    if (req.method === 'POST' && pathname.match(/^\/droids\/\d+\/evolve-funky$/)) {
+      const droidId = Number(pathname.split('/')[2]);
+      const { playerId, color } = await readBody(req);
+      try {
+        const result = workshopModule.evolveFunky(playerId, droidId, color);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'EVOLVE_FUNKY_ERROR', message: e.message });
+      }
+    }
+
+    // POST /companion/assign  { playerId, droidId }
+    if (req.method === 'POST' && pathname === '/companion/assign') {
+      const { playerId, droidId } = await readBody(req);
+      try {
+        const result = workshopModule.assignCompanion(playerId, droidId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'COMPANION_ERROR', message: e.message });
+      }
+    }
+
+    // POST /companion/unassign  { playerId }
+    if (req.method === 'POST' && pathname === '/companion/unassign') {
+      const { playerId } = await readBody(req);
+      try {
+        const result = workshopModule.unassignCompanion(playerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'COMPANION_ERROR', message: e.message });
+      }
+    }
+
+    // GET /cosmetics -> catalog
+    if (req.method === 'GET' && pathname === '/cosmetics') {
+      return sendJson(res, 200, { cosmetics: db.COSMETICS_CATALOG });
+    }
+
+    // POST /players/:id/cosmetics/buy  { cosmeticId }
+    if (req.method === 'POST' && pathname.match(/^\/players\/\d+\/cosmetics\/buy$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const { cosmeticId } = await readBody(req);
+      try {
+        const result = workshopModule.buyCosmetic(playerId, cosmeticId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'COSMETIC_ERROR', message: e.message });
+      }
+    }
+
+    // GET /guilds -> list all (for browsing to join)
+    if (req.method === 'GET' && pathname === '/guilds') {
+      return sendJson(res, 200, { guilds: [...db.guilds.values()] });
+    }
+
+    // GET /guilds/:id
+    if (req.method === 'GET' && pathname.match(/^\/guilds\/\d+$/)) {
+      const guildId = Number(pathname.split('/')[2]);
+      const guild = db.guilds.get(guildId);
+      if (!guild) return sendJson(res, 404, { error: 'not found' });
+      return sendJson(res, 200, guild);
+    }
+
+    // POST /guilds  { playerId, name }
+    if (req.method === 'POST' && pathname === '/guilds') {
+      const { playerId, name } = await readBody(req);
+      try {
+        if (!name || !name.trim()) throw new Error('Guild name required');
+        const guild = db.createGuild(playerId, name.trim());
+        return sendJson(res, 201, { guild });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'GUILD_ERROR', message: e.message });
+      }
+    }
+
+    // POST /guilds/:id/join  { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/guilds\/\d+\/join$/)) {
+      const guildId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const guild = db.joinGuild(playerId, guildId);
+        return sendJson(res, 200, { guild });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'GUILD_ERROR', message: e.message });
+      }
+    }
+
+    // POST /guilds/leave  { playerId }
+    if (req.method === 'POST' && pathname === '/guilds/leave') {
+      const { playerId } = await readBody(req);
+      try {
+        const guild = db.leaveGuild(playerId);
+        return sendJson(res, 200, { guild });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'GUILD_ERROR', message: e.message });
+      }
+    }
+
+    // POST /redeem  { playerId, code }
+    if (req.method === 'POST' && pathname === '/redeem') {
+      const { playerId, code } = await readBody(req);
+      try {
+        const result = db.redeemCodeFn(playerId, code);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'REDEEM_ERROR', message: e.message });
+      }
+    }
+
+    // POST /redeem-codes  { code, rewardCrystals?, rewardSpeciesId?, maxUses? }
+    // Dev/admin endpoint for this prototype — production would gate this behind admin auth.
+    if (req.method === 'POST' && pathname === '/redeem-codes') {
+      const body = await readBody(req);
+      try {
+        if (!body.code) throw new Error('code required');
+        const row = db.createRedeemCode(body);
+        return sendJson(res, 201, { code: row });
+      } catch (e) {
+        return sendJson(res, 400, { error: 'REDEEM_CODE_ERROR', message: e.message });
       }
     }
 

@@ -11,6 +11,7 @@ const MAX_PLAUSIBLE_RANGE_METERS = 75; // player must be roughly at the spawn
 const MIN_PLAUSIBLE_ATTEMPT_MS = 250; // faster than this + high accuracy = bot signature
 const CRYSTAL_BONUS_CAP = 0.40; // spending max crystals gives up to +40% chance
 const CRYSTAL_COST_TO_MAX = 30; // crystals spent at which bonus caps out
+const PAINT_DROP_CHANCE = 0.05; // 5% chance any successful capture also drops 1 Paint
 
 function crystalBonus(crystalsSpent) {
   const ratio = Math.min(crystalsSpent / CRYSTAL_COST_TO_MAX, 1);
@@ -87,6 +88,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   }
 
   let newDroid = null;
+  let gotPaint = false;
 
   if (success) {
     spawn.claimedBy = playerId;
@@ -96,11 +98,15 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
       speciesId: species.id,
       variant: spawn.variant,
       level: 1,
+      captureCost: crystalsSpent, // remembered for the 1.5x refund if released later
       capturedAt: Date.now(),
       workshopSlotId: null,
     };
     db.ownedDroids.set(newDroid.id, newDroid);
-    db.markDexSeen(playerId, species.id);
+    db.markDexSeen(playerId, species.id, spawn.variant);
+
+    gotPaint = Math.random() < PAINT_DROP_CHANCE;
+    if (gotPaint) player.paint += 1;
   } else {
     // failed attempt shortens remaining TTL, per design (no infinite spam-tapping)
     const remaining = spawn.expiresAt - Date.now();
@@ -125,7 +131,9 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     successChance,
     critical: isCritical,
     crystalBalance: player.crystalBalance,
-    droid: newDroid ? { id: newDroid.id, speciesName: species.name, rarity: species.rarity, variant: newDroid.variant } : null,
+    droid: newDroid ? { id: newDroid.id, speciesName: species.name, rarity: species.rarity, variant: newDroid.variant, isCompanion: species.isCompanion || false } : null,
+    gotPaint,
+    paint: player.paint,
     spawnExpiresAt: spawn.expiresAt,
   };
 }

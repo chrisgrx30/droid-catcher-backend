@@ -20,37 +20,68 @@ const id = () => nextId++;
 // species in that tier so overall rarity odds stay at the original design
 // (common 60 / uncommon 25 / rare 12 / legendary 3) regardless of how many
 // species share the tier.
+//
+// baseHP/baseAttack: groundwork stats for a future PVE raid system (not
+// yet built) — level scaling already applies to them via the same
+// levelMultiplier used for crystal rate, so they're "real" numbers from day
+// one even though nothing consumes them in combat yet.
+const RARITY_BASE_STATS = {
+  common: { hp: 50, attack: 8 },
+  uncommon: { hp: 90, attack: 14 },
+  rare: { hp: 150, attack: 22 },
+  legendary: { hp: 260, attack: 35 },
+  cosmic: { hp: 200, attack: 20 },
+};
+function statsFor(rarity) {
+  return { baseHP: RARITY_BASE_STATS[rarity].hp, baseAttack: RARITY_BASE_STATS[rarity].attack };
+}
+
 const droidSpecies = [
   // -- common (60 total / 4 species = 15 each) --
-  { id: id(), name: 'Puffkin',    alignment: 'light', rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15 },
-  { id: id(), name: 'Gloomrat',   alignment: 'dark',  rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15 },
-  { id: id(), name: 'Leafkin',    alignment: 'light', rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15 },
-  { id: id(), name: 'Thornstalk', alignment: 'dark',  rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15 },
+  { id: id(), name: 'Puffkin',    alignment: 'light', rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15, ...statsFor('common') },
+  { id: id(), name: 'Gloomrat',   alignment: 'dark',  rarity: 'common',    collection: 'mythical', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15, ...statsFor('common') },
+  { id: id(), name: 'Leafkin',    alignment: 'light', rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15, ...statsFor('common') },
+  { id: id(), name: 'Thornstalk', alignment: 'dark',  rarity: 'common',    collection: 'nature',   baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 15, ...statsFor('common') },
 
   // -- uncommon (25 total / 4 species = 6.25 each) --
-  { id: id(), name: 'Emberfox',   alignment: 'light', rarity: 'uncommon',  collection: 'mythical', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25 },
-  { id: id(), name: 'Nightfang',  alignment: 'dark',  rarity: 'uncommon',  collection: 'mythical', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25 },
-  { id: id(), name: 'Bloombot',   alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25 },
-  { id: id(), name: 'Sporecap',   alignment: 'dark',  rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25 },
+  { id: id(), name: 'Emberfox',   alignment: 'light', rarity: 'uncommon',  collection: 'mythical', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25, ...statsFor('uncommon') },
+  { id: id(), name: 'Nightfang',  alignment: 'dark',  rarity: 'uncommon',  collection: 'mythical', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25, ...statsFor('uncommon') },
+  { id: id(), name: 'Bloombot',   alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25, ...statsFor('uncommon') },
+  { id: id(), name: 'Sporecap',   alignment: 'dark',  rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 6.25, ...statsFor('uncommon') },
 
   // -- rare (12 total / 4 species = 3 each) --
-  { id: id(), name: 'Skylantern', alignment: 'light', rarity: 'rare',      collection: 'mythical', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3 },
-  { id: id(), name: 'Ravencowl',  alignment: 'dark',  rarity: 'rare',      collection: 'mythical', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3 },
-  { id: id(), name: 'Vineweave',  alignment: 'light', rarity: 'rare',      collection: 'nature',   baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3 },
-  { id: id(), name: 'Wiltroot',   alignment: 'dark',  rarity: 'rare',      collection: 'nature',   baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3 },
+  { id: id(), name: 'Skylantern', alignment: 'light', rarity: 'rare',      collection: 'mythical', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3, ...statsFor('rare') },
+  { id: id(), name: 'Ravencowl',  alignment: 'dark',  rarity: 'rare',      collection: 'mythical', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3, ...statsFor('rare') },
+  { id: id(), name: 'Vineweave',  alignment: 'light', rarity: 'rare',      collection: 'nature',   baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3, ...statsFor('rare') },
+  { id: id(), name: 'Wiltroot',   alignment: 'dark',  rarity: 'rare',      collection: 'nature',   baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 3, ...statsFor('rare') },
 
   // -- legendary (3 total / 4 species = 0.75 each) --
-  { id: id(), name: 'Aurumwing',  alignment: 'light', rarity: 'legendary', collection: 'mythical', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75 },
-  { id: id(), name: 'Voidforge',  alignment: 'dark',  rarity: 'legendary', collection: 'mythical', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75 },
-  { id: id(), name: 'Elderwood',  alignment: 'light', rarity: 'legendary', collection: 'nature',   baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75 },
-  { id: id(), name: 'Voidtree',   alignment: 'dark',  rarity: 'legendary', collection: 'nature',   baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75 },
+  { id: id(), name: 'Aurumwing',  alignment: 'light', rarity: 'legendary', collection: 'mythical', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75, ...statsFor('legendary') },
+  { id: id(), name: 'Voidforge',  alignment: 'dark',  rarity: 'legendary', collection: 'mythical', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75, ...statsFor('legendary') },
+  { id: id(), name: 'Elderwood',  alignment: 'light', rarity: 'legendary', collection: 'nature',   baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75, ...statsFor('legendary') },
+  { id: id(), name: 'Voidtree',   alignment: 'dark',  rarity: 'legendary', collection: 'nature',   baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.75, ...statsFor('legendary') },
+
+  // -- evolution-only (spawnWeight 0 -> never appears in the wild, only obtained by evolving) --
+  { id: id(), name: 'Bushy',      alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, ...statsFor('uncommon') },
+
+  // -- companion (cosmic tier — rarer than legendary, doesn't farm, provides a % buff instead; see COMPANION_BUFF_PERCENT) --
+  { id: id(), name: 'StarSprite', alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, ...statsFor('cosmic') },
 ];
+
+// Leafkin -> Bushy is the first (and template) evolution pair. Keyed by
+// species id so adding more pairs later is pure data, not new code.
+const leafkinSpecies = droidSpecies.find((s) => s.name === 'Leafkin');
+const bushySpecies = droidSpecies.find((s) => s.name === 'Bushy');
+const EVOLUTION_TABLE = {
+  [leafkinSpecies.id]: { evolvesTo: bushySpecies.id, novaChipCost: 15 },
+};
 
 const RARITY_TTL_MS = {
   common: 15 * 60 * 1000,
   uncommon: 10 * 60 * 1000,
   rare: 8 * 60 * 1000,
   legendary: 5 * 60 * 1000,
+  cosmic: 4 * 60 * 1000,
 };
 
 const RARITY_MAX_PER_CELL = {
@@ -58,9 +89,11 @@ const RARITY_MAX_PER_CELL = {
   uncommon: 2,
   rare: 1,
   legendary: 1,
+  cosmic: 1,
 };
 
 const LEGENDARY_CITY_CAP = 3;
+const COSMIC_CITY_CAP = 1; // StarSprite — only one active anywhere at a time
 
 // ---- crystal power requirement ----
 // The control pad literally needs crystals to function (per the original
@@ -71,6 +104,7 @@ const MIN_CRYSTAL_COST = {
   uncommon: 5,
   rare: 15,
   legendary: 40,
+  cosmic: 80,
 };
 
 // ---- variants (shiny-equivalent) ----
@@ -97,20 +131,30 @@ const VARIANT_CRYSTAL_MULTIPLIER = {
   standard: 1.0,
   platinum: 5.0, // 500% — raised from 1.5x per playtest: original bonus wasn't worth the ~1-in-1000 hunt
   rusty: 2.0,    // 200% — originally cosmetic-only; given a real bonus per playtest feedback (see note below)
+  funky: 3.5,    // 350% — midpoint between Rusty and Platinum; Rusty + banked Paint evolves into this (see evolveFunky)
 };
 // Note: Rusty was originally designed as purely cosmetic (see concept
-// discussion) with a possible future "polish/paint evolution" mechanic.
-// Playtesting showed the effort-to-reward ratio felt off with no bonus at
-// all, so it now carries a real (smaller than Platinum) production boost.
-// If the evolution mechanic gets built later, this is the value to retire
-// in favor of it.
+// discussion) with a possible future "polish/paint evolution" mechanic —
+// that mechanic now exists (evolveFunky below).
 
-function rollVariant() {
+// Companion (cosmic-rarity) variants are rarer still than normal — a flat
+// odds multiplier applied only when rolling a variant for a cosmic spawn.
+const COMPANION_VARIANT_ODDS_MULTIPLIER = 0.1;
+
+function rollVariant(rarity = null) {
+  const scale = rarity === 'cosmic' ? COMPANION_VARIANT_ODDS_MULTIPLIER : 1;
   const roll = Math.random();
-  if (roll < VARIANT_ODDS.platinum) return 'platinum';
-  if (roll < VARIANT_ODDS.platinum + VARIANT_ODDS.rusty) return 'rusty';
+  if (roll < VARIANT_ODDS.platinum * scale) return 'platinum';
+  if (roll < VARIANT_ODDS.platinum * scale + VARIANT_ODDS.rusty * scale) return 'rusty';
   return 'standard';
 }
+
+// Spend banked Paint to evolve an owned Rusty droid into a "Funky" one —
+// a cosmetic primary color plus the mid-tier crystal bonus above. Paint is
+// a generic banked currency (not per-color), so any color is available at
+// the moment of evolving regardless of which capture(s) dropped the paint.
+const FUNKY_EVOLVE_PAINT_COST = 10; // default — tune freely, not specified in the original design ask
+const PRIMARY_COLORS = ['red', 'yellow', 'blue'];
 
 // ---- workshop slot unlock cost ----
 // Slot 0 is free (granted at signup, holds the starter droid). Every
@@ -122,10 +166,20 @@ function slotUnlockCost(slotIndex) {
 
 // ---- droid leveling (crystals -> stronger individual droid) ----
 // Effect lives in workshop.js's levelMultiplier (+15% crystal rate/level,
-// already existed) — this is just the crystal cost to buy the next level.
+// now also HP/Attack — see baseHP/baseAttack above) — this is the crystal
+// cost to buy the next level, scaled by rarity so a Legendary costs
+// meaningfully more to level than a Common.
 const DROID_LEVEL_CAP = 20;
-function levelUpCost(currentLevel) {
-  return Math.round(10 * Math.pow(currentLevel, 1.6));
+const RARITY_LEVEL_COST_MULTIPLIER = {
+  common: 1,
+  uncommon: 1.5,
+  rare: 2.5,
+  legendary: 4,
+  cosmic: 5,
+};
+function levelUpCost(currentLevel, rarity = 'common') {
+  const multiplier = RARITY_LEVEL_COST_MULTIPLIER[rarity] ?? 1;
+  return Math.round(10 * Math.pow(currentLevel, 1.6) * multiplier);
 }
 
 // ---- pad upgrades (crystals -> account-wide capture power) ----
@@ -149,8 +203,22 @@ function critChanceForPadLevel(padLevel) {
 // collection) for a fixed time window. Generalizes the same multiplier
 // pattern the day/night alignment bias already uses in spawns.js.
 const events = new Map(); // id -> event row
+const EVENT_COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
+const lastEventLaunchByTarget = new Map(); // targetKey -> timestamp
+
+function eventTargetKey({ speciesIds = [], collection = null }) {
+  return collection ? `collection:${collection}` : `species:${[...speciesIds].sort().join(',')}`;
+}
 
 function createEvent({ name, speciesIds = [], collection = null, spawnWeightMultiplier = 2, startTime, endTime }) {
+  const targetKey = eventTargetKey({ speciesIds, collection });
+  const lastLaunch = lastEventLaunchByTarget.get(targetKey);
+  if (lastLaunch && Date.now() - lastLaunch < EVENT_COOLDOWN_MS) {
+    const remainingMs = EVENT_COOLDOWN_MS - (Date.now() - lastLaunch);
+    const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+    throw new Error(`This event target is on cooldown for another ~${remainingHours}h`);
+  }
+
   const event = {
     id: id(),
     name,
@@ -161,6 +229,7 @@ function createEvent({ name, speciesIds = [], collection = null, spawnWeightMult
     endTime,
   };
   events.set(event.id, event);
+  lastEventLaunchByTarget.set(targetKey, Date.now());
   return event;
 }
 
@@ -198,6 +267,107 @@ const TRADE_FEE_BY_RARITY = {
   legendary: 15,
 };
 
+// ---- companion droids (StarSprite) ----
+// Structurally different from farming droids: doesn't occupy a workshop
+// slot, doesn't farm crystals itself, instead applies a flat % buff to the
+// player's total crystals/min. Only one can be active ("held") at a time.
+const COMPANION_BUFF_PERCENT = 50;
+
+// ---- cosmetics ----
+// Purely cosmetic, no gameplay effect — crystal sinks for players who've
+// maxed out the practical stuff. Extensible catalog; just one item for
+// this beta round.
+const COSMETICS_CATALOG = [
+  { id: 'beta_crown', name: 'Beta Crown', cost: 1000, description: 'No effect - just shows you were here for the beta.' },
+];
+
+// ---- guilds ----
+// Minimal for now: a name and a member list, no gameplay effect yet -
+// foundation for a future PVP/guild system. Small friend-group cap.
+const guilds = new Map(); // id -> guild row
+const GUILD_MAX_MEMBERS = 12;
+
+function createGuild(playerId, name) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (player.guildId) throw new Error('Already in a guild - leave it first');
+  const guild = { id: id(), name, creatorId: playerId, memberIds: [playerId], createdAt: Date.now() };
+  guilds.set(guild.id, guild);
+  player.guildId = guild.id;
+  return guild;
+}
+
+function joinGuild(playerId, guildId) {
+  const player = players.get(playerId);
+  const guild = guilds.get(guildId);
+  if (!player) throw new Error('Player not found');
+  if (!guild) throw new Error('Guild not found');
+  if (player.guildId) throw new Error('Already in a guild - leave it first');
+  if (guild.memberIds.length >= GUILD_MAX_MEMBERS) throw new Error('Guild is full');
+  guild.memberIds.push(playerId);
+  player.guildId = guildId;
+  return guild;
+}
+
+function leaveGuild(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!player.guildId) throw new Error('Not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (guild) guild.memberIds = guild.memberIds.filter((mid) => mid !== playerId);
+  player.guildId = null;
+  return guild;
+}
+
+// ---- redeem codes ----
+// Simple promo-code system: a code grants crystals and/or a specific
+// droid species, usable once per player, optionally capped in total uses.
+const redeemCodes = new Map(); // code (uppercased) -> row
+
+function createRedeemCode(opts) {
+  const code = opts.code, rewardCrystals = opts.rewardCrystals || 0, rewardSpeciesId = opts.rewardSpeciesId || null, maxUses = opts.maxUses != null ? opts.maxUses : null;
+  const key = code.toUpperCase();
+  const row = { code: key, rewardCrystals, rewardSpeciesId, maxUses, usedByPlayerIds: [] };
+  redeemCodes.set(key, row);
+  return row;
+}
+
+function redeemCodeFn(playerId, code) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const row = redeemCodes.get(code.toUpperCase());
+  if (!row) throw new Error('Invalid code');
+  if (row.usedByPlayerIds.includes(playerId)) throw new Error('You already redeemed this code');
+  if (row.maxUses !== null && row.usedByPlayerIds.length >= row.maxUses) throw new Error('This code has been fully redeemed');
+
+  row.usedByPlayerIds.push(playerId);
+  player.crystalBalance += row.rewardCrystals;
+  if (row.rewardCrystals > 0) {
+    crystalTransactions.push({ id: id(), playerId: playerId, amount: row.rewardCrystals, source: 'redeem_code', createdAt: Date.now() });
+  }
+
+  let droid = null;
+  if (row.rewardSpeciesId) {
+    const species = droidSpecies.find((s) => s.id === row.rewardSpeciesId);
+    if (species) {
+      droid = {
+        id: id(),
+        playerId: playerId,
+        speciesId: species.id,
+        variant: 'standard',
+        level: 1,
+        captureCost: 0,
+        capturedAt: Date.now(),
+        workshopSlotId: null,
+      };
+      ownedDroids.set(droid.id, droid);
+      markDexSeen(playerId, species.id, 'standard');
+    }
+  }
+
+  return { crystalsGranted: row.rewardCrystals, droid: droid, crystalBalance: player.crystalBalance };
+}
+
 // ---- players ----
 const players = new Map(); // id -> player row
 
@@ -214,16 +384,32 @@ const spawns = new Map(); // id -> row
 const captureAttempts = [];
 const crystalTransactions = [];
 
-function createPlayer(username) {
+// ---- auth (username + PIN, cross-device login) ----
+// Deliberately simple ("soft") for a closed friends beta: PIN stored in
+// plain text, no hashing/salting. Fine for trusted testers with no
+// sensitive data at stake; NOT appropriate once this has real users.
+function findPlayerByUsername(username) {
+  const lower = username.toLowerCase();
+  return [...players.values()].find((p) => p.username.toLowerCase() === lower) || null;
+}
+
+function createPlayer(username, pin) {
   const player = {
     id: id(),
     username,
+    pin: pin || null,
     crystalBalance: 0,
     lastCrystalCollection: Date.now(),
     createdAt: Date.now(),
     hasStarterDroid: false,
     padLevel: 0,
-    dexSeen: [], // speciesIds ever successfully captured — survives trading the droid away later
+    dexSeen: [],         // speciesIds ever successfully captured — survives trading the droid away later
+    dexVariantsSeen: [],  // "speciesId:variant" strings, for platinum/rusty/funky dex badges
+    novaChips: 0,
+    paint: 0,
+    companionDroidId: null,
+    cosmetics: [],
+    guildId: null,
   };
   players.set(player.id, player);
 
@@ -240,6 +426,28 @@ function createPlayer(username) {
   }
 
   return player;
+}
+
+// Unified login/signup: if the username exists, validate the PIN (or, for
+// pre-login-system accounts with no PIN set yet, "claim" it with whatever
+// PIN is entered now — lets existing testers keep their progress after
+// this update without a separate migration step). If the username is new,
+// creates a fresh player.
+function loginOrCreatePlayer(username, pin) {
+  if (!username || !username.trim()) throw new Error('Username required');
+  if (!pin || !/^\d{4,8}$/.test(pin)) throw new Error('PIN must be 4-8 digits');
+
+  const existing = findPlayerByUsername(username.trim());
+  if (existing) {
+    if (existing.pin === null) {
+      existing.pin = pin; // claim: first login after the login system was added
+      return existing;
+    }
+    if (existing.pin !== pin) throw new Error('Wrong PIN for that username');
+    return existing;
+  }
+
+  return createPlayer(username.trim(), pin);
 }
 
 // One-time free starter droid, common tier only, skips the capture step
@@ -261,19 +469,23 @@ function grantStarterDroid(playerId, speciesId) {
     speciesId: species.id,
     variant: 'standard',
     level: 1,
+    captureCost: 0, // free — starter droids refund nothing if released
     capturedAt: Date.now(),
     workshopSlotId: null,
   };
   ownedDroids.set(droid.id, droid);
   player.hasStarterDroid = true;
-  if (!player.dexSeen.includes(species.id)) player.dexSeen.push(species.id);
+  markDexSeen(playerId, species.id, 'standard');
   return droid;
 }
 
-function markDexSeen(playerId, speciesId) {
+function markDexSeen(playerId, speciesId, variant) {
   const player = players.get(playerId);
-  if (player && !player.dexSeen.includes(speciesId)) {
-    player.dexSeen.push(speciesId);
+  if (!player) return;
+  if (!player.dexSeen.includes(speciesId)) player.dexSeen.push(speciesId);
+  if (variant && variant !== 'standard') {
+    const key = `${speciesId}:${variant}`;
+    if (!player.dexVariantsSeen.includes(key)) player.dexVariantsSeen.push(key);
   }
 }
 
@@ -283,7 +495,12 @@ function markDexSeen(playerId, speciesId) {
 function getDex(playerId) {
   const player = players.get(playerId);
   const seen = player ? player.dexSeen : [];
-  const entries = droidSpecies.map((s) => ({ ...s, caught: seen.includes(s.id) }));
+  const variantsSeen = player ? player.dexVariantsSeen : [];
+  const entries = droidSpecies.map((s) => ({
+    ...s,
+    caught: seen.includes(s.id),
+    variantsCaught: ['platinum', 'rusty', 'funky'].filter((v) => variantsSeen.includes(`${s.id}:${v}`)),
+  }));
   const totalCaught = entries.filter((e) => e.caught).length;
   return {
     entries,
@@ -305,6 +522,9 @@ function exportState() {
     workshopSlots: [...workshopSlots.values()],
     tradeOffers: [...tradeOffers.values()],
     events: [...events.values()],
+    guilds: [...guilds.values()],
+    redeemCodes: [...redeemCodes.values()],
+    lastEventLaunchByTarget: [...lastEventLaunchByTarget.entries()],
     crystalTransactions: crystalTransactions.slice(-1000),
   };
 }
@@ -316,19 +536,46 @@ function importState(state) {
   workshopSlots.clear();
   tradeOffers.clear();
   events.clear();
+  guilds.clear();
+  redeemCodes.clear();
+  lastEventLaunchByTarget.clear();
   crystalTransactions.length = 0;
 
-  (state.players || []).forEach((p) => players.set(p.id, p));
-  (state.ownedDroids || []).forEach((d) => ownedDroids.set(d.id, d));
+  // Backfill defaults for any player field added by later code than what
+  // originally saved this snapshot — e.g. a player saved before the Dex
+  // feature existed won't have `dexSeen` in their saved JSON. Spreading
+  // defaults first, then the restored row, keeps every real saved value
+  // and only fills in what's actually missing (object spread never
+  // overwrites a key the source doesn't have).
+  const playerDefaults = {
+    pin: null,
+    hasStarterDroid: false,
+    padLevel: 0,
+    dexSeen: [],
+    dexVariantsSeen: [],
+    novaChips: 0,
+    paint: 0,
+    companionDroidId: null,
+    cosmetics: [],
+    guildId: null,
+  };
+  (state.players || []).forEach((p) => players.set(p.id, { ...playerDefaults, ...p }));
+
+  const droidDefaults = { level: 1, variant: 'standard', workshopSlotId: null, captureCost: 0 };
+  (state.ownedDroids || []).forEach((d) => ownedDroids.set(d.id, { ...droidDefaults, ...d }));
+
   (state.workshopSlots || []).forEach((s) => workshopSlots.set(s.id, s));
   (state.tradeOffers || []).forEach((t) => tradeOffers.set(t.id, t));
   (state.events || []).forEach((e) => events.set(e.id, e));
+  (state.guilds || []).forEach((g) => guilds.set(g.id, g));
+  (state.redeemCodes || []).forEach((r) => redeemCodes.set(r.code, r));
+  (state.lastEventLaunchByTarget || []).forEach(([k, v]) => lastEventLaunchByTarget.set(k, v));
   (state.crystalTransactions || []).forEach((t) => crystalTransactions.push(t));
 
   // Recompute the id counter so newly-created rows never collide with
   // restored ones, regardless of what was in flight when the snapshot was taken.
   let maxId = 0;
-  for (const coll of [players, ownedDroids, workshopSlots, tradeOffers, events]) {
+  for (const coll of [players, ownedDroids, workshopSlots, tradeOffers, events, guilds]) {
     for (const row of coll.values()) if (row.id > maxId) maxId = row.id;
   }
   for (const t of crystalTransactions) if (t.id > maxId) maxId = t.id;
@@ -337,14 +584,18 @@ function importState(state) {
 
 module.exports = {
   droidSpecies,
+  EVOLUTION_TABLE,
   RARITY_TTL_MS,
   RARITY_MAX_PER_CELL,
   LEGENDARY_CITY_CAP,
+  COSMIC_CITY_CAP,
   MIN_CRYSTAL_COST,
   VARIANT_ODDS,
   VARIANT_CRYSTAL_MULTIPLIER,
   TESTING_HIGH_VARIANT_ODDS,
   rollVariant,
+  FUNKY_EVOLVE_PAINT_COST,
+  PRIMARY_COLORS,
   slotUnlockCost,
   DROID_LEVEL_CAP,
   levelUpCost,
@@ -355,9 +606,20 @@ module.exports = {
   createEvent,
   listActiveEvents,
   getActiveEventMultiplier,
+  EVENT_COOLDOWN_MS,
   tradeOffers,
   TRADE_COOLDOWN_MS,
   TRADE_FEE_BY_RARITY,
+  COMPANION_BUFF_PERCENT,
+  COSMETICS_CATALOG,
+  guilds,
+  GUILD_MAX_MEMBERS,
+  createGuild,
+  joinGuild,
+  leaveGuild,
+  redeemCodes,
+  createRedeemCode,
+  redeemCodeFn,
   players,
   ownedDroids,
   workshopSlots,
@@ -365,6 +627,8 @@ module.exports = {
   captureAttempts,
   crystalTransactions,
   createPlayer,
+  findPlayerByUsername,
+  loginOrCreatePlayer,
   grantStarterDroid,
   markDexSeen,
   getDex,

@@ -181,6 +181,7 @@
   .spawn-card.uncommon { border-left-color: var(--uncommon); }
   .spawn-card.rare { border-left-color: var(--rare); }
   .spawn-card.legendary { border-left-color: var(--legendary); }
+  .spawn-card.cosmic { border-left-color: #ff9df0; }
   .spawn-card.variant-platinum {
     border-color: #d9e6ea;
     box-shadow: 0 0 12px rgba(217,230,234,0.35), inset 0 0 12px rgba(217,230,234,0.08);
@@ -206,13 +207,16 @@
   }
   .variant-tag.platinum { background: rgba(217,230,234,0.15); color: #e8f2f4; border: 1px solid #d9e6ea; }
   .variant-tag.rusty { background: rgba(181,101,47,0.15); color: #d99a5f; border: 1px solid #b5652f; }
-  .spawn-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .spawn-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .variant-tag.funky { background: rgba(232,140,80,0.15); color: #ff9a5c; border: 1px solid #ff7a3d; }
+  .spawn-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .spawn-icon { flex-shrink: 0; }
+  .spawn-name { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
   .spawn-rarity { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; }
   .spawn-rarity.common { color: var(--common); }
   .spawn-rarity.uncommon { color: var(--uncommon); }
   .spawn-rarity.rare { color: var(--rare); }
   .spawn-rarity.legendary { color: var(--legendary); }
+  .spawn-rarity.cosmic { color: #ff9df0; }
   .spawn-meta { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
 
   /* ---- capture timing minigame ---- */
@@ -331,6 +335,7 @@
   .dex-card .dc-rarity.uncommon { color: var(--uncommon); }
   .dex-card .dc-rarity.rare { color: var(--rare); }
   .dex-card .dc-rarity.legendary { color: var(--legendary); }
+  .dex-card .dc-rarity.cosmic { color: #ff9df0; }
 </style>
 </head>
 <body>
@@ -355,7 +360,10 @@
     <div id="noPlayer">
       <label>Callsign</label>
       <input type="text" id="username" placeholder="e.g. rook-7" value="rook-7">
-      <button class="primary" id="btnCreatePlayer">Deploy Pilot</button>
+      <label>PIN (4-8 digits)</label>
+      <input type="text" id="pin" placeholder="e.g. 4821" maxlength="8" inputmode="numeric">
+      <button class="primary" id="btnCreatePlayer">Deploy / Resume Pilot</button>
+      <div style="font-size:9px; color:var(--text-dim); margin-top:6px;">New callsign = new pilot. Existing callsign + matching PIN resumes it on any device.</div>
     </div>
     <div id="playerStats" style="display:none;">
       <div class="stat-row"><span class="stat-label">ID</span><span class="stat-val" id="statId">—</span></div>
@@ -369,6 +377,26 @@
       <div class="stat-row"><span class="stat-label">Pad Level</span><span class="stat-val" id="statPadLevel">0</span></div>
       <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-val" id="statCritChance">2%</span></div>
       <button id="btnUpgradePad">Upgrade Pad — <span id="padUpgradeCost">100</span> ✦</button>
+
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Companion <span id="companionBuffTag" style="color:var(--text-dim);"></span></div>
+      <div id="companionSlot"><div class="empty">No companion equipped</div></div>
+
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Cosmetics</div>
+      <div id="cosmeticsOwned" style="margin-bottom:8px;"></div>
+      <div id="cosmeticsShop"></div>
+
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Guild</div>
+      <div id="guildStatus"><div class="empty">Not in a guild</div></div>
+      <label>Guild name (to create)</label>
+      <input type="text" id="guildName" placeholder="e.g. The Nightfangs">
+      <button id="btnCreateGuild">Create Guild</button>
+      <label style="margin-top:8px;">Guild ID (to join)</label>
+      <input type="text" id="joinGuildId" placeholder="e.g. 3">
+      <button id="btnJoinGuild">Join Guild</button>
+
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Redeem Code</div>
+      <input type="text" id="redeemCodeInput" placeholder="e.g. WELCOME2026">
+      <button id="btnRedeemCode">Redeem</button>
     </div>
     <div id="starterPicker" style="display:none; margin-top:14px;">
       <div class="panel-title" style="margin-bottom:6px;">Choose Starter Droid</div>
@@ -381,18 +409,11 @@
   <div class="panel">
     <div class="panel-title">Radar Sweep <span id="todBadge" style="color: var(--text-dim);"></span></div>
     <div id="eventBanner"></div>
-    <button id="btnUseLocation">📍 Use My Location</button>
+    <button class="primary" id="btnUseLocation">📍 Use My Location &amp; Scan</button>
     <div id="locationStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
-    <label>Latitude</label>
-    <input type="text" id="lat" value="37.7749">
-    <label>Longitude</label>
-    <input type="text" id="lng" value="-122.4194">
-    <label>Radius (m)</label>
-    <input type="text" id="radius" value="1000">
-    <button class="primary" id="btnScan">Scan Area</button>
 
     <div class="spawn-list" id="spawnList">
-      <div class="empty">No sweep yet — hit Scan Area</div>
+      <div class="empty">No sweep yet — tap Use My Location</div>
     </div>
   </div>
 
@@ -460,7 +481,8 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [] };
+let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, companionBuffPercent: 50, guildId: null };
+const FUNKY_PAINT_COST = 10; // matches db.FUNKY_EVOLVE_PAINT_COST default on the backend
 let tickInterval = null;
 
 function serverUrl() {
@@ -512,6 +534,7 @@ async function activatePlayer(player) {
 
   const { species } = await api('GET', '/species');
   state.species = species;
+  await refreshCosmeticsShop();
 
   if (!player.hasStarterDroid) {
     showStarterPicker();
@@ -524,8 +547,9 @@ async function activatePlayer(player) {
 
 $('btnCreatePlayer').onclick = async () => {
   const username = $('username').value.trim() || 'rook-7';
+  const pin = $('pin').value.trim();
   try {
-    const player = await api('POST', '/players', { username });
+    const player = await api('POST', '/players', { username, pin });
     await activatePlayer(player);
   } catch (e) {}
 };
@@ -582,6 +606,8 @@ function showStarterPicker() {
 }
 
 // ---- Radar / spawns ----
+const DEFAULT_SCAN_RADIUS = 1000; // meters — no manual field anymore, geolocation-only
+
 $('btnUseLocation').onclick = () => {
   const status = $('locationStatus');
   if (!navigator.geolocation) {
@@ -591,22 +617,21 @@ $('btnUseLocation').onclick = () => {
   status.textContent = 'Requesting location…';
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      $('lat').value = pos.coords.latitude.toFixed(6);
-      $('lng').value = pos.coords.longitude.toFixed(6);
       status.textContent = `Located (±${Math.round(pos.coords.accuracy)}m). Scanning…`;
-      $('btnScan').click();
+      scanAt(pos.coords.latitude, pos.coords.longitude);
     },
     (err) => {
-      status.textContent = `Location unavailable: ${err.message}. Enter coordinates manually, or check your browser/site location permission.`;
+      status.textContent = `Location unavailable: ${err.message}. Check your browser/site location permission.`;
     },
     { enableHighAccuracy: true, timeout: 10000 }
   );
 };
 
-$('btnScan').onclick = async () => {
-  const lat = $('lat').value, lng = $('lng').value, radius = $('radius').value;
+async function scanAt(lat, lng) {
+  state.lastLat = lat;
+  state.lastLng = lng;
   try {
-    const data = await api('GET', `/spawns?lat=${lat}&lng=${lng}&radius=${radius}`);
+    const data = await api('GET', `/spawns?lat=${lat}&lng=${lng}&radius=${DEFAULT_SCAN_RADIUS}`);
     state.spawns = data.spawns;
     const badge = $('todBadge');
     badge.textContent = data.timeOfDay === 'day' ? '☀ Daytime here' : '🌑 Nighttime here';
@@ -614,7 +639,7 @@ $('btnScan').onclick = async () => {
     renderEvents(data.activeEvents);
     renderSpawns();
   } catch (e) {}
-};
+}
 
 const RARITY_ZONE_WIDTH = { common: 44, uncommon: 32, rare: 20, legendary: 12 }; // % of track width — narrower = harder
 const activeAnimations = {}; // spawnId -> { intervalId, getPosition }
@@ -645,6 +670,7 @@ function renderSpawns() {
 
     card.innerHTML = `
       <div class="spawn-top">
+        <div class="spawn-icon"></div>
         <span class="spawn-name">${spawn.alignment === 'light' ? '☀' : '🌑'} ${spawn.speciesName}${variantTag}</span>
         <span class="spawn-rarity ${spawn.rarity}">${spawn.rarity}</span>
       </div>
@@ -655,8 +681,9 @@ function renderSpawns() {
       </div>
       <div class="row" style="margin-top:6px;"><span>Crystals</span><span class="cr-val">${minCost}</span></div>
       <input type="range" min="${minCost}" max="${sliderMax}" value="${minCost}" class="cr-slider">
-      <button class="stop-btn">STOP — ENGAGE</button>
+      <button class="stop-btn">LOCK-ON</button>
     `;
+    card.querySelector('.spawn-icon').appendChild(createDroidVisual(spawn, 28));
 
     const crSlider = card.querySelector('.cr-slider');
     const crVal = card.querySelector('.cr-val');
@@ -710,9 +737,9 @@ async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
       playerLng: spawn.lng,
     });
     if (result.success) {
-      log('CAPTURE', `${spawn.speciesName} secured! (${Math.round(result.successChance * 100)}% chance)`);
+      log('CAPTURE', `${spawn.speciesName} secured! (${Math.round(result.successChance * 100)}% chance)${result.gotPaint ? ' 🎨 +1 Paint!' : ''}`);
     } else {
-      log('CAPTURE', `${spawn.speciesName} broke free. (${Math.round(result.successChance * 100)}% chance)`, true);
+      log('CAPTURE', `${spawn.speciesName} broke free. (${Math.round(result.successChance * 100)}% chance) — ${crystalsSpent} crystals lost.`, true);
     }
     $('statCrystals').textContent = Math.floor(result.crystalBalance);
     state.spawns = state.spawns.filter((s) => s.id !== spawn.id);
@@ -737,8 +764,18 @@ async function refreshWorkshop() {
     $('statPadLevel').textContent = data.padLevel;
     $('statCritChance').textContent = Math.round(data.critChance * 100) + '%';
     $('padUpgradeCost').textContent = data.nextPadUpgradeCost;
+    $('statDroidCount').textContent = data.droids.length; // bug fix: this never updated before
+    state.paint = data.paint;
+    state.novaChips = data.novaChips;
+    state.cosmetics = data.cosmetics;
+    state.companionDroid = data.companionDroid;
+    state.companionBuffPercent = data.companionBuffPercent;
+    state.guildId = data.guildId;
     renderSlots();
     renderDroids();
+    renderCompanion();
+    renderCosmetics();
+    renderGuild();
     startTicker();
     refreshTrades();
   } catch (e) {}
@@ -800,31 +837,74 @@ function renderDroids() {
     const row = document.createElement('div');
     row.className = 'droid-row';
     row.style.flexWrap = 'wrap';
-    const unlockedSlots = state.slots.filter((s) => s.unlocked);
-    const options = unlockedSlots.map((s) =>
-      `<option value="${s.id}" ${droid.workshopSlotId === s.id ? 'selected' : ''}>Slot ${s.slotIndex + 1}</option>`
-    ).join('');
+
+    const variantTag = droid.variant && droid.variant !== 'standard'
+      ? ` · <span class="variant-tag ${droid.variant}">${droid.variant}${droid.color ? ' ' + droid.color : ''}</span>`
+      : '';
+
+    let assignmentControl;
+    if (droid.isCompanion) {
+      const isEquipped = state.companionDroid && state.companionDroid.id === droid.id;
+      assignmentControl = `<button class="companion-assign-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;" ${isEquipped ? 'disabled' : ''}>${isEquipped ? 'Equipped' : 'Set as Companion'}</button>`;
+    } else {
+      const unlockedSlots = state.slots.filter((s) => s.unlocked);
+      const options = unlockedSlots.map((s) =>
+        `<option value="${s.id}" ${droid.workshopSlotId === s.id ? 'selected' : ''}>Slot ${s.slotIndex + 1}</option>`
+      ).join('');
+      assignmentControl = `
+        <select style="margin-top:4px;">
+          <option value="">Unassigned</option>
+          ${options}
+        </select>`;
+    }
+
     const levelBtnLabel = droid.nextLevelCost === null ? 'MAX' : `Lv Up (${droid.nextLevelCost}✦)`;
+    const evolveSpeciesBtn = droid.evolvesToName
+      ? `<button class="evolve-species-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;">Evolve → ${droid.evolvesToName} (${droid.evolveNovaChipCost} 🔷)</button>`
+      : '';
+    const evolveFunkyBtn = droid.variant === 'rusty'
+      ? `<button class="evolve-funky-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;">Paint Funky (${FUNKY_PAINT_COST} 🎨)</button>`
+      : '';
+
     row.innerHTML = `
-      <span style="flex-basis:100%;">${droid.alignment === 'light' ? '☀' : '🌑'} ${droid.speciesName} · Lv${droid.level}${droid.variant && droid.variant !== 'standard' ? ` · <span class="variant-tag ${droid.variant}">${droid.variant}</span>` : ''}<br>
-      <span style="color:var(--text-dim); font-size:9px;">${droid.crystalsPerMinute}/min</span></span>
-      <select style="margin-top:4px;">
-        <option value="">Unassigned</option>
-        ${options}
-      </select>
+      <span class="droid-icon" style="flex-shrink:0;"></span>
+      <span style="flex:1;">
+        ${droid.alignment === 'light' ? '☀' : droid.alignment === 'cosmic' ? '✦' : '🌑'} ${droid.speciesName} · Lv${droid.level}
+        <span class="spawn-rarity ${droid.rarity}" style="margin-left:4px;">${droid.rarity}</span>${variantTag}<br>
+        <span style="color:var(--text-dim); font-size:9px;">${droid.crystalsPerMinute}/min · HP ${droid.hp} · ATK ${droid.attack}</span>
+      </span>
+      ${assignmentControl}
       <button class="level-up-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;" ${droid.nextLevelCost === null ? 'disabled' : ''}>${levelBtnLabel}</button>
+      ${evolveSpeciesBtn}
+      ${evolveFunkyBtn}
+      <button class="release-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Release (${Math.floor((droid.captureCost||0)*1.5)}✦)</button>
     `;
-    row.querySelector('select').onchange = async (e) => {
-      const slotId = e.target.value;
-      try {
-        if (slotId) {
-          await api('POST', '/workshop/assign', { playerId: state.playerId, droidId: droid.id, slotId: Number(slotId) });
-        } else {
-          await api('POST', '/workshop/unassign', { playerId: state.playerId, droidId: droid.id });
-        }
-        await refreshWorkshop();
-      } catch (err) {}
-    };
+    row.querySelector('.droid-icon').appendChild(createDroidVisual(droid, 26));
+
+    if (droid.isCompanion) {
+      const btn = row.querySelector('.companion-assign-btn');
+      if (btn && !btn.disabled) {
+        btn.onclick = async () => {
+          try {
+            await api('POST', '/companion/assign', { playerId: state.playerId, droidId: droid.id });
+            await refreshWorkshop();
+          } catch (e) {}
+        };
+      }
+    } else {
+      row.querySelector('select').onchange = async (e) => {
+        const slotId = e.target.value;
+        try {
+          if (slotId) {
+            await api('POST', '/workshop/assign', { playerId: state.playerId, droidId: droid.id, slotId: Number(slotId) });
+          } else {
+            await api('POST', '/workshop/unassign', { playerId: state.playerId, droidId: droid.id });
+          }
+          await refreshWorkshop();
+        } catch (err) {}
+      };
+    }
+
     const levelBtn = row.querySelector('.level-up-btn');
     if (droid.nextLevelCost !== null) {
       levelBtn.onclick = async () => {
@@ -834,11 +914,149 @@ function renderDroids() {
         } catch (e) {}
       };
     }
+
+    const evolveSpeciesBtnEl = row.querySelector('.evolve-species-btn');
+    if (evolveSpeciesBtnEl) {
+      evolveSpeciesBtnEl.onclick = async () => {
+        try {
+          await api('POST', `/droids/${droid.id}/evolve-species`, { playerId: state.playerId });
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    }
+
+    const evolveFunkyBtnEl = row.querySelector('.evolve-funky-btn');
+    if (evolveFunkyBtnEl) {
+      evolveFunkyBtnEl.onclick = async () => {
+        const color = prompt('Choose a primary color: red, yellow, or blue');
+        if (!color) return;
+        try {
+          await api('POST', `/droids/${droid.id}/evolve-funky`, { playerId: state.playerId, color: color.trim().toLowerCase() });
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    }
+
+    row.querySelector('.release-btn').onclick = async () => {
+      if (!confirm(`Release this ${droid.speciesName}? This cannot be undone.`)) return;
+      try {
+        const result = await api('POST', `/droids/${droid.id}/release`, { playerId: state.playerId });
+        log('SYS', `Released for ${result.refund} crystals${result.gotNovaChip ? ' + 1 Nova Chip!' : ''}`);
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+
     list.appendChild(row);
   });
 }
 
-// ---- Time-exclusive events ----
+// ---- Companion ----
+function renderCompanion() {
+  const el = $('companionSlot');
+  const tag = $('companionBuffTag');
+  if (!state.companionDroid) {
+    el.innerHTML = '<div class="empty">No companion equipped</div>';
+    tag.textContent = '';
+    return;
+  }
+  const c = state.companionDroid;
+  tag.textContent = `+${state.companionBuffPercent}% total farm rate`;
+  el.innerHTML = `
+    <div class="trade-card">
+      <div>✦ ${c.speciesName} · Lv${c.level}${c.variant !== 'standard' ? ` · <span class="variant-tag ${c.variant}">${c.variant}</span>` : ''}</div>
+      <div class="tc-actions">
+        <button class="unequip-companion-btn">Unequip</button>
+      </div>
+    </div>
+  `;
+  el.querySelector('.unequip-companion-btn').onclick = async () => {
+    try {
+      await api('POST', '/companion/unassign', { playerId: state.playerId });
+      await refreshWorkshop();
+    } catch (e) {}
+  };
+}
+
+// ---- Cosmetics ----
+async function refreshCosmeticsShop() {
+  try {
+    const data = await api('GET', '/cosmetics');
+    state.cosmeticsCatalog = data.cosmetics;
+    renderCosmetics();
+  } catch (e) {}
+}
+
+function renderCosmetics() {
+  const owned = $('cosmeticsOwned');
+  owned.innerHTML = (state.cosmetics || []).map((id) => {
+    const item = (state.cosmeticsCatalog || []).find((c) => c.id === id);
+    return `<span class="variant-tag platinum">${item ? item.name : id}</span>`;
+  }).join(' ') || '<span style="font-size:9px; color:var(--text-dim);">None owned</span>';
+
+  const shop = $('cosmeticsShop');
+  const available = (state.cosmeticsCatalog || []).filter((c) => !(state.cosmetics || []).includes(c.id));
+  if (!available.length) {
+    shop.innerHTML = state.cosmeticsCatalog ? '' : '';
+    return;
+  }
+  shop.innerHTML = available.map((c) =>
+    `<button class="buy-cosmetic-btn" data-id="${c.id}" style="margin-top:6px;">Buy ${c.name} (${c.cost}✦)</button>`
+  ).join('');
+  shop.querySelectorAll('.buy-cosmetic-btn').forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        await api('POST', `/players/${state.playerId}/cosmetics/buy`, { cosmeticId: btn.dataset.id });
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+  });
+}
+
+// ---- Guild ----
+function renderGuild() {
+  const el = $('guildStatus');
+  if (!state.guildId) {
+    el.innerHTML = '<div class="empty">Not in a guild</div>';
+    return;
+  }
+  el.innerHTML = `<div class="trade-card">In guild #${state.guildId} <div class="tc-actions"><button class="leave-guild-btn">Leave</button></div></div>`;
+  el.querySelector('.leave-guild-btn').onclick = async () => {
+    try {
+      await api('POST', '/guilds/leave', { playerId: state.playerId });
+      await refreshWorkshop();
+    } catch (e) {}
+  };
+}
+
+$('btnCreateGuild').onclick = async () => {
+  const name = $('guildName').value.trim();
+  if (!name) { log('SYS', 'Enter a guild name', true); return; }
+  try {
+    await api('POST', '/guilds', { playerId: state.playerId, name });
+    await refreshWorkshop();
+  } catch (e) {}
+};
+
+$('btnJoinGuild').onclick = async () => {
+  const guildId = Number($('joinGuildId').value);
+  if (!guildId) { log('SYS', 'Enter a guild ID', true); return; }
+  try {
+    await api('POST', `/guilds/${guildId}/join`, { playerId: state.playerId });
+    await refreshWorkshop();
+  } catch (e) {}
+};
+
+// ---- Redeem code ----
+$('btnRedeemCode').onclick = async () => {
+  const code = $('redeemCodeInput').value.trim();
+  if (!code) { log('SYS', 'Enter a code', true); return; }
+  try {
+    const result = await api('POST', '/redeem', { playerId: state.playerId, code });
+    log('SYS', `Redeemed! +${result.crystalsGranted} crystals${result.droid ? ' + ' + result.droid.speciesName : ''}`);
+    await refreshWorkshop();
+  } catch (e) {}
+};
+
 // ---- Droid icons (procedural placeholder art) ----
 // No custom character art yet — these are simple generated icons so
 // species are visually distinguishable in the meantime (alignment ->
@@ -868,6 +1086,46 @@ function droidIconSVG(species, size = 44) {
     </svg>`;
 }
 
+// Real droid artwork, if present at /assets/droids/<name>.<ext> — tries
+// each supported extension in turn, and falls back to the procedural SVG
+// icon above if no image exists yet for that species. Drop-in: works the
+// moment an image is added, no other code changes needed.
+const DROID_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
+
+function createDroidVisual(species, size = 44) {
+  const displayName = species.name || species.speciesName; // dex entries use 'name'; spawns/owned droids use 'speciesName'
+  const wrapper = document.createElement('span');
+  wrapper.style.display = 'inline-block';
+  wrapper.style.width = size + 'px';
+  wrapper.style.height = size + 'px';
+  wrapper.style.verticalAlign = 'middle';
+
+  const slug = displayName.toLowerCase();
+  const img = document.createElement('img');
+  img.width = size;
+  img.height = size;
+  img.style.width = size + 'px';
+  img.style.height = size + 'px';
+  img.style.objectFit = 'contain';
+  img.style.display = 'block';
+  img.alt = displayName;
+
+  let extIndex = 0;
+  const tryNextExtension = () => {
+    if (extIndex >= DROID_IMAGE_EXTENSIONS.length) {
+      wrapper.innerHTML = droidIconSVG({ ...species, name: displayName }, size); // no image found for any extension
+      return;
+    }
+    img.src = `/assets/droids/${slug}.${DROID_IMAGE_EXTENSIONS[extIndex]}`;
+    extIndex++;
+  };
+  img.onerror = tryNextExtension;
+  tryNextExtension();
+
+  wrapper.appendChild(img);
+  return wrapper;
+}
+
 // ---- Dex ----
 async function refreshDex() {
   if (!state.playerId) return;
@@ -878,17 +1136,24 @@ async function refreshDex() {
   } catch (e) {}
 }
 
+const VARIANT_BADGE_SYMBOL = { platinum: '◆', rusty: '▲', funky: '★' };
+
 function renderDex(entries) {
   const grid = $('dexGrid');
   grid.innerHTML = '';
   entries.forEach((s) => {
     const card = document.createElement('div');
     card.className = 'dex-card ' + (s.caught ? 'caught' : 'uncaught');
+    const variantBadges = (s.variantsCaught || [])
+      .map((v) => `<span class="variant-tag ${v}" title="${v}">${VARIANT_BADGE_SYMBOL[v] || ''}</span>`)
+      .join(' ');
     card.innerHTML = `
-      ${droidIconSVG(s, 40)}
+      <div class="dc-icon"></div>
       <div class="dc-name">${s.caught ? s.name : '???'}</div>
       <div class="dc-rarity ${s.rarity}">${s.rarity}</div>
+      <div style="margin-top:3px;">${variantBadges}</div>
     `;
+    card.querySelector('.dc-icon').appendChild(createDroidVisual(s, 40));
     grid.appendChild(card);
   });
 }

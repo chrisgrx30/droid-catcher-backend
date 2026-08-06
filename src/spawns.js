@@ -80,6 +80,17 @@ function countActiveLegendariesCityWide() {
   return count;
 }
 
+function countActiveCosmicsCityWide() {
+  let count = 0;
+  for (const spawn of db.spawns.values()) {
+    if (!spawn.claimedBy && spawn.expiresAt > Date.now()) {
+      const species = db.droidSpecies.find((s) => s.id === spawn.speciesId);
+      if (species.rarity === 'cosmic') count++;
+    }
+  }
+  return count;
+}
+
 // The "spawn job" — in production this runs on a timer (e.g. every 5 min)
 // across all active cells. Here it's exposed as a function callable
 // on-demand (invoked lazily when a player queries an active cell).
@@ -94,13 +105,16 @@ function trySpawnInCell(cell, refLng = 0) {
   if (species.rarity === 'legendary' && countActiveLegendariesCityWide() >= db.LEGENDARY_CITY_CAP) {
     return null; // city-wide legendary cap hit
   }
+  if (species.rarity === 'cosmic' && countActiveCosmicsCityWide() >= db.COSMIC_CITY_CAP) {
+    return null; // city-wide companion cap hit — only one StarSprite active anywhere at a time
+  }
 
   const point = geo.randomPointInCell(cell);
   const ttl = db.RARITY_TTL_MS[species.rarity];
   const spawn = {
     id: db.nextId(),
     speciesId: species.id,
-    variant: db.rollVariant(),
+    variant: db.rollVariant(species.rarity),
     lat: point.lat,
     lng: point.lng,
     cell,
@@ -139,6 +153,7 @@ function getNearbySpawns(lat, lng, radiusMeters = 500) {
         alignment: species.alignment,
         collection: species.collection,
         variant: spawn.variant,
+        isCompanion: species.isCompanion || false,
         minCrystalCost: db.MIN_CRYSTAL_COST[species.rarity],
         lat: spawn.lat,
         lng: spawn.lng,

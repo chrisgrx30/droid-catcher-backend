@@ -34,14 +34,35 @@ function droidCrystalsPerMinute(droid) {
 // Enriches a raw owned_droids row with species/rate info for API responses.
 function enrichDroid(droid) {
   const species = speciesById(droid.speciesId);
+  const lvlMult = levelMultiplier(droid.level);
+  const evolution = db.EVOLUTION_TABLE[droid.speciesId];
+  const evolvesToSpecies = evolution ? speciesById(evolution.evolvesTo) : null;
   return {
     ...droid,
     speciesName: species?.name,
     rarity: species?.rarity,
     alignment: species?.alignment,
+    isCompanion: species?.isCompanion || false,
     crystalsPerMinute: Math.round(droidCrystalsPerMinute(droid) * 100) / 100,
-    nextLevelCost: droid.level >= db.DROID_LEVEL_CAP ? null : db.levelUpCost(droid.level),
+    hp: species ? Math.round(species.baseHP * lvlMult) : null,
+    attack: species ? Math.round(species.baseAttack * lvlMult) : null,
+    nextLevelCost: droid.level >= db.DROID_LEVEL_CAP ? null : db.levelUpCost(droid.level, species?.rarity),
+    evolvesToName: evolvesToSpecies?.name || null,
+    evolveNovaChipCost: evolution?.novaChipCost || null,
   };
+}
+
+// Companion buff: whichever droid is currently equipped (player.companionDroidId)
+// adds a flat % to the player's TOTAL crystal production — it doesn't farm
+// itself and never occupies a workshop slot.
+function companionBuffMultiplier(playerId) {
+  const player = db.players.get(playerId);
+  if (!player || !player.companionDroidId) return 1;
+  const droid = db.ownedDroids.get(player.companionDroidId);
+  if (!droid || droid.playerId !== playerId) return 1;
+  const species = speciesById(droid.speciesId);
+  if (!species || !species.isCompanion) return 1;
+  return 1 + db.COMPANION_BUFF_PERCENT / 100;
 }
 
 // Core accrual calc — pure function, no side effects, so it's easy to test.
@@ -63,6 +84,7 @@ function calculateEarnings(playerId, now = Date.now()) {
     const variantMultiplier = db.VARIANT_CRYSTAL_MULTIPLIER[droid.variant] ?? 1.0;
     earned += species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier * elapsedMinutes;
   }
+  earned *= companionBuffMultiplier(playerId);
 
   return { earned: Math.floor(earned), elapsedMinutes };
 }
@@ -161,7 +183,8 @@ function levelUpDroid(playerId, droidId) {
   if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
   if (droid.level >= db.DROID_LEVEL_CAP) throw new Error(`Droid is already at the level cap (${db.DROID_LEVEL_CAP})`);
 
-  const cost = db.levelUpCost(droid.level);
+  const species = speciesById(droid.speciesId);
+  const cost = db.levelUpCost(droid.level, species?.rarity);
   if (player.crystalBalance < cost) {
     throw new Error(`Not enough crystals — leveling up costs ${cost}`);
   }
@@ -212,6 +235,115 @@ function upgradePad(playerId) {
   };
 }
 
+// Release a droid for scrap: refunds 1.5x whatever it cost to capture (0
+// for free/starter droids), with a 10% chance of also dropping a Nova
+// Chip (spent on species evolution — see evolveSpecies). Frees up its
+// workshop slot and clears it as the active companion if applicable.
+const RELEASE_REFUND_MULTIPLIER = 1.5;
+const NOVA_CHIP_DROP_CHANCE = 0.10;
+
+function releaseDroid(playerId, droidId) {
+  const settled = settleEarnings(playerId);
+  const player = db.players.get(playerId);
+  const droid = db.ownedDroids.get(droidId);
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+
+  const refund = Math.floor((droid.captureCost || 0) * RELEASE_REFUND_MULTIPLIER);
+  player.crystalBalance += refund;
+  if (refund > 0) {
+    db.crystalTransactions.push({ id: db.nextId(), playerId, amount: refund, source: 'droid_release', createdAt: Date.now() });
+  }
+
+  const gotNovaChip = Math.random() < NOVA_CHIP_DROP_CHANCE;
+  if (gotNovaChip) player.novaChips += 1;
+
+  if (player.companionDroidId === droidId) player.companionDroidId = null;
+  db.ownedDroids.delete(droidId);
+
+  return { refund, gotNovaChip, novaChips: player.novaChips, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
+}
+
+// Species evolution (e.g. Leafkin -> Bushy): spends Nova Chips, swaps the
+// droid's speciesId in place — keeps its level/variant/slot, just becomes
+// a stronger species going forward.
+function evolveSpecies(playerId, droidId) {
+  const player = db.players.get(playerId);
+  const droid = db.ownedDroids.get(droidId);
+  if (!player) throw new Error('Player not found');
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+
+  const evolution = db.EVOLUTION_TABLE[droid.speciesId];
+  if (!evolution) throw new Error('This species has no evolution available');
+  if (player.novaChips < evolution.novaChipCost) {
+    throw new Error(`Not enough Nova Chips — evolving costs ${evolution.novaChipCost}`);
+  }
+
+  player.novaChips -= evolution.novaChipCost;
+  droid.speciesId = evolution.evolvesTo;
+  db.markDexSeen(playerId, evolution.evolvesTo, droid.variant);
+
+  return { droid: enrichDroid(droid), novaChips: player.novaChips };
+}
+
+// Paint evolution (Rusty -> Funky): spends banked Paint, sets a cosmetic
+// primary color, and bumps the crystal multiplier to the Funky tier.
+function evolveFunky(playerId, droidId, color) {
+  const player = db.players.get(playerId);
+  const droid = db.ownedDroids.get(droidId);
+  if (!player) throw new Error('Player not found');
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+  if (droid.variant !== 'rusty') throw new Error('Only Rusty droids can be painted Funky');
+  if (!db.PRIMARY_COLORS.includes(color)) throw new Error(`Color must be one of: ${db.PRIMARY_COLORS.join(', ')}`);
+  if (player.paint < db.FUNKY_EVOLVE_PAINT_COST) {
+    throw new Error(`Not enough Paint — evolving costs ${db.FUNKY_EVOLVE_PAINT_COST}`);
+  }
+
+  player.paint -= db.FUNKY_EVOLVE_PAINT_COST;
+  droid.variant = 'funky';
+  droid.color = color;
+  db.markDexSeen(playerId, droid.speciesId, 'funky');
+
+  return { droid: enrichDroid(droid), paint: player.paint };
+}
+
+// Companion slot — separate from workshop slots entirely. Only one can be
+// active ("held") at a time; capturing more just leaves them unequipped.
+function assignCompanion(playerId, droidId) {
+  const player = db.players.get(playerId);
+  const droid = db.ownedDroids.get(droidId);
+  if (!player) throw new Error('Player not found');
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+  const species = speciesById(droid.speciesId);
+  if (!species || !species.isCompanion) throw new Error('That droid is not a companion species');
+
+  player.companionDroidId = droidId;
+  return { droid: enrichDroid(droid), buffPercent: db.COMPANION_BUFF_PERCENT };
+}
+
+function unassignCompanion(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  player.companionDroidId = null;
+  return { companionDroidId: null };
+}
+
+// Cosmetic purchase — pure crystal sink, no gameplay effect.
+function buyCosmetic(playerId, cosmeticId) {
+  const settled = settleEarnings(playerId);
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const item = db.COSMETICS_CATALOG.find((c) => c.id === cosmeticId);
+  if (!item) throw new Error('Unknown cosmetic');
+  if (player.cosmetics.includes(cosmeticId)) throw new Error('Already owned');
+  if (player.crystalBalance < item.cost) throw new Error(`Not enough crystals — costs ${item.cost}`);
+
+  player.crystalBalance -= item.cost;
+  db.crystalTransactions.push({ id: db.nextId(), playerId, amount: -item.cost, source: 'cosmetic_purchase', createdAt: Date.now() });
+  player.cosmetics.push(cosmeticId);
+
+  return { cosmetics: player.cosmetics, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
+}
+
 module.exports = {
   calculateEarnings,
   settleEarnings,
@@ -221,6 +353,13 @@ module.exports = {
   levelUpDroid,
   upgradePad,
   droidCrystalsPerMinute,
+  companionBuffMultiplier,
   enrichDroid,
+  releaseDroid,
+  evolveSpecies,
+  evolveFunky,
+  assignCompanion,
+  unassignCompanion,
+  buyCosmetic,
   MAX_OFFLINE_HOURS,
 };

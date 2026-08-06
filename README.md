@@ -55,7 +55,42 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 - **Time-exclusive events** — `POST /events` creates a time-boxed spawn-weight boost targeting either explicit species IDs or a whole `collection` (`mythical`/`nature`). Generalizes the same multiplier pattern the day/night bias already uses. Verified: a 5x Nature-collection event skewed spawns from the normal ~50/50 split to roughly 82/17 in favor of Nature.
 - **Trading** — offer/accept/decline flow (`POST /trades`, `POST /trades/:id/accept`, `POST /trades/:id/decline`) rather than an instant swap, with two anti-abuse guardrails built in from the start: a 10-minute cooldown before a freshly-captured or freshly-traded droid can be traded again (closes the "launder rarity through fake trades on throwaway accounts" exploit), and a small rarity-scaled crystal fee paid by whoever *receives* each droid (`TRADE_FEE_BY_RARITY` in `db.js`) so trading stays a convenience rather than a strictly-better alternative to capturing.
 
+## Beta feedback round 2 (major addition — pre-3-day-test build)
+
+**New systems:**
+- **Login (username + PIN)** — replaces the old username-only signup. `POST /players { username, pin }` is now unified login/signup: new username creates a player, existing username + matching PIN resumes it on any device, existing username with no PIN yet set (pre-login-system accounts) claims whatever PIN is entered as a one-time migration. PIN is stored in plain text — deliberately "soft," fine for trusted friends, not for real users.
+- **Release/scrap droids** — `POST /droids/:id/release` refunds 1.5x whatever crystals it cost to capture (0 for free/starter droids), plus a 10% chance of a Nova Chip.
+- **Time-exclusive event cooldown** — 12 hours per target (collection or explicit species set) before the same event can be relaunched; enforced server-side in `createEvent()`.
+- **Rarity-scaled droid leveling + HP/Attack stats** — leveling cost now multiplies by rarity (Legendary costs 4x a Common's cost at the same level — verified: level 5 costs 525 vs 131). Every droid also now has `hp`/`attack`, scaling with level the same way crystal rate does — groundwork for a future PVE raid system, deliberately deferred this round.
+- **Paint → Funky evolution** — any successful capture has a 5% chance to drop 1 Paint (banked, generic currency). Spend `FUNKY_EVOLVE_PAINT_COST` (10, tunable in `db.js` — not specified in the original design ask) Paint on an owned Rusty droid to evolve it to "Funky" — a chosen primary color (red/yellow/blue) and a 350% crystal multiplier (midpoint between Rusty's 200% and Platinum's 500%).
+- **Species evolution (Leafkin → Bushy)** — first entry in an extensible `EVOLUTION_TABLE`. Bushy is evolution-only (`spawnWeight: 0`, never appears in the wild). Costs 15 Nova Chips, which drop at 10% specifically from *releasing* droids (distinct from Paint, which drops from *capturing*).
+- **Companion droids (StarSprite)** — a 5th tier ("cosmic"), rarer than Legendary, spawning at 1/10th normal variant odds. Doesn't farm or occupy a workshop slot — instead, one equipped companion applies a flat +50% buff to *total* crystal production (verified live: 0.0167/s → 0.025/s, exactly 1.5x). Only one can be equipped at a time.
+- **Cosmetics** — pure crystal sink, no gameplay effect. One item this round: Beta Crown, 1000 crystals.
+- **Guilds** — player-created, join by ID, up to 12 members, no gameplay effect yet — foundation for a future PVP/guild system.
+- **Redeem codes** — `POST /redeem-codes` (dev/admin, no auth yet) creates a code granting crystals and/or a specific droid; `POST /redeem` uses it, once per player, with an optional total-use cap.
+
+**Fixes:**
+- **Bug: droids could stack in one workshop slot** — `assignDroidToSlot()` never checked for an existing occupant. Now rejects with a clear error. (Fixed in the previous round, re-verified this round.)
+- **Bug: "Droids" stat in the Pilot panel always showed 0** — the UI element existed but nothing ever wrote to it. Now updates on every workshop refresh.
+- **Bug: restored players/droids could crash on newer features** — `importState()` backfills defaults for any field added after a given snapshot was saved (see Round 1 for the original fix; extended this round to cover all the new player/droid fields above).
+
+**UI/UX changes:**
+- Manual latitude/longitude/radius fields removed — the terminal now only supports "Use My Location & Scan," which auto-scans on a fixed default radius.
+- Owned droids now show rarity, HP, and Attack, plus buttons for leveling, both evolution types (where eligible), and release.
+- The capture button is renamed **LOCK-ON**.
+- Dex entries show small badges for which variants (Platinum/Rusty/Funky) have been caught per species, not just whether the species itself has been caught.
+- New UI sections: Companion slot, Cosmetics (owned + shop), Guild (create/join/leave), Redeem Code — all under the Pilot panel.
+- Capture failure messages now explicitly state the crystals lost (confirms — this was already true server-side; the UI just didn't say so).
+
+**Verified live** (via direct HTTP calls against the running server, not just unit tests): login/resume/wrong-PIN rejection, release refund math, cosmetics purchase, guild creation, redeem-code single-use enforcement, the event-cooldown-boosted spawn search finding and capturing an actual StarSprite, and the companion buff's exact 1.5x multiplier on total crystal production.
+
+**Not yet built:** full PVE raid combat (deferred by agreement — HP/Attack stats exist as groundwork, but nothing consumes them yet), guild-vs-guild PVP (guilds are membership-only for now), and real character art (droids still use procedurally-generated placeholder icons plus optional real images you supply via `assets/droids/`).
+
 ## Beta feedback round 1 (live-tester fixes)
+
+- **Bug fix: restored players could crash on newer features** — `importState()` in `db.js` now backfills default values (`padLevel`, `dexSeen`, droid `level`/`variant`/`workshopSlotId`) for any player/droid saved by older code that predates those fields. Without this, a tester whose progress was saved before e.g. the Dex feature existed would hit a crash the next time they tried to use it, after any future deploy. Verified directly: simulated a snapshot missing those fields, confirmed it restores cleanly and the previously-crashing code paths now work.
+
+- **Real droid artwork** — drop images into `assets/droids/` using the filenames listed in `assets/droids/README.md` (e.g. `puffkin.png`) and they'll appear automatically in the Dex, spawn cards, and owned-droid list — no code changes, no restart. Any species without an image yet keeps showing its procedural placeholder icon, so you can add art gradually. Tries `.png` → `.jpg` → `.jpeg` → `.webp` → `.gif` → `.svg` in that order per species. Served via a new `GET /assets/droids/<filename>` route with strict filename validation (this is public-internet-facing, so path-traversal attempts are rejected).
 
 - **Persistent sessions** — the terminal now saves your player ID in the browser (`localStorage`) and auto-resumes on refresh instead of creating a new player every time. A "New Pilot (reset)" button clears this if you want to start over.
 - **Real location** — a "📍 Use My Location" button in the Radar panel requests the browser's geolocation and auto-fills + scans, instead of requiring manual lat/lng entry.
@@ -93,6 +128,20 @@ Open `test-terminal.html` directly in a browser (double-click it, or drag it int
 | GET | `/trades/:playerId` | — | List all trades (any status) involving this player |
 | POST | `/trades/:id/accept` | `{ playerId }` | Accept a pending trade (must be the recipient) |
 | POST | `/trades/:id/decline` | `{ playerId }` | Decline a pending trade (either participant) |
+| POST | `/droids/:id/release` | `{ playerId }` | Scrap a droid for 1.5x captureCost refund + 10% Nova Chip chance |
+| POST | `/droids/:id/evolve-species` | `{ playerId }` | Spend Nova Chips on a species evolution (e.g. Leafkin → Bushy) |
+| POST | `/droids/:id/evolve-funky` | `{ playerId, color }` | Spend Paint on a Rusty droid → Funky (color: red/yellow/blue) |
+| POST | `/companion/assign` | `{ playerId, droidId }` | Equip a companion droid (only one active at a time) |
+| POST | `/companion/unassign` | `{ playerId }` | Unequip the current companion |
+| GET | `/cosmetics` | — | Cosmetics catalog |
+| POST | `/players/:id/cosmetics/buy` | `{ cosmeticId }` | Purchase a cosmetic |
+| GET | `/guilds` | — | List all guilds (for browsing to join) |
+| GET | `/guilds/:id` | — | Guild details/members |
+| POST | `/guilds` | `{ playerId, name }` | Create a guild (auto-joins creator) |
+| POST | `/guilds/:id/join` | `{ playerId }` | Join a guild |
+| POST | `/guilds/leave` | `{ playerId }` | Leave your current guild |
+| POST | `/redeem` | `{ playerId, code }` | Redeem a promo code |
+| POST | `/redeem-codes` | `{ code, rewardCrystals?, rewardSpeciesId?, maxUses? }` | Create a promo code (dev/admin — no auth gate yet) |
 
 ## File map
 
