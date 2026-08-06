@@ -569,6 +569,7 @@
   <div class="grid" style="grid-template-columns: 1fr 1fr;">
     <div class="panel">
       <div class="panel-title">Time-Exclusive Events</div>
+      <div style="font-size:9px; color:var(--danger); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">🔒 Chris Admin Only — no access</div>
       <div id="activeEventsList" style="margin-bottom: 10px;"><div class="empty">No active events</div></div>
       <label>Quick-launch a test event (1 hour, 5x weight)</label>
       <div style="display:flex; gap:6px; margin-top:6px;">
@@ -1641,8 +1642,15 @@ function renderEvents(events) {
   listEl.innerHTML = chips;
 }
 
+function promptAdminCode(purpose) {
+  const code = prompt(`Admin code required (${purpose}):`);
+  return code ? code.trim() : null;
+}
+
 async function launchTestEvent(collection, label) {
   if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
   try {
     const now = Date.now();
     await api('POST', '/events', {
@@ -1651,6 +1659,7 @@ async function launchTestEvent(collection, label) {
       spawnWeightMultiplier: 5,
       startTime: now,
       endTime: now + 60 * 60 * 1000,
+      adminCode,
     });
     const data = await api('GET', '/events');
     renderEvents(data.events);
@@ -1661,6 +1670,8 @@ $('btnEventMythical').onclick = () => launchTestEvent('mythical', 'Mythical Surg
 
 $('btnEventSummer').onclick = async () => {
   if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
   try {
     const solarSpeciesIds = state.species.filter((s) => s.collection === 'solar').map((s) => s.id);
     const now = Date.now();
@@ -1670,6 +1681,7 @@ $('btnEventSummer').onclick = async () => {
       speciesIds: solarSpeciesIds,
       startTime: now,
       endTime: now + 7 * 24 * 60 * 60 * 1000, // 7 days
+      adminCode,
     });
     const data = await api('GET', '/events');
     renderEvents(data.events);

@@ -6,31 +6,32 @@ feels off or confusing, that's exactly the kind of feedback we want.
 
 ---
 
-## What's Changed Recently
+## What's Changed Today
 
-- The app is now split into **tabs** instead of one long scrolling page
-  (see "Navigating the App" below) — much less scrolling.
-- **Log in from any device** — pick a callsign and PIN once, use them
-  anywhere.
-- **A new companion, Nebulfox** — boosts your capture success chance
-  instead of your crystal farm.
-- **Popup after every capture attempt** — shows exactly what happened
-  (captured / broke free, any Paint dropped, crystals lost) instead of
-  only logging it quietly.
-- **Already-caught indicator on the radar** — a small 🎮 icon shows on
-  any spawn whose species you've already logged in your Dex.
-- **Dex improvements** — evolved species (like Bushy) now sit right next
-  to their base form (Leafkin), and there are three small colored dots
-  per species showing which special variants you've caught.
-- **Release droids for scrap** — get some crystals back (and a chance at
-  a Nova Chip) instead of a droid just sitting unused forever.
-- **Species evolution and Funky (painted) droids** — see their own
-  sections below.
-- **Guild member lists** — you can now see who's actually in your guild.
-- **Inventory tab** — Paint and Nova Chips now have a proper place to be
-  seen, instead of being invisible numbers.
-- Capture difficulty on Common/Uncommon droids was tightened slightly —
-  early feedback was that they were a bit too easy.
+- **Companion has its own tab now** — it used to be tucked under Farm,
+  easy to miss. Now it's a dedicated page showing your equipped
+  companion, its buff, and every companion you own for quick swapping.
+- **Farming droids no longer clutter Storage** — a droid assigned to a
+  Workshop Slot now shows *only* on the Farm tab (tap its slot to level
+  it up or unassign it). Storage now shows just what's sitting idle,
+  much easier to scan.
+- **Tap a droid in Storage to see its full stats** — HP, Attack, level,
+  crystal rate, next-level cost, all in one popup.
+- **Bulk release** — select multiple droids in Storage and release them
+  all at once, with a single results popup summing everything up
+  (crystals refunded, Nova Chips gained).
+- **A new public Wishlist** — post what droid (or Paint) you're looking
+  for, visible to every player. Anyone can offer you a trade straight
+  from your listed wish.
+- **Summer Event + the Solar collection** — 8 brand-new droids
+  (Sunbud, Solara, Sundrift, Solaris Rex, Scorchling, Heatfang,
+  Dustwraith, Infernotitan) that *only* spawn while the Summer Event is
+  active. They live in a separate **Event Dex** so they don't sit as
+  permanent unsolved entries in your main Dex the rest of the year.
+- **16 new droids added** (the "Wildcard" collection) — Dex completion
+  was happening too fast, so there's a lot more to find now. Overall
+  catch odds by rarity haven't changed, there's just more variety
+  sharing that same pool.
 
 ---
 
@@ -42,12 +43,13 @@ The game is organized into tabs across the top:
 |---|---|
 | **Player** | Login, your stats, Control Pad upgrades, Cosmetics |
 | **Capture** | The radar — scan for droids and run the capture minigame |
-| **Farm** | Crystal balance, Collect button, Companion slot, Workshop slots |
-| **Storage** | Your full owned-droid list — level up, evolve, release, assign |
+| **Farm** | Crystal balance, Collect button, Workshop slots (with droids shown inline) |
+| **Companion** | Your equipped companion and its buff, plus any others you own |
+| **Storage** | Droids not currently farming — level up, evolve, release, assign, or tap for full stats |
 | **Guilds** | Create/join a guild, see its members |
 | **Inventory** | Paint, Nova Chips, and redeeming promo codes |
-| **Events & Trading** | Time-exclusive events and player-to-player trading |
-| **Dex** | Your collection progress |
+| **Events & Trading** | Time-exclusive events, trading, and the Wishlist board |
+| **Dex** | Your collection progress, plus the separate Event Dex |
 
 Tap any tab to switch — your data stays loaded, nothing resets.
 
@@ -123,10 +125,12 @@ up, and (on a failure) a reminder of how many crystals you just lost.
 droids more often at night — based on the real time of day wherever
 you're standing.
 
-**Collections:** droids come from two themed sets — **Mythical**
-(fairies, foxes, ravens, dragons) and **Nature / Corrupted Nature**
-(saplings, vines, fungus, world trees). Purely thematic, but useful to
-know for Dex-hunting and event boosts.
+**Collections:** droids come from three themed sets now — **Mythical**
+(fairies, foxes, ravens, dragons), **Nature / Corrupted Nature**
+(saplings, vines, fungus, world trees), and the newest, **Wildcard** — a
+grab-bag of everything else. Plus a fourth, **Solar**, that only exists
+during the Summer Event (see below). Purely thematic, but useful to know
+for Dex-hunting and event boosts.
 
 **Rarity:** Common → Uncommon → Rare → Legendary → Cosmic (companions
 only). Higher rarity means lower capture odds, higher minimum crystal
@@ -143,7 +147,7 @@ A quick reference for every symbol you'll see around the app:
 | ☀ | Light alignment |
 | 🌑 | Dark alignment |
 | ✦ | Cosmic alignment (companion droids only) |
-| 🎮 | This species is already in your Dex — seen on the radar, for Dex-completion hunters |
+| 🎮 | This exact droid — species *and* variant — is already in your Dex, seen on the radar for Dex-completion hunters |
 | ✦ (next to a number) | Crystals — the main currency |
 | 🎨 | Paint — spend on a Rusty droid to evolve it to Funky |
 | 🔷 | Nova Chips — spend to evolve certain species (e.g. Leafkin → Bushy) |
@@ -167,7 +171,9 @@ chance of coming up as a special variant. This is visible on the radar
   primary color and an even bigger boost (3.5x normal).
 
 Your Dex tracks which variants you've caught per species — see the Icon
-Glossary above for what the dots mean.
+Glossary above for what the dots mean. And the radar's 🎮 icon is
+variant-specific too — catching a standard Puffkin won't mark a Rusty
+Puffkin as "already caught."
 
 ---
 
@@ -198,28 +204,40 @@ species, it'll show up right next to its original form in your Dex.
 
 Don't need a droid anymore? On the Storage tab, release it for scrap:
 you get back 1.5x whatever it originally cost you to capture, plus a
-chance at a Nova Chip. This can't be undone, so double-check before
-confirming.
+chance at a Nova Chip. A popup confirms exactly what you got. This can't
+be undone, so double-check before confirming.
+
+**Releasing more than one at a time:** tick the checkbox on each droid
+you want gone (or hit "Select All"), then "Release Selected." You'll get
+one popup summing up everything from the whole batch — total crystals
+refunded and total Nova Chips gained — instead of a popup per droid.
 
 (Starter droids were free, so releasing one refunds nothing — but can
 still drop a Nova Chip.)
 
 ---
 
-## The Farm & Storage Tabs
+## The Farm Tab
 
-**Farm tab:**
 - **Slots:** you start with 1 unlocked slot; there are 10 total. Each
-  additional slot costs more crystals to unlock than the last. A droid
-  only farms crystals while assigned to an unlocked slot.
-- **Companion:** see below — equip one here for a passive buff.
+  additional slot costs more crystals to unlock than the last.
+- Every farming droid shows right in its slot — species, level, and
+  current crystal rate. **Tap a slot** to expand it and either level up
+  that droid or unassign it, right there.
+- To put a droid *into* a slot in the first place, that happens from the
+  **Storage tab** — pick an empty slot from the dropdown next to any
+  idle droid.
 
-**Storage tab:**
-- Your full droid list, sorted with farming droids first, then everyone
-  else grouped by rarity, species, and variant.
-- **Leveling:** spend crystals to level up an individual droid — boosts
-  its crystal production, HP, and Attack. Higher-rarity droids cost more
-  crystals per level than common ones.
+## The Storage Tab
+
+- Only shows droids that **aren't** currently farming — once you assign
+  one to a slot, it moves to the Farm tab and disappears from here.
+- Sorted by rarity, then species, then variant, so things stay easy to
+  scan even with a full roster.
+- **Tap a droid's icon or name** to see its full stat breakdown (HP,
+  Attack, level, crystal rate, next-level cost).
+- Level up, evolve (species or Funky), release, or assign to a slot —
+  all from the same row.
 - **HP / Attack:** every droid has these stats, scaling with level. They
   don't do anything yet — they're groundwork for a future battle system.
 
@@ -238,9 +256,11 @@ in the LOCK-ON minigame. This is account-wide, not per-droid.
 
 Two Cosmic-tier companions exist — both rarer than Legendary, with even
 rarer odds of a Platinum/Rusty variant. Neither farms crystals itself;
-instead, whichever one you equip (on the Farm tab) gives your whole
-pilot a passive buff. Only one companion can be equipped at a time, but
-you can swap freely between any you've captured.
+instead, whichever one you equip (on the **Companion** tab) gives your
+whole pilot a passive buff. Only one companion can be equipped at a
+time, but you can swap freely between any you've captured — the
+Companion tab lists every one you own, equipped or not, with a one-tap
+Equip button.
 
 - **StarSprite** — +50% to your *total* crystal production from everything else.
 - **Nebulfox** — +100% capture success chance on every attempt. Great for
@@ -255,25 +275,45 @@ boost spawn rates for a specific collection (e.g. "Nature Festival"
 makes Nature-collection droids much more common for a few hours). Keep
 an eye on the event banner — these come and go.
 
+**The Summer Event is different:** it doesn't just boost an existing
+collection, it makes 8 entirely new Solar-collection droids spawn that
+otherwise never appear at all. While it's live, hunt them like anything
+else on the radar — once caught, they're yours for good even after the
+event ends, they just live in the separate Event Dex.
+
 ---
 
 ## Trading
 
 Also on the Events & Trading tab — propose a trade with another player
-using their Player ID: offer any of your droids and/or crystals, request
-theirs in return. A few rules to know:
+using their Player ID: offer any of your droids, and optionally request
+a droid and/or crystals back. A few rules to know:
 - A freshly captured (or freshly traded) droid has a short cooldown
   before it can be traded again.
 - Whoever *receives* a droid in a trade pays a small crystal fee, scaled
   by rarity — trading is a convenience, not a free shortcut around
   capturing rares yourself.
+- You don't have to request anything back — a trade can be a pure gift,
+  or you can ask for crystals only instead of a droid.
+
+## Wishlist
+
+Also on the Events & Trading tab — post what you're looking for (a
+specific droid, optionally with a variant preference, or Paint with a
+color preference) and it goes up on a board **every player can see**.
+Anyone can offer you a trade straight from your listing — accepting it
+automatically clears your wish off the board.
+
+Paint wishes currently show on the board for visibility, but aren't
+auto-fulfillable through a trade yet — if you see one you can help with,
+coordinate directly with that player for now.
 
 ---
 
 ## Guilds
 
 On the Guilds tab — create or join a small guild with friends (up to 12
-members). You can now see the full member list (with a 👑 next to the
+members). You can see the full member list (with a 👑 next to the
 creator). Right now this is just a shared group — no gameplay effects
 yet — but it's the foundation for team features we'll build on later.
 
@@ -302,7 +342,12 @@ small dots underneath showing which variants (Rusty, Platinum, Funky)
 you've caught of it — see the Icon Glossary above. A species stays
 marked as "caught" even if you later trade or release the droid — the
 Dex tracks what you've *achieved*, not what you currently own. Evolved
-species now sit right next to their original form for easy reference.
+species sit right next to their original form for easy reference.
+
+**Event Dex:** a separate section below the main Dex, just for
+Summer-Event-exclusive species. These don't count toward your main
+completion percentage, since they're only catchable while that event is
+running.
 
 ---
 
@@ -320,8 +365,12 @@ species now sit right next to their original form for easy reference.
 - Check the radar regularly during both day and night — you'll see a
   noticeably different mix of Light vs. Dark droids.
 - Watch for the 🎮 icon on the radar if you're chasing full Dex
-  completion — it tells you at a glance whether a spawn is new or
-  already logged.
+  completion — remember it's variant-specific, so it won't hide a Rusty
+  spawn just because you've caught a standard one.
+- Post to the Wishlist early for anything you're missing — you might get
+  offered a trade before you even find one yourself.
+- If a slot on the Farm tab looks unfamiliar, tap it — every farming
+  droid's Level Up and Unassign controls are right there now.
 
 ---
 
@@ -330,6 +379,8 @@ species now sit right next to their original form for easy reference.
 A few things are planned but intentionally not part of this beta:
 - **PVE raid battles** (the HP/Attack stats exist already as groundwork)
 - **Guild-vs-guild PVP**
+- **Paint-fulfillable wishes via trade** (Paint wishes show on the board
+  but need manual coordination for now)
 - **Real character art** — droids currently show either your added
   artwork (if provided) or a simple placeholder icon
 

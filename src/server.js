@@ -19,6 +19,13 @@ const persistence = require('./persistence');
 
 const PORT = process.env.PORT || 3000;
 
+// Simple admin-code gate for the two "anyone who finds this URL could call
+// it" dev endpoints — events (spawn manipulation) and redeem-code creation
+// (free crystals/droids). Deliberately basic (a shared code, not real
+// auth) for a closed friends beta; would need real admin auth before this
+// goes anywhere more public.
+const ADMIN_CODES = { events: '2026', redeemCodes: '3103' };
+
 // Static image assets — drop droid art here (see assets/droids/README.md
 // for the exact filenames each species expects). Served directly, not read
 // into memory at startup, so images added later don't need a restart.
@@ -454,10 +461,13 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // POST /redeem-codes  { code, rewardCrystals?, rewardSpeciesId?, maxUses? }
-    // Dev/admin endpoint for this prototype — production would gate this behind admin auth.
+    // POST /redeem-codes  { code, rewardCrystals?, rewardSpeciesId?, maxUses?, adminCode }
+    // Admin-only — see ADMIN_CODES above.
     if (req.method === 'POST' && pathname === '/redeem-codes') {
       const body = await readBody(req);
+      if (body.adminCode !== ADMIN_CODES.redeemCodes) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
       try {
         if (!body.code) throw new Error('code required');
         const row = db.createRedeemCode(body);
@@ -472,10 +482,13 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { events: db.listActiveEvents() });
     }
 
-    // POST /events  { name, mode? ('boost'|'grant'), speciesIds?, collection?, spawnWeightMultiplier?, grantWeights?, startTime, endTime }
-    // Dev/admin endpoint for this prototype — production would gate this behind admin auth.
+    // POST /events  { name, mode? ('boost'|'grant'), speciesIds?, collection?, spawnWeightMultiplier?, grantWeights?, startTime, endTime, adminCode }
+    // Admin-only — see ADMIN_CODES above.
     if (req.method === 'POST' && pathname === '/events') {
       const body = await readBody(req);
+      if (body.adminCode !== ADMIN_CODES.events) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
       try {
         const event = db.createEvent(body);
         return sendJson(res, 201, { event });

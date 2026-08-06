@@ -55,6 +55,12 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 - **Time-exclusive events** — `POST /events` creates a time-boxed spawn-weight boost targeting either explicit species IDs or a whole `collection` (`mythical`/`nature`). Generalizes the same multiplier pattern the day/night bias already uses. Verified: a 5x Nature-collection event skewed spawns from the normal ~50/50 split to roughly 82/17 in favor of Nature.
 - **Trading** — offer/accept/decline flow (`POST /trades`, `POST /trades/:id/accept`, `POST /trades/:id/decline`) rather than an instant swap, with two anti-abuse guardrails built in from the start: a 10-minute cooldown before a freshly-captured or freshly-traded droid can be traded again (closes the "launder rarity through fake trades on throwaway accounts" exploit), and a small rarity-scaled crystal fee paid by whoever *receives* each droid (`TRADE_FEE_BY_RARITY` in `db.js`) so trading stays a convenience rather than a strictly-better alternative to capturing.
 
+## Beta feedback round 7 (admin-lock events + redeem codes)
+
+- **Two endpoints that were open to anyone who found the URL are now admin-gated**: `POST /events` (spawn manipulation) requires `adminCode: "2026"`, `POST /redeem-codes` (creating promo codes) requires `adminCode: "3103"` — deliberately different codes, so one leaking doesn't expose both. Verified live: both correctly reject with no code or the wrong code, and confirmed the two codes are genuinely separate (2026 does *not* unlock redeem-codes, and vice versa).
+- The event buttons stay visible in the UI (Boost Nature/Mythical, Start Summer Event) rather than being hidden, with a "🔒 Chris Admin Only — no access" caption above them. Clicking one prompts for the code; entering it wrong surfaces the same rejection message in the console log.
+- This is still a shared-secret code, not real authentication — fine for a closed friends beta where the risk is "a curious tester pokes at the API," not fine if this ever opens up more widely.
+
 ## Beta feedback round 6 (Wildcard collection — 16 new droids)
 
 - **Testers were completing the Dex too quickly**, so added a third full collection, **Wildcard**: Teacupper, Pangolynk, Toastybob, Redwolfe, Brollybot, Snowleopardon, Packmate, Oricalypse (Light) and Binx, Shadowtad, Tiktoker, Indrashark, Snapshot, Ghostcrane, Gamebot, Vaantheris (Dark) — 2 per rarity tier per alignment, same as Mythical/Nature.
@@ -106,7 +112,7 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 - **Companion droids (StarSprite)** — a 5th tier ("cosmic"), rarer than Legendary, spawning at 1/10th normal variant odds. Doesn't farm or occupy a workshop slot — instead, one equipped companion applies a flat +50% buff to *total* crystal production (verified live: 0.0167/s → 0.025/s, exactly 1.5x). Only one can be equipped at a time.
 - **Cosmetics** — pure crystal sink, no gameplay effect. One item this round: Beta Crown, 1000 crystals.
 - **Guilds** — player-created, join by ID, up to 12 members, no gameplay effect yet — foundation for a future PVP/guild system.
-- **Redeem codes** — `POST /redeem-codes` (dev/admin, no auth yet) creates a code granting crystals and/or a specific droid; `POST /redeem` uses it, once per player, with an optional total-use cap.
+- **Redeem codes** — `POST /redeem-codes` (admin-only, see below) creates a code granting crystals and/or a specific droid; `POST /redeem` uses it, once per player, with an optional total-use cap.
 
 **Fixes:**
 - **Bug: droids could stack in one workshop slot** — `assignDroidToSlot()` never checked for an existing occupant. Now rejects with a clear error. (Fixed in the previous round, re-verified this round.)
@@ -162,7 +168,7 @@ Open `test-terminal.html` directly in a browser (double-click it, or drag it int
 | POST | `/workshop/unlock-slot` | `{ playerId, slotId }` | Buy an extra farming slot with crystals |
 | POST | `/droids/:id/level-up` | `{ playerId }` | Spend crystals to level up a specific droid |
 | GET | `/events` | — | List currently active time-exclusive events |
-| POST | `/events` | `{ name, speciesIds? or collection?, spawnWeightMultiplier, startTime, endTime }` | Create a time-exclusive spawn event (dev/admin — no auth gate yet) |
+| POST | `/events` | `{ name, mode? ('boost'\|'grant'), speciesIds? or collection?, spawnWeightMultiplier?, grantWeights?, startTime, endTime, adminCode }` | Create a time-exclusive spawn event — **admin-only, requires `adminCode: "2026"`** |
 | POST | `/trades` | `{ fromPlayerId, toPlayerId, offeredDroidIds?, offeredCrystals?, requestedDroidIds?, requestedCrystals? }` | Propose a trade |
 | GET | `/trades/:playerId` | — | List all trades (any status) involving this player |
 | POST | `/trades/:id/accept` | `{ playerId }` | Accept a pending trade (must be the recipient) |
@@ -184,7 +190,7 @@ Open `test-terminal.html` directly in a browser (double-click it, or drag it int
 | POST | `/guilds/:id/join` | `{ playerId }` | Join a guild |
 | POST | `/guilds/leave` | `{ playerId }` | Leave your current guild |
 | POST | `/redeem` | `{ playerId, code }` | Redeem a promo code |
-| POST | `/redeem-codes` | `{ code, rewardCrystals?, rewardSpeciesId?, maxUses? }` | Create a promo code (dev/admin — no auth gate yet) |
+| POST | `/redeem-codes` | `{ code, rewardCrystals?, rewardSpeciesId?, maxUses?, adminCode }` | Create a promo code — **admin-only, requires `adminCode: "3103"`** |
 
 ## File map
 
