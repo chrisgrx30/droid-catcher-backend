@@ -55,6 +55,12 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 - **Time-exclusive events** — `POST /events` creates a time-boxed spawn-weight boost targeting either explicit species IDs or a whole `collection` (`mythical`/`nature`). Generalizes the same multiplier pattern the day/night bias already uses. Verified: a 5x Nature-collection event skewed spawns from the normal ~50/50 split to roughly 82/17 in favor of Nature.
 - **Trading** — offer/accept/decline flow (`POST /trades`, `POST /trades/:id/accept`, `POST /trades/:id/decline`) rather than an instant swap, with two anti-abuse guardrails built in from the start: a 10-minute cooldown before a freshly-captured or freshly-traded droid can be traded again (closes the "launder rarity through fake trades on throwaway accounts" exploit), and a small rarity-scaled crystal fee paid by whoever *receives* each droid (`TRADE_FEE_BY_RARITY` in `db.js`) so trading stays a convenience rather than a strictly-better alternative to capturing.
 
+## Beta feedback round 3 (small UI fixes)
+
+- **Inventory visibility** — Paint and Nova Chips were already being fetched from the server but never actually displayed anywhere. Added an Inventory section in the Workshop panel showing both counts.
+- **Owned droids sorted** — droids assigned to a workshop slot (farming) now always show first, in slot order; everything else follows sorted by rarity (Common → Cosmic), with a small divider label between the two groups.
+- **Dex variant indicators redone** — replaced the earlier badge/symbol approach with three simple colored dots per species (Rusty, Platinum, Funky, in that order), lit up only once that variant has actually been caught. Verified the sort logic directly against real captured-droid data before shipping.
+
 ## Beta feedback round 2 (major addition — pre-3-day-test build)
 
 **New systems:**

@@ -336,6 +336,17 @@
   .dex-card .dc-rarity.rare { color: var(--rare); }
   .dex-card .dc-rarity.legendary { color: var(--legendary); }
   .dex-card .dc-rarity.cosmic { color: #ff9df0; }
+
+  .variant-dots { display: flex; justify-content: center; gap: 6px; margin-top: 5px; }
+  .variant-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--line);
+  }
+  .variant-dot.rusty.caught { background: #b5652f; border-color: #ff9a5c; box-shadow: 0 0 5px #ff9a5c; }
+  .variant-dot.platinum.caught { background: #d9e6ea; border-color: #ffffff; box-shadow: 0 0 5px #ffffff; }
+  .variant-dot.funky.caught { background: #ff7a3d; border-color: #ffae7a; box-shadow: 0 0 5px #ffae7a; }
 </style>
 </head>
 <body>
@@ -424,10 +435,14 @@
     <div class="stat-row"><span class="stat-label">Last collect earned</span><span class="stat-val" id="wsEarned">0</span></div>
     <button id="btnCollect">Collect Crystals</button>
 
+    <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Inventory</div>
+    <div class="stat-row"><span class="stat-label">🎨 Paint</span><span class="stat-val" id="statPaint">0</span></div>
+    <div class="stat-row"><span class="stat-label">🔷 Nova Chips</span><span class="stat-val" id="statNovaChips">0</span></div>
+
     <div class="slot-grid" id="slotGrid"></div>
 
     <div style="margin-top:14px;">
-      <div class="panel-title" style="margin-bottom:6px;">Owned Droids</div>
+      <div class="panel-title" style="margin-bottom:6px;">Owned Droids <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(farming first, then by rarity)</span></div>
       <div id="droidList"><div class="empty">None captured yet</div></div>
     </div>
   </div>
@@ -767,6 +782,8 @@ async function refreshWorkshop() {
     $('statDroidCount').textContent = data.droids.length; // bug fix: this never updated before
     state.paint = data.paint;
     state.novaChips = data.novaChips;
+    $('statPaint').textContent = data.paint;
+    $('statNovaChips').textContent = data.novaChips;
     state.cosmetics = data.cosmetics;
     state.companionDroid = data.companionDroid;
     state.companionBuffPercent = data.companionBuffPercent;
@@ -826,6 +843,22 @@ function renderSlots() {
   });
 }
 
+const RARITY_ORDER = { common: 0, uncommon: 1, rare: 2, legendary: 3, cosmic: 4 };
+
+function sortedDroidsForDisplay() {
+  return [...state.droids].sort((a, b) => {
+    const aFarming = a.workshopSlotId ? 0 : 1;
+    const bFarming = b.workshopSlotId ? 0 : 1;
+    if (aFarming !== bFarming) return aFarming - bFarming;
+    if (aFarming === 0) {
+      const aSlot = state.slots.find((s) => s.id === a.workshopSlotId);
+      const bSlot = state.slots.find((s) => s.id === b.workshopSlotId);
+      return (aSlot ? aSlot.slotIndex : 99) - (bSlot ? bSlot.slotIndex : 99);
+    }
+    return (RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99);
+  });
+}
+
 function renderDroids() {
   const list = $('droidList');
   if (!state.droids.length) {
@@ -833,7 +866,16 @@ function renderDroids() {
     return;
   }
   list.innerHTML = '';
-  state.droids.forEach((droid) => {
+  const sorted = sortedDroidsForDisplay();
+  let dividerShown = false;
+  sorted.forEach((droid) => {
+    if (!droid.workshopSlotId && !dividerShown && sorted.some((d) => d.workshopSlotId)) {
+      const divider = document.createElement('div');
+      divider.style.cssText = 'font-size:9px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:8px 0 4px; border-top:1px dashed var(--line); padding-top:6px;';
+      divider.textContent = 'Not Farming (by rarity)';
+      list.appendChild(divider);
+      dividerShown = true;
+    }
     const row = document.createElement('div');
     row.className = 'droid-row';
     row.style.flexWrap = 'wrap';
@@ -1144,14 +1186,19 @@ function renderDex(entries) {
   entries.forEach((s) => {
     const card = document.createElement('div');
     card.className = 'dex-card ' + (s.caught ? 'caught' : 'uncaught');
-    const variantBadges = (s.variantsCaught || [])
-      .map((v) => `<span class="variant-tag ${v}" title="${v}">${VARIANT_BADGE_SYMBOL[v] || ''}</span>`)
-      .join(' ');
+    const caughtVariants = s.variantsCaught || [];
+    const rustyCaught = caughtVariants.includes('rusty');
+    const platinumCaught = caughtVariants.includes('platinum');
+    const funkyCaught = caughtVariants.includes('funky');
     card.innerHTML = `
       <div class="dc-icon"></div>
       <div class="dc-name">${s.caught ? s.name : '???'}</div>
       <div class="dc-rarity ${s.rarity}">${s.rarity}</div>
-      <div style="margin-top:3px;">${variantBadges}</div>
+      <div class="variant-dots">
+        <span class="variant-dot rusty ${rustyCaught ? 'caught' : ''}" title="Rusty${rustyCaught ? ' — caught' : ' — not yet caught'}"></span>
+        <span class="variant-dot platinum ${platinumCaught ? 'caught' : ''}" title="Platinum${platinumCaught ? ' — caught' : ' — not yet caught'}"></span>
+        <span class="variant-dot funky ${funkyCaught ? 'caught' : ''}" title="Funky${funkyCaught ? ' — caught' : ' — not yet caught'}"></span>
+      </div>
     `;
     card.querySelector('.dc-icon').appendChild(createDroidVisual(s, 40));
     grid.appendChild(card);
