@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 3000;
 // for the exact filenames each species expects). Served directly, not read
 // into memory at startup, so images added later don't need a restart.
 const ASSETS_DROIDS_DIR = path.join(__dirname, '..', 'assets', 'droids');
+const ASSETS_COSMETICS_DIR = path.join(__dirname, '..', 'assets', 'cosmetics');
 const IMAGE_MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -101,6 +102,27 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: 'invalid filename' });
       }
       const filePath = path.join(ASSETS_DROIDS_DIR, filename);
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+        res.writeHead(200, {
+          'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return res.end(data);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
+    // GET /assets/cosmetics/<filename> -> same pattern as droid artwork above
+    if (req.method === 'GET' && pathname.startsWith('/assets/cosmetics/')) {
+      const filename = pathname.slice('/assets/cosmetics/'.length);
+      if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+        return sendJson(res, 400, { error: 'invalid filename' });
+      }
+      const filePath = path.join(ASSETS_COSMETICS_DIR, filename);
       try {
         const data = fs.readFileSync(filePath);
         const ext = path.extname(filename).toLowerCase();
@@ -229,7 +251,8 @@ const server = http.createServer(async (req, res) => {
         cosmetics: player.cosmetics,
         guildId: player.guildId,
         companionDroid,
-        companionBuffPercent: db.COMPANION_BUFF_PERCENT,
+        companionBuffType: companionDroid ? db.droidSpecies.find((s) => s.id === companionDroid.speciesId)?.companionBuffType : null,
+        companionBuffPercent: companionDroid ? db.droidSpecies.find((s) => s.id === companionDroid.speciesId)?.companionBuffPercent : null,
       });
     }
 
@@ -366,7 +389,11 @@ const server = http.createServer(async (req, res) => {
       const guildId = Number(pathname.split('/')[2]);
       const guild = db.guilds.get(guildId);
       if (!guild) return sendJson(res, 404, { error: 'not found' });
-      return sendJson(res, 200, guild);
+      const members = guild.memberIds.map((id) => {
+        const p = db.players.get(id);
+        return { id, username: p ? p.username : '(unknown)' };
+      });
+      return sendJson(res, 200, { ...guild, members });
     }
 
     // POST /guilds  { playerId, name }

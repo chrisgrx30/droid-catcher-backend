@@ -65,7 +65,8 @@ const droidSpecies = [
   { id: id(), name: 'Bushy',      alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, ...statsFor('uncommon') },
 
   // -- companion (cosmic tier — rarer than legendary, doesn't farm, provides a % buff instead; see COMPANION_BUFF_PERCENT) --
-  { id: id(), name: 'StarSprite', alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, ...statsFor('cosmic') },
+  { id: id(), name: 'StarSprite', alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'crystal', companionBuffPercent: 50, ...statsFor('cosmic') },
+  { id: id(), name: 'Nebulfox',   alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'capture_rate', companionBuffPercent: 100, ...statsFor('cosmic') },
 ];
 
 // Leafkin -> Bushy is the first (and template) evolution pair. Keyed by
@@ -271,7 +272,12 @@ const TRADE_FEE_BY_RARITY = {
 // Structurally different from farming droids: doesn't occupy a workshop
 // slot, doesn't farm crystals itself, instead applies a flat % buff to the
 // player's total crystals/min. Only one can be active ("held") at a time.
-const COMPANION_BUFF_PERCENT = 50;
+// ---- companion droids (StarSprite, Nebulfox) ----
+// Structurally different from farming droids: doesn't occupy a workshop
+// slot, doesn't farm crystals itself. Each companion species defines its
+// own buff via companionBuffType ('crystal' | 'capture_rate') and
+// companionBuffPercent — see workshop.js's companionBuffMultiplier and
+// capture.js's companionCaptureRateMultiplier.
 
 // ---- cosmetics ----
 // Purely cosmetic, no gameplay effect — crystal sinks for players who've
@@ -479,13 +485,17 @@ function grantStarterDroid(playerId, speciesId) {
   return droid;
 }
 
-function markDexSeen(playerId, speciesId, variant) {
+function markDexSeen(playerId, speciesId, variant, color) {
   const player = players.get(playerId);
   if (!player) return;
   if (!player.dexSeen.includes(speciesId)) player.dexSeen.push(speciesId);
   if (variant && variant !== 'standard') {
     const key = `${speciesId}:${variant}`;
     if (!player.dexVariantsSeen.includes(key)) player.dexVariantsSeen.push(key);
+    if (variant === 'funky' && color) {
+      const colorKey = `${speciesId}:funky:${color}`;
+      if (!player.dexVariantsSeen.includes(colorKey)) player.dexVariantsSeen.push(colorKey);
+    }
   }
 }
 
@@ -496,11 +506,31 @@ function getDex(playerId) {
   const player = players.get(playerId);
   const seen = player ? player.dexSeen : [];
   const variantsSeen = player ? player.dexVariantsSeen : [];
-  const entries = droidSpecies.map((s) => ({
-    ...s,
-    caught: seen.includes(s.id),
-    variantsCaught: ['platinum', 'rusty', 'funky'].filter((v) => variantsSeen.includes(`${s.id}:${v}`)),
-  }));
+
+  // Evolution targets (e.g. Bushy) are placed right after their origin
+  // species (e.g. Leafkin) instead of wherever they happen to sit in the
+  // catalog array, so the Dex reads as a natural progression.
+  const evolvesToIds = new Set(Object.values(EVOLUTION_TABLE).map((e) => e.evolvesTo));
+  const orderedSpecies = [];
+  droidSpecies.forEach((s) => {
+    if (evolvesToIds.has(s.id)) return; // placed inline below instead
+    orderedSpecies.push(s);
+    const evolution = EVOLUTION_TABLE[s.id];
+    if (evolution) {
+      const evolvedSpecies = droidSpecies.find((e) => e.id === evolution.evolvesTo);
+      if (evolvedSpecies) orderedSpecies.push(evolvedSpecies);
+    }
+  });
+
+  const entries = orderedSpecies.map((s) => {
+    const funkyColorsCaught = PRIMARY_COLORS.filter((c) => variantsSeen.includes(`${s.id}:funky:${c}`));
+    return {
+      ...s,
+      caught: seen.includes(s.id),
+      variantsCaught: ['platinum', 'rusty', 'funky'].filter((v) => variantsSeen.includes(`${s.id}:${v}`)),
+      funkyColorsCaught,
+    };
+  });
   const totalCaught = entries.filter((e) => e.caught).length;
   return {
     entries,
@@ -610,7 +640,6 @@ module.exports = {
   tradeOffers,
   TRADE_COOLDOWN_MS,
   TRADE_FEE_BY_RARITY,
-  COMPANION_BUFF_PERCENT,
   COSMETICS_CATALOG,
   guilds,
   GUILD_MAX_MEMBERS,

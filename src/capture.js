@@ -6,6 +6,7 @@
 
 const db = require('./db');
 const geo = require('./geo');
+const workshop = require('./workshop');
 
 const MAX_PLAUSIBLE_RANGE_METERS = 75; // player must be roughly at the spawn
 const MIN_PLAUSIBLE_ATTEMPT_MS = 250; // faster than this + high accuracy = bot signature
@@ -68,6 +69,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   }
   let successChance =
     species.baseCaptureRate * crystalBonus(crystalsSpent) * padSkillMultiplier(padAccuracy, player.padLevel);
+  successChance *= workshop.companionCaptureRateMultiplier(playerId); // Nebulfox: +100% success chance, helps with tough Legendary attempts
   successChance = Math.max(0.05, Math.min(0.95, successChance)); // clamp 5%-95%
 
   // --- critical capture: pad-level-based chance of a guaranteed success ---

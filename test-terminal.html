@@ -99,6 +99,56 @@
     border-radius: 3px;
   }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; transition: background 0.2s; }
+
+  /* ---- tab navigation ---- */
+  .tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+  }
+  .tab-btn {
+    background: var(--panel);
+    color: var(--text-dim);
+    border: 1px solid var(--line);
+    font-family: inherit;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 8px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 0;
+  }
+  .tab-btn:hover { color: var(--text); border-color: var(--cyan-dim); }
+  .tab-btn.active { background: var(--cyan); color: #04181a; border-color: var(--cyan); font-weight: 600; }
+  .tab-page { display: none; }
+  .tab-page.active { display: block; }
+
+  /* ---- capture result popup ---- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+  }
+  .modal-box {
+    background: var(--panel);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 6px;
+    padding: 24px;
+    max-width: 320px;
+    width: 90%;
+    text-align: center;
+  }
+  .modal-box .mb-icon { font-size: 40px; margin-bottom: 10px; }
+  .modal-box .mb-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .modal-box .mb-title.success { color: var(--uncommon); }
+  .modal-box .mb-title.fail { color: var(--danger); }
+  .modal-box .mb-detail { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  .modal-box .mb-close { margin-top: 16px; }
   .dot.live { background: var(--uncommon); box-shadow: 0 0 6px var(--uncommon); }
 
   /* ---- layout ---- */
@@ -363,9 +413,19 @@
   </div>
 </header>
 
-<div class="grid">
+<div class="tab-nav" id="tabNav">
+  <button class="tab-btn active" data-tab="player">Player</button>
+  <button class="tab-btn" data-tab="capture">Capture</button>
+  <button class="tab-btn" data-tab="farm">Farm</button>
+  <button class="tab-btn" data-tab="storage">Storage</button>
+  <button class="tab-btn" data-tab="guilds">Guilds</button>
+  <button class="tab-btn" data-tab="inventory">Inventory</button>
+  <button class="tab-btn" data-tab="social">Events &amp; Trading</button>
+  <button class="tab-btn" data-tab="dex">Dex</button>
+</div>
 
-  <!-- LEFT: Player / Pilot -->
+<!-- PLAYER TAB -->
+<div class="tab-page active" id="tab-player">
   <div class="panel">
     <div class="panel-title">Pilot</div>
     <div id="noPlayer">
@@ -389,25 +449,9 @@
       <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-val" id="statCritChance">2%</span></div>
       <button id="btnUpgradePad">Upgrade Pad — <span id="padUpgradeCost">100</span> ✦</button>
 
-      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Companion <span id="companionBuffTag" style="color:var(--text-dim);"></span></div>
-      <div id="companionSlot"><div class="empty">No companion equipped</div></div>
-
       <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Cosmetics</div>
       <div id="cosmeticsOwned" style="margin-bottom:8px;"></div>
       <div id="cosmeticsShop"></div>
-
-      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Guild</div>
-      <div id="guildStatus"><div class="empty">Not in a guild</div></div>
-      <label>Guild name (to create)</label>
-      <input type="text" id="guildName" placeholder="e.g. The Nightfangs">
-      <button id="btnCreateGuild">Create Guild</button>
-      <label style="margin-top:8px;">Guild ID (to join)</label>
-      <input type="text" id="joinGuildId" placeholder="e.g. 3">
-      <button id="btnJoinGuild">Join Guild</button>
-
-      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Redeem Code</div>
-      <input type="text" id="redeemCodeInput" placeholder="e.g. WELCOME2026">
-      <button id="btnRedeemCode">Redeem</button>
     </div>
     <div id="starterPicker" style="display:none; margin-top:14px;">
       <div class="panel-title" style="margin-bottom:6px;">Choose Starter Droid</div>
@@ -415,8 +459,10 @@
       <div id="starterOptions"></div>
     </div>
   </div>
+</div>
 
-  <!-- CENTER: Radar / Spawns -->
+<!-- CAPTURE TAB -->
+<div class="tab-page" id="tab-capture">
   <div class="panel">
     <div class="panel-title">Radar Sweep <span id="todBadge" style="color: var(--text-dim);"></span></div>
     <div id="eventBanner"></div>
@@ -427,77 +473,124 @@
       <div class="empty">No sweep yet — tap Use My Location</div>
     </div>
   </div>
+</div>
 
-  <!-- RIGHT: Workshop -->
+<!-- FARM TAB -->
+<div class="tab-page" id="tab-farm">
   <div class="panel">
     <div class="panel-title">Workshop</div>
     <div class="stat-row"><span class="stat-label">Balance</span><span class="stat-val amber" id="wsBalance">0</span></div>
     <div class="stat-row"><span class="stat-label">Last collect earned</span><span class="stat-val" id="wsEarned">0</span></div>
     <button id="btnCollect">Collect Crystals</button>
 
-    <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Inventory</div>
+    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Companion <span id="companionBuffTag" style="color:var(--text-dim);"></span></div>
+    <div id="companionSlot"><div class="empty">No companion equipped</div></div>
+
+    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Workshop Slots</div>
+    <div class="slot-grid" id="slotGrid"></div>
+  </div>
+</div>
+
+<!-- STORAGE TAB -->
+<div class="tab-page" id="tab-storage">
+  <div class="panel">
+    <div class="panel-title">Owned Droids <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(farming first, then rarity, species, variant)</span></div>
+    <div id="droidList"><div class="empty">None captured yet</div></div>
+  </div>
+</div>
+
+<!-- GUILDS TAB -->
+<div class="tab-page" id="tab-guilds">
+  <div class="panel">
+    <div class="panel-title">Guild</div>
+    <div id="guildStatus"><div class="empty">Not in a guild</div></div>
+    <div id="guildMembers"></div>
+    <label style="margin-top:10px;">Guild name (to create)</label>
+    <input type="text" id="guildName" placeholder="e.g. The Nightfangs">
+    <button id="btnCreateGuild">Create Guild</button>
+    <label style="margin-top:8px;">Guild ID (to join)</label>
+    <input type="text" id="joinGuildId" placeholder="e.g. 3">
+    <button id="btnJoinGuild">Join Guild</button>
+  </div>
+</div>
+
+<!-- INVENTORY TAB -->
+<div class="tab-page" id="tab-inventory">
+  <div class="panel">
+    <div class="panel-title">Inventory</div>
     <div class="stat-row"><span class="stat-label">🎨 Paint</span><span class="stat-val" id="statPaint">0</span></div>
     <div class="stat-row"><span class="stat-label">🔷 Nova Chips</span><span class="stat-val" id="statNovaChips">0</span></div>
 
-    <div class="slot-grid" id="slotGrid"></div>
-
-    <div style="margin-top:14px;">
-      <div class="panel-title" style="margin-bottom:6px;">Owned Droids <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(farming first, then by rarity)</span></div>
-      <div id="droidList"><div class="empty">None captured yet</div></div>
-    </div>
+    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Redeem Code</div>
+    <input type="text" id="redeemCodeInput" placeholder="e.g. WELCOME2026">
+    <button id="btnRedeemCode">Redeem</button>
   </div>
-
 </div>
 
-<!-- SECOND ROW: Events + Trading -->
-<div class="grid" style="grid-template-columns: 1fr 1fr; margin-top: 16px;">
-
-  <!-- Events -->
-  <div class="panel">
-    <div class="panel-title">Time-Exclusive Events</div>
-    <div id="activeEventsList" style="margin-bottom: 10px;"><div class="empty">No active events</div></div>
-    <label>Quick-launch a test event (1 hour, 5x weight)</label>
-    <div style="display:flex; gap:6px; margin-top:6px;">
-      <button id="btnEventNature" style="margin-top:0;">☘ Boost Nature</button>
-      <button id="btnEventMythical" style="margin-top:0;">✦ Boost Mythical</button>
-    </div>
-  </div>
-
-  <!-- Trading -->
-  <div class="panel">
-    <div class="panel-title">Trading</div>
-    <label>Target Player ID</label>
-    <input type="text" id="tradeTargetId" placeholder="e.g. 2">
-    <button id="btnLoadTradeTarget">Load Their Droids</button>
-
-    <div id="tradeBuilder" style="display:none; margin-top:10px;">
-      <label>Your droid to offer</label>
-      <select id="tradeOfferDroid"></select>
-      <label>Their droid to request</label>
-      <select id="tradeRequestDroid"></select>
-      <button class="primary" id="btnCreateTrade">Send Trade Offer</button>
+<!-- EVENTS & TRADING TAB -->
+<div class="tab-page" id="tab-social">
+  <div class="grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="panel">
+      <div class="panel-title">Time-Exclusive Events</div>
+      <div id="activeEventsList" style="margin-bottom: 10px;"><div class="empty">No active events</div></div>
+      <label>Quick-launch a test event (1 hour, 5x weight)</label>
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <button id="btnEventNature" style="margin-top:0;">☘ Boost Nature</button>
+        <button id="btnEventMythical" style="margin-top:0;">✦ Boost Mythical</button>
+      </div>
     </div>
 
-    <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Your Trades</div>
-    <div id="tradeList"><div class="empty">No trades yet</div></div>
-  </div>
+    <div class="panel">
+      <div class="panel-title">Trading</div>
+      <label>Target Player ID</label>
+      <input type="text" id="tradeTargetId" placeholder="e.g. 2">
+      <button id="btnLoadTradeTarget">Load Their Droids</button>
 
+      <div id="tradeBuilder" style="display:none; margin-top:10px;">
+        <label>Your droid to offer</label>
+        <select id="tradeOfferDroid"></select>
+        <label>Their droid to request</label>
+        <select id="tradeRequestDroid"></select>
+        <button class="primary" id="btnCreateTrade">Send Trade Offer</button>
+      </div>
+
+      <div class="panel-title" style="margin-top:14px; margin-bottom:6px;">Your Trades</div>
+      <div id="tradeList"><div class="empty">No trades yet</div></div>
+    </div>
+  </div>
 </div>
 
-<!-- THIRD ROW: Dex -->
-<div class="panel" style="margin-top: 16px;">
-  <div class="panel-title">Droid Dex <span id="dexProgress" style="color:var(--text-dim);">0 / 16</span></div>
-  <div class="dex-grid" id="dexGrid"></div>
+<!-- DEX TAB -->
+<div class="tab-page" id="tab-dex">
+  <div class="panel">
+    <div class="panel-title">Droid Dex <span id="dexProgress" style="color:var(--text-dim);">0 / 19</span></div>
+    <div class="dex-grid" id="dexGrid"></div>
+  </div>
 </div>
 
 <div class="console" id="console">
   <div class="console-line"><span class="tag">SYS</span> <span class="body">Terminal ready. Deploy a pilot to begin.</span></div>
 </div>
 
+<!-- CAPTURE RESULT POPUP -->
+<div id="captureResultOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box" id="captureResultBox"></div>
+</div>
+
 <script>
 const $ = (id) => document.getElementById(id);
-let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, companionBuffPercent: 50, guildId: null };
+let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, guildId: null };
 const FUNKY_PAINT_COST = 10; // matches db.FUNKY_EVOLVE_PAINT_COST default on the backend
+
+// ---- Tab navigation ----
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.tab-page').forEach((p) => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-' + btn.dataset.tab).classList.add('active');
+  };
+});
 let tickInterval = null;
 
 function serverUrl() {
@@ -656,7 +749,7 @@ async function scanAt(lat, lng) {
   } catch (e) {}
 }
 
-const RARITY_ZONE_WIDTH = { common: 44, uncommon: 32, rare: 20, legendary: 12 }; // % of track width — narrower = harder
+const RARITY_ZONE_WIDTH = { common: 34, uncommon: 24, rare: 20, legendary: 12, cosmic: 8 }; // % of track width — narrower = harder. Common/Uncommon tightened per playtest feedback (were too easy at 44/32).
 const activeAnimations = {}; // spawnId -> { intervalId, getPosition }
 
 function stopAllAnimations() {
@@ -683,10 +776,13 @@ function renderSpawns() {
     const zoneWidth = RARITY_ZONE_WIDTH[spawn.rarity] || 30;
     const zoneCenter = 15 + Math.random() * 70; // keep the zone fully on-track (15%-85% range)
 
+    const alreadyCaught = state.dexCaughtIds && state.dexCaughtIds.has(spawn.speciesId);
+    const dexPadIcon = alreadyCaught ? '<span title="Already in your Dex" style="margin-left:4px;">🎮</span>' : '';
+
     card.innerHTML = `
       <div class="spawn-top">
         <div class="spawn-icon"></div>
-        <span class="spawn-name">${spawn.alignment === 'light' ? '☀' : '🌑'} ${spawn.speciesName}${variantTag}</span>
+        <span class="spawn-name">${spawn.alignment === 'light' ? '☀' : '🌑'} ${spawn.speciesName}${variantTag}${dexPadIcon}</span>
         <span class="spawn-rarity ${spawn.rarity}">${spawn.rarity}</span>
       </div>
       <div class="spawn-meta">${spawn.distanceMeters}m away · expires ${new Date(spawn.expiresAt).toLocaleTimeString()} · needs ${minCost}+ crystals</div>
@@ -756,6 +852,7 @@ async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
     } else {
       log('CAPTURE', `${spawn.speciesName} broke free. (${Math.round(result.successChance * 100)}% chance) — ${crystalsSpent} crystals lost.`, true);
     }
+    showCaptureResultPopup(spawn, result, crystalsSpent);
     $('statCrystals').textContent = Math.floor(result.crystalBalance);
     state.spawns = state.spawns.filter((s) => s.id !== spawn.id);
     renderSpawns();
@@ -763,6 +860,34 @@ async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
     if (result.success) await refreshDex();
   } catch (e) {}
 }
+
+function showCaptureResultPopup(spawn, result, crystalsSpent) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  if (result.success) {
+    box.innerHTML = `
+      <div class="mb-icon">✅</div>
+      <div class="mb-title success">Captured!</div>
+      <div class="mb-detail">${spawn.speciesName} is yours${result.critical ? ' — Critical Capture!' : ''}</div>
+      <div class="mb-detail">Chance was ${Math.round(result.successChance * 100)}%</div>
+      ${result.gotPaint ? '<div class="mb-detail" style="color:var(--amber);">🎨 +1 Paint dropped!</div>' : ''}
+      <button class="primary mb-close">Nice!</button>
+    `;
+  } else {
+    box.innerHTML = `
+      <div class="mb-icon">💨</div>
+      <div class="mb-title fail">Broke Free</div>
+      <div class="mb-detail">${spawn.speciesName} escaped. Chance was ${Math.round(result.successChance * 100)}%</div>
+      <div class="mb-detail" style="color:var(--danger);">${crystalsSpent} crystals lost — gone for good.</div>
+      <button class="mb-close">Try Again</button>
+    `;
+  }
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
+$('captureResultOverlay').onclick = (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.style.display = 'none';
+};
 
 // ---- Workshop ----
 async function refreshWorkshop() {
@@ -844,6 +969,7 @@ function renderSlots() {
 }
 
 const RARITY_ORDER = { common: 0, uncommon: 1, rare: 2, legendary: 3, cosmic: 4 };
+const VARIANT_ORDER = { standard: 0, rusty: 1, funky: 2, platinum: 3 };
 
 function sortedDroidsForDisplay() {
   return [...state.droids].sort((a, b) => {
@@ -855,7 +981,11 @@ function sortedDroidsForDisplay() {
       const bSlot = state.slots.find((s) => s.id === b.workshopSlotId);
       return (aSlot ? aSlot.slotIndex : 99) - (bSlot ? bSlot.slotIndex : 99);
     }
-    return (RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99);
+    const rarityDiff = (RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99);
+    if (rarityDiff !== 0) return rarityDiff;
+    const speciesDiff = (a.speciesName || '').localeCompare(b.speciesName || '');
+    if (speciesDiff !== 0) return speciesDiff;
+    return (VARIANT_ORDER[a.variant] ?? 99) - (VARIANT_ORDER[b.variant] ?? 99);
   });
 }
 
@@ -1028,19 +1158,48 @@ async function refreshCosmeticsShop() {
   } catch (e) {}
 }
 
+const COSMETIC_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
+
+function createCosmeticVisual(item, size = 40) {
+  const wrapper = document.createElement('span');
+  wrapper.style.cssText = `display:inline-flex; flex-direction:column; align-items:center; width:${size + 20}px; margin:4px;`;
+  const img = document.createElement('img');
+  img.style.cssText = `width:${size}px; height:${size}px; object-fit:contain; display:block;`;
+  img.alt = item.name;
+  let idx = 0;
+  const tryNext = () => {
+    if (idx >= COSMETIC_IMAGE_EXTENSIONS.length) {
+      // no image found — fall back to a text badge instead of an icon
+      wrapper.innerHTML = `<span class="variant-tag platinum">${item.name}</span>`;
+      return;
+    }
+    img.src = `/assets/cosmetics/${item.id}.${COSMETIC_IMAGE_EXTENSIONS[idx]}`;
+    idx++;
+  };
+  img.onerror = tryNext;
+  tryNext();
+  wrapper.appendChild(img);
+  const label = document.createElement('span');
+  label.style.cssText = 'font-size:8px; color:var(--text-dim); margin-top:2px; text-align:center;';
+  label.textContent = item.name;
+  wrapper.appendChild(label);
+  return wrapper;
+}
+
 function renderCosmetics() {
   const owned = $('cosmeticsOwned');
-  owned.innerHTML = (state.cosmetics || []).map((id) => {
-    const item = (state.cosmeticsCatalog || []).find((c) => c.id === id);
-    return `<span class="variant-tag platinum">${item ? item.name : id}</span>`;
-  }).join(' ') || '<span style="font-size:9px; color:var(--text-dim);">None owned</span>';
+  owned.innerHTML = '';
+  const ownedItems = (state.cosmetics || [])
+    .map((id) => (state.cosmeticsCatalog || []).find((c) => c.id === id))
+    .filter(Boolean);
+  if (!ownedItems.length) {
+    owned.innerHTML = '<span style="font-size:9px; color:var(--text-dim);">None owned</span>';
+  } else {
+    ownedItems.forEach((item) => owned.appendChild(createCosmeticVisual(item)));
+  }
 
   const shop = $('cosmeticsShop');
   const available = (state.cosmeticsCatalog || []).filter((c) => !(state.cosmetics || []).includes(c.id));
-  if (!available.length) {
-    shop.innerHTML = state.cosmeticsCatalog ? '' : '';
-    return;
-  }
   shop.innerHTML = available.map((c) =>
     `<button class="buy-cosmetic-btn" data-id="${c.id}" style="margin-top:6px;">Buy ${c.name} (${c.cost}✦)</button>`
   ).join('');
@@ -1055,10 +1214,12 @@ function renderCosmetics() {
 }
 
 // ---- Guild ----
-function renderGuild() {
+async function renderGuild() {
   const el = $('guildStatus');
+  const membersEl = $('guildMembers');
   if (!state.guildId) {
     el.innerHTML = '<div class="empty">Not in a guild</div>';
+    membersEl.innerHTML = '';
     return;
   }
   el.innerHTML = `<div class="trade-card">In guild #${state.guildId} <div class="tc-actions"><button class="leave-guild-btn">Leave</button></div></div>`;
@@ -1068,6 +1229,13 @@ function renderGuild() {
       await refreshWorkshop();
     } catch (e) {}
   };
+  try {
+    const guild = await api('GET', `/guilds/${state.guildId}`);
+    membersEl.innerHTML = `
+      <div class="panel-title" style="margin-top:12px; margin-bottom:6px;">${guild.name} — ${guild.members.length} member${guild.members.length === 1 ? '' : 's'}</div>
+      ${guild.members.map((m) => `<div class="stat-row"><span class="stat-label">${m.id === guild.creatorId ? '👑 ' : ''}${m.username}</span><span class="stat-val" style="font-size:9px; color:var(--text-dim);">#${m.id}</span></div>`).join('')}
+    `;
+  } catch (e) {}
 }
 
 $('btnCreateGuild').onclick = async () => {
@@ -1142,7 +1310,17 @@ function createDroidVisual(species, size = 44) {
   wrapper.style.height = size + 'px';
   wrapper.style.verticalAlign = 'middle';
 
-  const slug = displayName.toLowerCase();
+  const baseSlug = displayName.toLowerCase();
+  const variant = species.variant && species.variant !== 'standard' ? species.variant : null;
+
+  // Try variant-specific art first (e.g. puffkin-platinum.png), then the
+  // base species image, then finally the procedural SVG placeholder.
+  const candidates = [];
+  if (variant) {
+    DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${baseSlug}-${variant}.${ext}`));
+  }
+  DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${baseSlug}.${ext}`));
+
   const img = document.createElement('img');
   img.width = size;
   img.height = size;
@@ -1152,17 +1330,17 @@ function createDroidVisual(species, size = 44) {
   img.style.display = 'block';
   img.alt = displayName;
 
-  let extIndex = 0;
-  const tryNextExtension = () => {
-    if (extIndex >= DROID_IMAGE_EXTENSIONS.length) {
-      wrapper.innerHTML = droidIconSVG({ ...species, name: displayName }, size); // no image found for any extension
+  let idx = 0;
+  const tryNext = () => {
+    if (idx >= candidates.length) {
+      wrapper.innerHTML = droidIconSVG({ ...species, name: displayName }, size); // no image found for any candidate
       return;
     }
-    img.src = `/assets/droids/${slug}.${DROID_IMAGE_EXTENSIONS[extIndex]}`;
-    extIndex++;
+    img.src = candidates[idx];
+    idx++;
   };
-  img.onerror = tryNextExtension;
-  tryNextExtension();
+  img.onerror = tryNext;
+  tryNext();
 
   wrapper.appendChild(img);
   return wrapper;
@@ -1174,7 +1352,9 @@ async function refreshDex() {
   try {
     const data = await api('GET', `/players/${state.playerId}/dex`);
     $('dexProgress').textContent = `${data.totalCaught} / ${data.totalSpecies} (${data.percentComplete}%)`;
+    state.dexCaughtIds = new Set(data.entries.filter((e) => e.caught).map((e) => e.id));
     renderDex(data.entries);
+    renderSpawns(); // refresh "already caught" pad icons on the radar with the latest dex
   } catch (e) {}
 }
 

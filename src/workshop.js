@@ -61,8 +61,8 @@ function companionBuffMultiplier(playerId) {
   const droid = db.ownedDroids.get(player.companionDroidId);
   if (!droid || droid.playerId !== playerId) return 1;
   const species = speciesById(droid.speciesId);
-  if (!species || !species.isCompanion) return 1;
-  return 1 + db.COMPANION_BUFF_PERCENT / 100;
+  if (!species || !species.isCompanion || species.companionBuffType !== 'crystal') return 1;
+  return 1 + species.companionBuffPercent / 100;
 }
 
 // Core accrual calc — pure function, no side effects, so it's easy to test.
@@ -301,7 +301,7 @@ function evolveFunky(playerId, droidId, color) {
   player.paint -= db.FUNKY_EVOLVE_PAINT_COST;
   droid.variant = 'funky';
   droid.color = color;
-  db.markDexSeen(playerId, droid.speciesId, 'funky');
+  db.markDexSeen(playerId, droid.speciesId, 'funky', color);
 
   return { droid: enrichDroid(droid), paint: player.paint };
 }
@@ -317,7 +317,20 @@ function assignCompanion(playerId, droidId) {
   if (!species || !species.isCompanion) throw new Error('That droid is not a companion species');
 
   player.companionDroidId = droidId;
-  return { droid: enrichDroid(droid), buffPercent: db.COMPANION_BUFF_PERCENT };
+  return { droid: enrichDroid(droid), buffType: species.companionBuffType, buffPercent: species.companionBuffPercent };
+}
+
+// Capture-rate-type companion buff (e.g. Nebulfox) — multiplies the
+// computed success chance in capture.js, distinct from the crystal-farm
+// buff above. Separate function since it's consumed by a different module.
+function companionCaptureRateMultiplier(playerId) {
+  const player = db.players.get(playerId);
+  if (!player || !player.companionDroidId) return 1;
+  const droid = db.ownedDroids.get(player.companionDroidId);
+  if (!droid || droid.playerId !== playerId) return 1;
+  const species = speciesById(droid.speciesId);
+  if (!species || !species.isCompanion || species.companionBuffType !== 'capture_rate') return 1;
+  return 1 + species.companionBuffPercent / 100;
 }
 
 function unassignCompanion(playerId) {
@@ -354,6 +367,7 @@ module.exports = {
   upgradePad,
   droidCrystalsPerMinute,
   companionBuffMultiplier,
+  companionCaptureRateMultiplier,
   enrichDroid,
   releaseDroid,
   evolveSpecies,

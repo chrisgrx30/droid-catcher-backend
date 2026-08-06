@@ -153,12 +153,15 @@ account-wide, not per-droid.
 
 ## Companion Droids
 
-**StarSprite** is a special Cosmic-tier droid — rarer than Legendary,
-with even rarer odds of a Platinum/Rusty variant. It doesn't farm
-crystals itself. Instead, equip it as your **Companion**, and it gives a
-flat +50% boost to your *total* crystal production from everything else.
+Two Cosmic-tier companions exist — both rarer than Legendary, with even
+rarer odds of a Platinum/Rusty variant. Neither farms crystals itself;
+instead, whichever one you equip gives your whole pilot a passive buff.
 Only one companion can be equipped at a time, but you can swap freely
-between any StarSprites you've captured.
+between any you've captured.
+
+- **StarSprite** — +50% to your *total* crystal production from everything else.
+- **Nebulfox** — +100% capture success chance on every attempt. Great for
+  finally landing that Legendary you've been missing.
 
 ---
 

@@ -55,6 +55,20 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 - **Time-exclusive events** — `POST /events` creates a time-boxed spawn-weight boost targeting either explicit species IDs or a whole `collection` (`mythical`/`nature`). Generalizes the same multiplier pattern the day/night bias already uses. Verified: a 5x Nature-collection event skewed spawns from the normal ~50/50 split to roughly 82/17 in favor of Nature.
 - **Trading** — offer/accept/decline flow (`POST /trades`, `POST /trades/:id/accept`, `POST /trades/:id/decline`) rather than an instant swap, with two anti-abuse guardrails built in from the start: a 10-minute cooldown before a freshly-captured or freshly-traded droid can be traded again (closes the "launder rarity through fake trades on throwaway accounts" exploit), and a small rarity-scaled crystal fee paid by whoever *receives* each droid (`TRADE_FEE_BY_RARITY` in `db.js`) so trading stays a convenience rather than a strictly-better alternative to capturing.
 
+## Beta feedback round 4 (tabbed layout + polish)
+
+- **Tabbed navigation** — the terminal is no longer one long scrolling page. 8 tabs: Player, Capture, Farm, Storage, Guilds, Inventory, Events & Trading, Dex. Companion moved onto the Farm tab (it buffs farming), Cosmetics stayed on Player, Redeem Code moved to Inventory. Verified zero broken element references and zero duplicate IDs after the reorg (checked programmatically, not just visually).
+- **New companion: Nebulfox** — second companion option alongside StarSprite, same cosmic rarity/spawn odds, but a different buff type entirely: +100% capture success chance instead of a crystal boost — useful for landing tough Legendary captures. The companion buff system was generalized to support both types (`companionBuffType: 'crystal' | 'capture_rate'`) rather than hardcoding StarSprite's effect. Verified live: 500 captures against a Legendary with Nebulfox equipped landed almost exactly on the hand-calculated expected success rate.
+- **Guild member list** — `GET /guilds/:id` now returns actual usernames (with a crown marker for the creator), not just member IDs. Shown in the Guilds tab.
+- **Dex: evolutions placed next to their origin** — Bushy now appears immediately after Leafkin in the Dex, not wherever it happens to sit in the species catalog.
+- **Dex: Funky color accuracy** — the Funky dot's color now reflects which primary color (red/yellow/blue) was actually chosen when evolving, tracked per species.
+- **Radar "already caught" indicator** — a small 🎮 icon appears next to any spawn whose species you've already caught, for players chasing full Dex completion.
+- **Capture result popup** — a proper modal now appears after every capture attempt (success/fail, critical flag, paint drop, and — on failure — an explicit reminder of the crystals lost), instead of only logging to the console.
+- **Custom cosmetic images** — cosmetics can now have real artwork too, via `assets/cosmetics/<cosmetic-id>.png` (same pattern as droid art, same graceful fallback to text if no image exists yet). New `GET /assets/cosmetics/<filename>` route, same path-traversal protection as the droid-art route.
+- **Variant-specific droid images** — `createDroidVisual` now tries a variant-specific image first (e.g. `puffkin-platinum.png`) before falling back to the base species image, then the placeholder icon.
+- **Droid Storage sort refined** — within the "not farming" group, droids now sort by rarity → species name → variant tier, instead of just rarity.
+- **Capture minigame difficulty tuned** — Common/Uncommon capture zones tightened (44%→34%, 32%→24% of the track) per playtest feedback that they were too easy; Rare/Legendary unchanged, Cosmic given its own (very narrow) zone width.
+
 ## Beta feedback round 3 (small UI fixes)
 
 - **Inventory visibility** — Paint and Nova Chips were already being fetched from the server but never actually displayed anywhere. Added an Inventory section in the Workshop panel showing both counts.
