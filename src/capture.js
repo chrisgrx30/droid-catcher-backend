@@ -100,6 +100,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
       workshopSlotId: null,
     };
     db.ownedDroids.set(newDroid.id, newDroid);
+    db.markDexSeen(playerId, species.id);
   } else {
     // failed attempt shortens remaining TTL, per design (no infinite spam-tapping)
     const remaining = spawn.expiresAt - Date.now();

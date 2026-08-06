@@ -103,6 +103,12 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, player);
     }
 
+    // GET /players/:id/dex -> full species catalog annotated with caught/uncaught
+    if (req.method === 'GET' && pathname.match(/^\/players\/\d+\/dex$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, db.getDex(playerId));
+    }
+
     // POST /players/:id/starter  { speciesId }
     // One-time free starter droid (common tier only) — auto-assigned to the
     // player's first slot so farming begins immediately, no capture needed.

@@ -95,9 +95,15 @@ const VARIANT_ODDS = TESTING_HIGH_VARIANT_ODDS ? VARIANT_ODDS_TESTING : VARIANT_
 
 const VARIANT_CRYSTAL_MULTIPLIER = {
   standard: 1.0,
-  platinum: 1.5,
-  rusty: 1.0, // deliberately no bonus — Rusty's value is purely cosmetic/collection
+  platinum: 5.0, // 500% — raised from 1.5x per playtest: original bonus wasn't worth the ~1-in-1000 hunt
+  rusty: 2.0,    // 200% — originally cosmetic-only; given a real bonus per playtest feedback (see note below)
 };
+// Note: Rusty was originally designed as purely cosmetic (see concept
+// discussion) with a possible future "polish/paint evolution" mechanic.
+// Playtesting showed the effort-to-reward ratio felt off with no bonus at
+// all, so it now carries a real (smaller than Platinum) production boost.
+// If the evolution mechanic gets built later, this is the value to retire
+// in favor of it.
 
 function rollVariant() {
   const roll = Math.random();
@@ -217,6 +223,7 @@ function createPlayer(username) {
     createdAt: Date.now(),
     hasStarterDroid: false,
     padLevel: 0,
+    dexSeen: [], // speciesIds ever successfully captured — survives trading the droid away later
   };
   players.set(player.id, player);
 
@@ -259,7 +266,31 @@ function grantStarterDroid(playerId, speciesId) {
   };
   ownedDroids.set(droid.id, droid);
   player.hasStarterDroid = true;
+  if (!player.dexSeen.includes(species.id)) player.dexSeen.push(species.id);
   return droid;
+}
+
+function markDexSeen(playerId, speciesId) {
+  const player = players.get(playerId);
+  if (player && !player.dexSeen.includes(speciesId)) {
+    player.dexSeen.push(speciesId);
+  }
+}
+
+// Full species catalog annotated with whether this player has ever caught
+// each one — a droid traded away still counts, since dexSeen is tracked
+// independently of current ownership.
+function getDex(playerId) {
+  const player = players.get(playerId);
+  const seen = player ? player.dexSeen : [];
+  const entries = droidSpecies.map((s) => ({ ...s, caught: seen.includes(s.id) }));
+  const totalCaught = entries.filter((e) => e.caught).length;
+  return {
+    entries,
+    totalCaught,
+    totalSpecies: droidSpecies.length,
+    percentComplete: Math.round((totalCaught / droidSpecies.length) * 100),
+  };
 }
 
 // ---- persistence snapshot (used by persistence.js) ----
@@ -335,6 +366,8 @@ module.exports = {
   crystalTransactions,
   createPlayer,
   grantStarterDroid,
+  markDexSeen,
+  getDex,
   exportState,
   importState,
   nextId: () => id(),

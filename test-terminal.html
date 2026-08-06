@@ -215,28 +215,35 @@
   .spawn-rarity.legendary { color: var(--legendary); }
   .spawn-meta { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
 
-  /* ---- capture reticle ---- */
-  .reticle-wrap { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
-  .reticle {
-    width: 46px; height: 46px;
-    border-radius: 50%;
-    border: 2px solid var(--cyan-dim);
+  /* ---- capture timing minigame ---- */
+  .capture-track {
     position: relative;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: border-color 0.15s;
+    height: 24px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
   }
-  .reticle:hover { border-color: var(--cyan); }
-  .reticle::before, .reticle::after {
-    content: '';
+  .capture-track .zone {
     position: absolute;
-    background: var(--cyan-dim);
+    top: 0; bottom: 0;
+    background: rgba(95,216,224,0.22);
+    border-left: 1px solid var(--cyan);
+    border-right: 1px solid var(--cyan);
   }
-  .reticle::before { top: 50%; left: 6px; right: 6px; height: 1px; transform: translateY(-50%); }
-  .reticle::after { left: 50%; top: 6px; bottom: 6px; width: 1px; transform: translateX(-50%); }
-  .reticle-controls { flex: 1; }
-  .reticle-controls input[type=range] { width: 100%; accent-color: var(--cyan); }
-  .reticle-controls .row { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+  .capture-track .marker {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 3px;
+    background: #fff;
+    box-shadow: 0 0 8px #fff;
+    transform: translateX(-50%);
+  }
+  .row { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+  input[type=range] { width: 100%; accent-color: var(--cyan); }
+  .stop-btn { background: var(--cyan); color: #04181a; font-weight: 600; }
+  .stop-btn:hover { background: #7fe4ea; }
 
   .empty { color: var(--text-dim); font-size: 11px; text-align: center; padding: 18px 0; }
 
@@ -314,6 +321,16 @@
   .trade-card .tc-status.declined { color: var(--danger); }
   .trade-card .tc-actions { display: flex; gap: 6px; margin-top: 6px; }
   .trade-card .tc-actions button { margin-top: 0; flex: 1; font-size: 9px; padding: 6px; }
+
+  .dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-top: 10px; }
+  .dex-card { border: 1px solid var(--line); border-radius: 4px; padding: 8px; text-align: center; background: var(--panel-raised); }
+  .dex-card.uncaught { opacity: 0.35; filter: grayscale(1); }
+  .dex-card .dc-name { font-size: 9px; margin-top: 4px; color: #fff; }
+  .dex-card .dc-rarity { font-size: 8px; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+  .dex-card .dc-rarity.common { color: var(--common); }
+  .dex-card .dc-rarity.uncommon { color: var(--uncommon); }
+  .dex-card .dc-rarity.rare { color: var(--rare); }
+  .dex-card .dc-rarity.legendary { color: var(--legendary); }
 </style>
 </head>
 <body>
@@ -346,6 +363,7 @@
       <div class="stat-row"><span class="stat-label">Crystals</span><span class="stat-val amber" id="statCrystals">0</span></div>
       <div class="stat-row"><span class="stat-label">Droids</span><span class="stat-val" id="statDroidCount">0</span></div>
       <button class="ghost" id="btnRefreshPlayer">Refresh</button>
+      <button class="ghost" id="btnNewPilot" style="color:var(--danger); border-color:var(--danger);">New Pilot (reset)</button>
 
       <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Control Pad</div>
       <div class="stat-row"><span class="stat-label">Pad Level</span><span class="stat-val" id="statPadLevel">0</span></div>
@@ -363,6 +381,8 @@
   <div class="panel">
     <div class="panel-title">Radar Sweep <span id="todBadge" style="color: var(--text-dim);"></span></div>
     <div id="eventBanner"></div>
+    <button id="btnUseLocation">📍 Use My Location</button>
+    <div id="locationStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
     <label>Latitude</label>
     <input type="text" id="lat" value="37.7749">
     <label>Longitude</label>
@@ -428,6 +448,12 @@
 
 </div>
 
+<!-- THIRD ROW: Dex -->
+<div class="panel" style="margin-top: 16px;">
+  <div class="panel-title">Droid Dex <span id="dexProgress" style="color:var(--text-dim);">0 / 16</span></div>
+  <div class="dex-grid" id="dexGrid"></div>
+</div>
+
 <div class="console" id="console">
   <div class="console-line"><span class="tag">SYS</span> <span class="body">Terminal ready. Deploy a pilot to begin.</span></div>
 </div>
@@ -475,27 +501,59 @@ function setConn(live) {
 }
 
 // ---- Player ----
+const PLAYER_STORAGE_KEY = 'droidCatcherPlayerId';
+
+async function activatePlayer(player) {
+  state.playerId = player.id;
+  localStorage.setItem(PLAYER_STORAGE_KEY, String(player.id));
+  $('noPlayer').style.display = 'none';
+  $('playerStats').style.display = 'block';
+  updatePlayerStats(player);
+
+  const { species } = await api('GET', '/species');
+  state.species = species;
+
+  if (!player.hasStarterDroid) {
+    showStarterPicker();
+  } else {
+    $('starterPicker').style.display = 'none';
+    await refreshWorkshop();
+  }
+  refreshDex();
+}
+
 $('btnCreatePlayer').onclick = async () => {
   const username = $('username').value.trim() || 'rook-7';
   try {
     const player = await api('POST', '/players', { username });
-    state.playerId = player.id;
-    $('noPlayer').style.display = 'none';
-    $('playerStats').style.display = 'block';
-    updatePlayerStats(player);
-
-    const { species } = await api('GET', '/species');
-    state.species = species;
-
-    if (!player.hasStarterDroid) {
-      showStarterPicker();
-    } else {
-      await refreshWorkshop();
-    }
+    await activatePlayer(player);
   } catch (e) {}
 };
 
+// On page load, try to resume a previous session from this browser rather
+// than forcing a fresh player every refresh.
+(async function resumeSession() {
+  const savedId = localStorage.getItem(PLAYER_STORAGE_KEY);
+  if (!savedId) return;
+  try {
+    const player = await api('GET', `/players/${savedId}`);
+    log('SYS', `Resumed pilot ${player.username} (#${player.id})`);
+    await activatePlayer(player);
+  } catch (e) {
+    // Saved player no longer exists server-side (fresh in-memory server, or
+    // Upstash not configured) — clear the stale reference and let them
+    // deploy a new pilot normally.
+    localStorage.removeItem(PLAYER_STORAGE_KEY);
+    log('SYS', 'Previous session not found on server — deploy a new pilot.', true);
+  }
+})();
+
 $('btnRefreshPlayer').onclick = () => refreshWorkshop();
+
+$('btnNewPilot').onclick = () => {
+  localStorage.removeItem(PLAYER_STORAGE_KEY);
+  window.location.reload();
+};
 
 function updatePlayerStats(player) {
   $('statId').textContent = player.id;
@@ -524,6 +582,27 @@ function showStarterPicker() {
 }
 
 // ---- Radar / spawns ----
+$('btnUseLocation').onclick = () => {
+  const status = $('locationStatus');
+  if (!navigator.geolocation) {
+    status.textContent = 'Geolocation not supported by this browser.';
+    return;
+  }
+  status.textContent = 'Requesting location…';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      $('lat').value = pos.coords.latitude.toFixed(6);
+      $('lng').value = pos.coords.longitude.toFixed(6);
+      status.textContent = `Located (±${Math.round(pos.coords.accuracy)}m). Scanning…`;
+      $('btnScan').click();
+    },
+    (err) => {
+      status.textContent = `Location unavailable: ${err.message}. Enter coordinates manually, or check your browser/site location permission.`;
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+
 $('btnScan').onclick = async () => {
   const lat = $('lat').value, lng = $('lng').value, radius = $('radius').value;
   try {
@@ -537,7 +616,16 @@ $('btnScan').onclick = async () => {
   } catch (e) {}
 };
 
+const RARITY_ZONE_WIDTH = { common: 44, uncommon: 32, rare: 20, legendary: 12 }; // % of track width — narrower = harder
+const activeAnimations = {}; // spawnId -> { intervalId, getPosition }
+
+function stopAllAnimations() {
+  Object.values(activeAnimations).forEach((a) => clearInterval(a.intervalId));
+  for (const k in activeAnimations) delete activeAnimations[k];
+}
+
 function renderSpawns() {
+  stopAllAnimations();
   const list = $('spawnList');
   if (!state.spawns.length) {
     list.innerHTML = '<div class="empty">No signals in range</div>';
@@ -552,30 +640,59 @@ function renderSpawns() {
       : '';
     const minCost = spawn.minCrystalCost;
     const sliderMax = Math.max(minCost * 3, 50);
+    const zoneWidth = RARITY_ZONE_WIDTH[spawn.rarity] || 30;
+    const zoneCenter = 15 + Math.random() * 70; // keep the zone fully on-track (15%-85% range)
+
     card.innerHTML = `
       <div class="spawn-top">
         <span class="spawn-name">${spawn.alignment === 'light' ? '☀' : '🌑'} ${spawn.speciesName}${variantTag}</span>
         <span class="spawn-rarity ${spawn.rarity}">${spawn.rarity}</span>
       </div>
       <div class="spawn-meta">${spawn.distanceMeters}m away · expires ${new Date(spawn.expiresAt).toLocaleTimeString()} · needs ${minCost}+ crystals</div>
-      <div class="reticle-wrap">
-        <div class="reticle" title="Engage"></div>
-        <div class="reticle-controls">
-          <div class="row"><span>Accuracy</span><span class="acc-val">80%</span></div>
-          <input type="range" min="0" max="100" value="80" class="acc-slider">
-          <div class="row" style="margin-top:6px;"><span>Crystals</span><span class="cr-val">${minCost}</span></div>
-          <input type="range" min="${minCost}" max="${sliderMax}" value="${minCost}" class="cr-slider">
-        </div>
+      <div class="capture-track">
+        <div class="zone" style="left:${zoneCenter - zoneWidth / 2}%; width:${zoneWidth}%;"></div>
+        <div class="marker" style="left:0%;"></div>
       </div>
+      <div class="row" style="margin-top:6px;"><span>Crystals</span><span class="cr-val">${minCost}</span></div>
+      <input type="range" min="${minCost}" max="${sliderMax}" value="${minCost}" class="cr-slider">
+      <button class="stop-btn">STOP — ENGAGE</button>
     `;
-    const accSlider = card.querySelector('.acc-slider');
-    const accVal = card.querySelector('.acc-val');
-    accSlider.oninput = () => accVal.textContent = accSlider.value + '%';
+
     const crSlider = card.querySelector('.cr-slider');
     const crVal = card.querySelector('.cr-val');
     crSlider.oninput = () => crVal.textContent = crSlider.value;
 
-    card.querySelector('.reticle').onclick = () => attemptCapture(spawn, accSlider.value / 100, Number(crSlider.value));
+    // Marker sweeps 0% -> 100% -> 0% continuously; player stops it as close
+    // to the zone center as they can. Distance from center -> accuracy,
+    // which feeds the server's padSkillMultiplier — a real, earned skill
+    // input rather than a slider set-and-forget.
+    const marker = card.querySelector('.marker');
+    let markerPos = 0;
+    let direction = 1;
+    const speed = 2.2; // % per tick (20ms ticks -> ~1s per full sweep)
+    const intervalId = setInterval(() => {
+      markerPos += direction * speed;
+      if (markerPos >= 100) { markerPos = 100; direction = -1; }
+      if (markerPos <= 0) { markerPos = 0; direction = 1; }
+      marker.style.left = markerPos + '%';
+    }, 20);
+    activeAnimations[spawn.id] = { intervalId };
+
+    card.querySelector('.stop-btn').onclick = () => {
+      clearInterval(intervalId);
+      delete activeAnimations[spawn.id];
+
+      const distance = Math.abs(markerPos - zoneCenter);
+      const halfZone = zoneWidth / 2;
+      let accuracy;
+      if (distance <= halfZone) {
+        accuracy = 1 - (distance / halfZone) * 0.3; // 0.7-1.0 inside the zone
+      } else {
+        accuracy = Math.max(0, 0.7 - (distance - halfZone) / 40); // decays outside it
+      }
+      attemptCapture(spawn, accuracy, Number(crSlider.value));
+    };
+
     list.appendChild(card);
   });
 }
@@ -601,6 +718,7 @@ async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
     state.spawns = state.spawns.filter((s) => s.id !== spawn.id);
     renderSpawns();
     await refreshWorkshop();
+    if (result.success) await refreshDex();
   } catch (e) {}
 }
 
@@ -721,6 +839,60 @@ function renderDroids() {
 }
 
 // ---- Time-exclusive events ----
+// ---- Droid icons (procedural placeholder art) ----
+// No custom character art yet — these are simple generated icons so
+// species are visually distinguishable in the meantime (alignment ->
+// palette, collection -> accent shape, rarity -> glow ring).
+function droidIconSVG(species, size = 44) {
+  const isLight = species.alignment === 'light';
+  const bodyColor = isLight ? '#e8dcc4' : '#2a2f38';
+  const accentColor = isLight ? '#f2c14e' : '#8b5fbf';
+  const eyeColor = isLight ? '#4a3f2a' : '#c98ce8';
+  const isNature = species.collection === 'nature';
+  const rarityGlow = { common: null, uncommon: '#4fbe7a', rare: '#4c9fe8', legendary: '#e8c14e' }[species.rarity];
+
+  const accentShape = isNature
+    ? `<path d="M${size*0.5} ${size*0.14} Q${size*0.66} ${size*0.3} ${size*0.5} ${size*0.46} Q${size*0.34} ${size*0.3} ${size*0.5} ${size*0.14} Z" fill="${accentColor}"/>`
+    : `<path d="M${size*0.28} ${size*0.26} L${size*0.5} ${size*0.04} L${size*0.72} ${size*0.26} L${size*0.5} ${size*0.36} Z" fill="${accentColor}"/>`;
+
+  const glow = rarityGlow
+    ? `<circle cx="${size/2}" cy="${size/2}" r="${size*0.47}" fill="none" stroke="${rarityGlow}" stroke-width="2" opacity="0.65"/>`
+    : '';
+
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      ${glow}
+      <circle cx="${size/2}" cy="${size*0.58}" r="${size*0.32}" fill="${bodyColor}" stroke="${accentColor}" stroke-width="1.5"/>
+      ${accentShape}
+      <circle cx="${size*0.42}" cy="${size*0.56}" r="${size*0.05}" fill="${eyeColor}"/>
+      <circle cx="${size*0.58}" cy="${size*0.56}" r="${size*0.05}" fill="${eyeColor}"/>
+    </svg>`;
+}
+
+// ---- Dex ----
+async function refreshDex() {
+  if (!state.playerId) return;
+  try {
+    const data = await api('GET', `/players/${state.playerId}/dex`);
+    $('dexProgress').textContent = `${data.totalCaught} / ${data.totalSpecies} (${data.percentComplete}%)`;
+    renderDex(data.entries);
+  } catch (e) {}
+}
+
+function renderDex(entries) {
+  const grid = $('dexGrid');
+  grid.innerHTML = '';
+  entries.forEach((s) => {
+    const card = document.createElement('div');
+    card.className = 'dex-card ' + (s.caught ? 'caught' : 'uncaught');
+    card.innerHTML = `
+      ${droidIconSVG(s, 40)}
+      <div class="dc-name">${s.caught ? s.name : '???'}</div>
+      <div class="dc-rarity ${s.rarity}">${s.rarity}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
 function renderEvents(events) {
   const banner = $('eventBanner');
   const listEl = $('activeEventsList');

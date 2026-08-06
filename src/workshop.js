@@ -102,7 +102,16 @@ function assignDroidToSlot(playerId, droidId, slotId) {
   if (!slot || slot.playerId !== playerId) throw new Error('Slot not found for player');
   if (!slot.unlocked) throw new Error('Slot is locked');
 
-  // free the droid's previous slot, if any
+  // Reject if another droid already occupies this slot — each slot holds
+  // exactly one droid. (Previously unenforced: this let players stack
+  // unlimited droids into a single slot, bypassing the slot-unlock economy.)
+  const occupant = [...db.ownedDroids.values()].find(
+    (d) => d.playerId === playerId && d.workshopSlotId === slotId && d.id !== droidId
+  );
+  if (occupant) {
+    throw new Error(`Slot already occupied by another droid (#${occupant.id}) — unassign it first`);
+  }
+
   droid.workshopSlotId = slotId;
   return droid;
 }
