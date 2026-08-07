@@ -14,6 +14,7 @@ const db = require('./db');
 const spawnsModule = require('./spawns');
 const captureModule = require('./capture');
 const workshopModule = require('./workshop');
+const factoryModule = require('./factory');
 const tradesModule = require('./trades');
 const persistence = require('./persistence');
 
@@ -205,11 +206,12 @@ const server = http.createServer(async (req, res) => {
       const lat = parseFloat(searchParams.get('lat'));
       const lng = parseFloat(searchParams.get('lng'));
       const radius = parseFloat(searchParams.get('radius') || '500');
+      const playerId = searchParams.get('playerId') ? Number(searchParams.get('playerId')) : null;
       if (Number.isNaN(lat) || Number.isNaN(lng)) {
         return sendJson(res, 400, { error: 'lat/lng required' });
       }
       spawnsModule.purgeExpiredSpawns();
-      const result = spawnsModule.getNearbySpawns(lat, lng, radius);
+      const result = spawnsModule.getNearbySpawns(lat, lng, radius, playerId);
       return sendJson(res, 200, result);
     }
 
@@ -261,6 +263,8 @@ const server = http.createServer(async (req, res) => {
         companionDroid,
         companionBuffType: companionDroid ? db.droidSpecies.find((s) => s.id === companionDroid.speciesId)?.companionBuffType : null,
         companionBuffPercent: companionDroid ? db.droidSpecies.find((s) => s.id === companionDroid.speciesId)?.companionBuffPercent : null,
+        beacons: player.beacons,
+        beaconActiveUntil: player.beaconActiveUntil,
       });
     }
 
@@ -379,6 +383,130 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, result);
       } catch (e) {
         return sendJson(res, 409, { error: 'COMPANION_ERROR', message: e.message });
+      }
+    }
+
+    // GET /factory/:playerId -> full Factory state: processor slots, unassigned eggs, costs
+    if (req.method === 'GET' && pathname.match(/^\/factory\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const slots = [...db.processorSlots.values()]
+        .filter((s) => s.playerId === playerId)
+        .map((s) => ({ ...s, unlockCost: s.unlocked ? null : db.PROCESSOR_SLOT_COSTS[s.slotIndex] }));
+      const unassignedEggs = [...db.eggs.values()].filter((e) => e.playerId === playerId);
+      const player = db.players.get(playerId);
+      return sendJson(res, 200, {
+        slots,
+        eggs: unassignedEggs,
+        factoryCooldownUntil: player ? player.factoryCooldownUntil : null,
+        minigameCost: db.FACTORY_MINIGAME_COST,
+        startHatchCost: db.FACTORY_START_HATCH_COST,
+      });
+    }
+
+    // GET /depot/:playerId -> cooldown status + cost
+    if (req.method === 'GET' && pathname.match(/^\/depot\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const player = db.players.get(playerId);
+      if (!player) return sendJson(res, 404, { error: 'not found' });
+      return sendJson(res, 200, { depotCooldownUntil: player.depotCooldownUntil, minigameCost: db.DEPOT_MINIGAME_COST });
+    }
+
+    // POST /depot/attempt  { playerId, closeness, attemptDurationMs }
+    if (req.method === 'POST' && pathname === '/depot/attempt') {
+      const { playerId, closeness, attemptDurationMs } = await readBody(req);
+      try {
+        const result = db.attemptDepot(playerId, closeness, attemptDurationMs);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'DEPOT_ERROR', message: e.message });
+      }
+    }
+
+    // POST /beacon/buy  { playerId }
+    if (req.method === 'POST' && pathname === '/beacon/buy') {
+      const { playerId } = await readBody(req);
+      try {
+        const result = db.buyBeacon(playerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BEACON_ERROR', message: e.message });
+      }
+    }
+
+    // POST /beacon/activate  { playerId }
+    if (req.method === 'POST' && pathname === '/beacon/activate') {
+      const { playerId } = await readBody(req);
+      try {
+        const result = db.activateBeacon(playerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BEACON_ERROR', message: e.message });
+      }
+    }
+
+    // POST /factory/unlock-slot  { playerId, slotId }
+    if (req.method === 'POST' && pathname === '/factory/unlock-slot') {
+      const { playerId, slotId } = await readBody(req);
+      try {
+        const result = factoryModule.unlockProcessorSlot(playerId, slotId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: e.code || 'FACTORY_ERROR', message: e.message });
+      }
+    }
+
+    // POST /factory/attempt  { playerId, hit, attemptDurationMs }
+    if (req.method === 'POST' && pathname === '/factory/attempt') {
+      const { playerId, hit, attemptDurationMs } = await readBody(req);
+      try {
+        const result = factoryModule.attemptFactoryMinigame(playerId, !!hit, attemptDurationMs);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: e.code || 'FACTORY_ERROR', message: e.message });
+      }
+    }
+
+    // POST /factory/assign  { playerId, eggId, slotId }
+    if (req.method === 'POST' && pathname === '/factory/assign') {
+      const { playerId, eggId, slotId } = await readBody(req);
+      try {
+        const result = factoryModule.assignEggToProcessor(playerId, eggId, slotId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: e.code || 'FACTORY_ERROR', message: e.message });
+      }
+    }
+
+    // POST /factory/collect  { playerId, slotId }
+    if (req.method === 'POST' && pathname === '/factory/collect') {
+      const { playerId, slotId } = await readBody(req);
+      try {
+        const result = factoryModule.collectPrototype(playerId, slotId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: e.code || 'FACTORY_ERROR', message: e.message });
+      }
+    }
+
+    // POST /factory/crush-egg  { playerId, eggId }
+    if (req.method === 'POST' && pathname === '/factory/crush-egg') {
+      const { playerId, eggId } = await readBody(req);
+      try {
+        const result = factoryModule.crushEgg(playerId, eggId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: e.code || 'FACTORY_ERROR', message: e.message });
+      }
+    }
+
+    // POST /factory/crush-slot  { playerId, slotId }
+    if (req.method === 'POST' && pathname === '/factory/crush-slot') {
+      const { playerId, slotId } = await readBody(req);
+      try {
+        const result = factoryModule.crushIncubatingEgg(playerId, slotId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: e.code || 'FACTORY_ERROR', message: e.message });
       }
     }
 
@@ -658,6 +786,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 persistence.load().then(() => {
+  db.seedStarterRedeemCodes();
   server.listen(PORT, () => {
     console.log(`Droid Catcher backend running on http://localhost:${PORT}`);
     persistence.startAutoSave();

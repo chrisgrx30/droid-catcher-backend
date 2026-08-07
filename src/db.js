@@ -240,8 +240,10 @@ const events = new Map(); // id -> event row
 const EVENT_COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
 const lastEventLaunchByTarget = new Map(); // targetKey -> timestamp
 
-function eventTargetKey({ speciesIds = [], collection = null }) {
-  return collection ? `collection:${collection}` : `species:${[...speciesIds].sort().join(',')}`;
+function eventTargetKey({ speciesIds = [], collection = null, rarity = null }) {
+  if (collection) return `collection:${collection}`;
+  if (rarity) return `rarity:${rarity}`;
+  return `species:${[...speciesIds].sort().join(',')}`;
 }
 
 // Per-rarity spawn weight granted to Solar-collection species while a
@@ -251,11 +253,12 @@ function eventTargetKey({ speciesIds = [], collection = null }) {
 // consistent with the base spawn rates once it's live.
 const SOLAR_GRANT_WEIGHT_BY_RARITY = { common: 15, uncommon: 6.25, rare: 3, legendary: 0.75 };
 
-function createEvent({ name, mode = 'boost', speciesIds = [], collection = null, spawnWeightMultiplier = 2, grantWeights = null, startTime, endTime }) {
-  const targetKey = eventTargetKey({ speciesIds, collection });
+function createEvent({ name, mode = 'boost', speciesIds = [], collection = null, rarity = null, spawnWeightMultiplier = 2, grantWeights = null, startTime, endTime, cooldownMs = null }) {
+  const targetKey = eventTargetKey({ speciesIds, collection, rarity });
+  const effectiveCooldown = cooldownMs != null ? cooldownMs : EVENT_COOLDOWN_MS;
   const lastLaunch = lastEventLaunchByTarget.get(targetKey);
-  if (lastLaunch && Date.now() - lastLaunch < EVENT_COOLDOWN_MS) {
-    const remainingMs = EVENT_COOLDOWN_MS - (Date.now() - lastLaunch);
+  if (lastLaunch && Date.now() - lastLaunch < effectiveCooldown) {
+    const remainingMs = effectiveCooldown - (Date.now() - lastLaunch);
     const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
     throw new Error(`This event target is on cooldown for another ~${remainingHours}h`);
   }
@@ -278,11 +281,13 @@ function createEvent({ name, mode = 'boost', speciesIds = [], collection = null,
     name,
     mode,         // 'boost' (multiplies existing weight) | 'grant' (adds a real weight to a zero-weight species)
     speciesIds,   // explicit species targets, OR
-    collection,   // 'mythical' | 'nature' — targets every species in that collection (boost mode only)
+    collection,   // 'mythical' | 'nature' — targets every species in that collection (boost mode only), OR
+    rarity,       // 'common' | 'uncommon' | 'rare' | 'legendary' | 'cosmic' — targets every species of that rarity (boost mode only)
     spawnWeightMultiplier,
     grantWeights: resolvedGrantWeights, // { speciesId: weight } — grant mode only
     startTime,
     endTime,
+    cooldownMs: effectiveCooldown, // stored so listActiveEvents/UI can show the right cooldown for THIS event's target
   };
   events.set(event.id, event);
   lastEventLaunchByTarget.set(targetKey, Date.now());
@@ -313,7 +318,8 @@ function getActiveEventMultiplier(species, now = Date.now()) {
     if (event.mode !== 'boost') continue;
     const matches =
       (event.speciesIds && event.speciesIds.includes(species.id)) ||
-      (event.collection && event.collection === species.collection);
+      (event.collection && event.collection === species.collection) ||
+      (event.rarity && event.rarity === species.rarity);
     if (matches) multiplier *= event.spawnWeightMultiplier;
   }
   return multiplier;
@@ -384,6 +390,148 @@ function activateCompanionBuff(playerId, droidId) {
 const COSMETICS_CATALOG = [
   { id: 'beta_crown', name: 'Beta Crown', cost: 1000, description: 'No effect - just shows you were here for the beta.' },
 ];
+
+// ---- Depot ----
+// The hourly counterpart to the Factory: no slots, no incubation — every
+// attempt succeeds in the sense that you always get SOME reward, but
+// minigame accuracy scales how good it is. Paint/Nova Chip odds stay
+// flat regardless of skill (only the crystal payout scales), per design.
+const DEPOT_MINIGAME_COST = 100; // crystals per attempt
+const DEPOT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+const DEPOT_BASE_CRYSTAL_REWARD = 50;
+const DEPOT_BONUS_CRYSTAL_RANGE = 150; // total payout ranges 50-200 depending on closeness
+const DEPOT_PAINT_CHANCE = 0.15;
+const DEPOT_NOVA_CHIP_CHANCE = 0.15;
+
+function attemptDepot(playerId, closeness, attemptDurationMs) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+
+  const now = Date.now();
+  if (player.depotCooldownUntil && now < player.depotCooldownUntil) {
+    const minsLeft = Math.ceil((player.depotCooldownUntil - now) / 60000);
+    throw new Error(`Depot is on cooldown for another ~${minsLeft}m`);
+  }
+  if (attemptDurationMs < 200) throw new Error('Attempt rejected: implausible timing');
+  if (player.crystalBalance < DEPOT_MINIGAME_COST) {
+    throw new Error(`Not enough crystals — visiting the Depot costs ${DEPOT_MINIGAME_COST}`);
+  }
+
+  const clampedCloseness = Math.max(0, Math.min(1, closeness));
+  player.crystalBalance -= DEPOT_MINIGAME_COST;
+  const crystalsEarned = Math.round(DEPOT_BASE_CRYSTAL_REWARD + clampedCloseness * DEPOT_BONUS_CRYSTAL_RANGE);
+  player.crystalBalance += crystalsEarned;
+  crystalTransactions.push({ id: id(), playerId, amount: crystalsEarned - DEPOT_MINIGAME_COST, source: 'depot_visit', createdAt: now });
+
+  const gotPaint = Math.random() < DEPOT_PAINT_CHANCE;
+  if (gotPaint) player.paint += 1;
+  const gotNovaChip = Math.random() < DEPOT_NOVA_CHIP_CHANCE;
+  if (gotNovaChip) player.novaChips += 1;
+
+  player.depotCooldownUntil = now + DEPOT_COOLDOWN_MS;
+
+  return {
+    crystalsEarned,
+    gotPaint,
+    gotNovaChip,
+    crystalBalance: player.crystalBalance,
+    paint: player.paint,
+    novaChips: player.novaChips,
+    depotCooldownUntil: player.depotCooldownUntil,
+  };
+}
+
+// ---- Beacons ----
+// A consumable: activating one gives the holder a temporary boost to
+// rarer-tier spawn weight specifically at the moment THEY trigger new
+// spawn generation nearby (the existing lazy per-cell spawn job). Since
+// spawns are shared once created, anyone else scanning that same cell
+// benefits too — a beacon is a visible signal, not a private advantage.
+const BEACON_COST = 300; // crystals to buy one
+const BEACON_DURATION_MS = 30 * 60 * 1000; // 30 minutes once activated
+const BEACON_BOOST_MULTIPLIER = 3; // applied to rare/legendary/cosmic tier weights only, while active
+
+function buyBeacon(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (player.crystalBalance < BEACON_COST) throw new Error(`Not enough crystals — a Beacon costs ${BEACON_COST}`);
+  player.crystalBalance -= BEACON_COST;
+  crystalTransactions.push({ id: id(), playerId, amount: -BEACON_COST, source: 'beacon_purchase', createdAt: Date.now() });
+  player.beacons += 1;
+  return { beacons: player.beacons, crystalBalance: player.crystalBalance };
+}
+
+function activateBeacon(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const now = Date.now();
+  if (player.beaconActiveUntil && now < player.beaconActiveUntil) throw new Error('A Beacon is already active');
+  if (player.beacons < 1) throw new Error('No Beacons owned — buy one first');
+  player.beacons -= 1;
+  player.beaconActiveUntil = now + BEACON_DURATION_MS;
+  return { beacons: player.beacons, beaconActiveUntil: player.beaconActiveUntil };
+}
+
+function isBeaconActive(playerId, now = Date.now()) {
+  const player = players.get(playerId);
+  return !!(player && player.beaconActiveUntil && now < player.beaconActiveUntil);
+}
+
+// ---- Factory / Prototype (weekly-feel droid hatching) ----
+// Two-stage: (1) win an "egg" from the Factory minigame, (2) assign it to
+// a Processor slot and pay to start a 20h incubation, (3) collect once
+// ready — rolls a fixed rarity table independent of minigame skill.
+// Processor slots are bought (like Workshop slots), all 5 locked to
+// start — no free starter slot, since this is a bigger commitment than
+// farming. The cooldown between minigame attempts (not between slot
+// uses) is what makes owning multiple slots matter: slots let you
+// incubate several eggs in parallel, the cooldown paces how fast you can
+// earn new eggs to fill them.
+const PROCESSOR_SLOT_COUNT = 5;
+const PROCESSOR_SLOT_COSTS = [500, 1000, 1500, 2000, 2500];
+const FACTORY_MINIGAME_COST = 100; // crystals per attempt, win or lose
+const FACTORY_START_HATCH_COST = 100; // crystals to assign an egg to a slot and begin incubation
+const FACTORY_HATCH_DURATION_MS = 20 * 60 * 60 * 1000; // 20 hours
+const FACTORY_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 hours between minigame attempts (not per-slot)
+const CRUSH_NOVA_CHIP_CHANCE = 0.05; // smaller than a normal release's 10% — this is unrealized potential, not a captured droid
+
+const processorSlots = new Map(); // id -> { id, playerId, slotIndex, unlocked, eggId, hatchReadyAt }
+const eggs = new Map(); // id -> { id, playerId, createdAt } — unassigned, waiting for a processor
+
+const PROTOTYPE_RARITY_TABLE = [
+  { rarity: 'legendary', chance: 0.05 },
+  { rarity: 'rare', chance: 0.15 },
+  { rarity: 'uncommon', chance: 0.30 },
+  { rarity: 'common', chance: 0.4999 },
+  { rarity: 'cosmic', chance: 0.0001 },
+];
+
+function rollPrototypeRarity() {
+  const roll = Math.random();
+  let cumulative = 0;
+  for (const entry of PROTOTYPE_RARITY_TABLE) {
+    cumulative += entry.chance;
+    if (roll < cumulative) return entry.rarity;
+  }
+  return 'common'; // safety fallback, shouldn't hit given the table sums to 1
+}
+
+// A species is eligible for a Prototype roll unless it's evolution-only
+// (never obtainable except by evolving) or event-exclusive with no
+// matching event currently live (so Prototypes can't hand out Solar
+// droids outside the Summer Event — that would undercut the whole point
+// of them being time-exclusive).
+function eligiblePrototypeSpecies(rarity, now = Date.now()) {
+  return droidSpecies.filter((s) => {
+    if (s.rarity !== rarity) return false;
+    if (s.isEvolutionOnly) return false;
+    if (s.eventOnly) {
+      const hasActiveGrant = listActiveEvents(now).some((e) => e.mode === 'grant' && e.speciesIds && e.speciesIds.includes(s.id));
+      if (!hasActiveGrant) return false;
+    }
+    return true;
+  });
+}
 
 // ---- guilds ----
 // Minimal for now: a name and a member list, no gameplay effect yet -
@@ -564,9 +712,9 @@ function markWishFulfilled(wishId) {
 const redeemCodes = new Map(); // code (uppercased) -> row
 
 function createRedeemCode(opts) {
-  const code = opts.code, rewardCrystals = opts.rewardCrystals || 0, rewardSpeciesId = opts.rewardSpeciesId || null, maxUses = opts.maxUses != null ? opts.maxUses : null;
+  const code = opts.code, rewardCrystals = opts.rewardCrystals || 0, rewardSpeciesId = opts.rewardSpeciesId || null, rewardPaint = opts.rewardPaint || 0, rewardNovaChips = opts.rewardNovaChips || 0, maxUses = opts.maxUses != null ? opts.maxUses : null;
   const key = code.toUpperCase();
-  const row = { code: key, rewardCrystals, rewardSpeciesId, maxUses, usedByPlayerIds: [] };
+  const row = { code: key, rewardCrystals, rewardSpeciesId, rewardPaint, rewardNovaChips, maxUses, usedByPlayerIds: [] };
   redeemCodes.set(key, row);
   return row;
 }
@@ -584,6 +732,8 @@ function redeemCodeFn(playerId, code) {
   if (row.rewardCrystals > 0) {
     crystalTransactions.push({ id: id(), playerId: playerId, amount: row.rewardCrystals, source: 'redeem_code', createdAt: Date.now() });
   }
+  player.paint += row.rewardPaint || 0;
+  player.novaChips += row.rewardNovaChips || 0;
 
   let droid = null;
   if (row.rewardSpeciesId) {
@@ -604,7 +754,17 @@ function redeemCodeFn(playerId, code) {
     }
   }
 
-  return { crystalsGranted: row.rewardCrystals, droid: droid, crystalBalance: player.crystalBalance };
+  return { crystalsGranted: row.rewardCrystals, paintGranted: row.rewardPaint || 0, novaChipsGranted: row.rewardNovaChips || 0, droid: droid, crystalBalance: player.crystalBalance };
+}
+
+// Seeds the small set of "official" starter codes if they don't already
+// exist — called once at server startup so these work automatically on
+// every fresh deploy without a manual create step. Idempotent: safe to
+// call again after a restore (won't duplicate or reset usage history).
+function seedStarterRedeemCodes() {
+  if (!redeemCodes.has('PAINTME10')) createRedeemCode({ code: 'PAINTME10', rewardPaint: 10 });
+  if (!redeemCodes.has('WELCOME')) createRedeemCode({ code: 'WELCOME', rewardCrystals: 500 });
+  if (!redeemCodes.has('CHIPSTART')) createRedeemCode({ code: 'CHIPSTART', rewardNovaChips: 3 });
 }
 
 // ---- players ----
@@ -652,6 +812,10 @@ function createPlayer(username, pin) {
     guildId: null,
     guildJoinCooldownUntil: null,
     guildRejoinBlocks: {},
+    factoryCooldownUntil: null,
+    beacons: 0,
+    beaconActiveUntil: null,
+    depotCooldownUntil: null,
   };
   players.set(player.id, player);
 
@@ -665,6 +829,13 @@ function createPlayer(username, pin) {
       multiplier: 1.0,
     };
     workshopSlots.set(slot.id, slot);
+  }
+
+  // give every new player 5 Processor slots, ALL locked to start — a
+  // bigger commitment than farming, no free slot.
+  for (let i = 0; i < PROCESSOR_SLOT_COUNT; i++) {
+    const slot = { id: id(), playerId: player.id, slotIndex: i, unlocked: false, eggId: null, hatchReadyAt: null };
+    processorSlots.set(slot.id, slot);
   }
 
   return player;
@@ -850,6 +1021,8 @@ function exportState() {
     redeemCodes: [...redeemCodes.values()],
     lastEventLaunchByTarget: [...lastEventLaunchByTarget.entries()],
     crystalTransactions: crystalTransactions.slice(-1000),
+    processorSlots: [...processorSlots.values()],
+    eggs: [...eggs.values()],
   };
 }
 
@@ -864,6 +1037,8 @@ function importState(state) {
   redeemCodes.clear();
   lastEventLaunchByTarget.clear();
   crystalTransactions.length = 0;
+  processorSlots.clear();
+  eggs.clear();
 
   // Backfill defaults for any player field added by later code than what
   // originally saved this snapshot — e.g. a player saved before the Dex
@@ -885,6 +1060,10 @@ function importState(state) {
     lastOnline: null,
     guildJoinCooldownUntil: null,
     guildRejoinBlocks: {},
+    factoryCooldownUntil: null,
+    beacons: 0,
+    beaconActiveUntil: null,
+    depotCooldownUntil: null,
   };
   (state.players || []).forEach((p) => players.set(p.id, { ...playerDefaults, ...p }));
 
@@ -898,11 +1077,25 @@ function importState(state) {
   (state.redeemCodes || []).forEach((r) => redeemCodes.set(r.code, r));
   (state.lastEventLaunchByTarget || []).forEach(([k, v]) => lastEventLaunchByTarget.set(k, v));
   (state.crystalTransactions || []).forEach((t) => crystalTransactions.push(t));
+  (state.processorSlots || []).forEach((s) => processorSlots.set(s.id, s));
+  (state.eggs || []).forEach((e) => eggs.set(e.id, e));
+
+  // Players saved before Processor slots existed won't have any — seed
+  // the standard 5 locked slots for them too, same as a brand-new player.
+  for (const player of players.values()) {
+    const hasSlots = [...processorSlots.values()].some((s) => s.playerId === player.id);
+    if (!hasSlots) {
+      for (let i = 0; i < PROCESSOR_SLOT_COUNT; i++) {
+        const slot = { id: id(), playerId: player.id, slotIndex: i, unlocked: false, eggId: null, hatchReadyAt: null };
+        processorSlots.set(slot.id, slot);
+      }
+    }
+  }
 
   // Recompute the id counter so newly-created rows never collide with
   // restored ones, regardless of what was in flight when the snapshot was taken.
   let maxId = 0;
-  for (const coll of [players, ownedDroids, workshopSlots, tradeOffers, events, guilds]) {
+  for (const coll of [players, ownedDroids, workshopSlots, tradeOffers, events, guilds, processorSlots, eggs]) {
     for (const row of coll.values()) if (row.id > maxId) maxId = row.id;
   }
   for (const t of crystalTransactions) if (t.id > maxId) maxId = t.id;
@@ -955,6 +1148,27 @@ module.exports = {
   redeemCodes,
   createRedeemCode,
   redeemCodeFn,
+  seedStarterRedeemCodes,
+  processorSlots,
+  eggs,
+  PROCESSOR_SLOT_COUNT,
+  PROCESSOR_SLOT_COSTS,
+  FACTORY_MINIGAME_COST,
+  FACTORY_START_HATCH_COST,
+  FACTORY_HATCH_DURATION_MS,
+  FACTORY_COOLDOWN_MS,
+  CRUSH_NOVA_CHIP_CHANCE,
+  rollPrototypeRarity,
+  eligiblePrototypeSpecies,
+  BEACON_COST,
+  BEACON_DURATION_MS,
+  BEACON_BOOST_MULTIPLIER,
+  buyBeacon,
+  activateBeacon,
+  isBeaconActive,
+  DEPOT_MINIGAME_COST,
+  DEPOT_COOLDOWN_MS,
+  attemptDepot,
   wishlist,
   createWish,
   listWishes,

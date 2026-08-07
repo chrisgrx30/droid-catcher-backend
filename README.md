@@ -55,13 +55,27 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 - **Time-exclusive events** — `POST /events` creates a time-boxed spawn-weight boost targeting either explicit species IDs or a whole `collection` (`mythical`/`nature`). Generalizes the same multiplier pattern the day/night bias already uses. Verified: a 5x Nature-collection event skewed spawns from the normal ~50/50 split to roughly 82/17 in favor of Nature.
 - **Trading** — offer/accept/decline flow (`POST /trades`, `POST /trades/:id/accept`, `POST /trades/:id/decline`) rather than an instant swap, with two anti-abuse guardrails built in from the start: a 10-minute cooldown before a freshly-captured or freshly-traded droid can be traded again (closes the "launder rarity through fake trades on throwaway accounts" exploit), and a small rarity-scaled crystal fee paid by whoever *receives* each droid (`TRADE_FEE_BY_RARITY` in `db.js`) so trading stays a convenience rather than a strictly-better alternative to capturing.
 
+## Beta feedback round 9 (Field Ops — Depot, Factory, Beacons)
+
+- **New Field Ops tab**, housing three new systems:
+  - **Depot** — hourly cooldown-gated minigame (100✦/attempt): a pulse ring grows outward from center, player stops it as close as possible to a static target ring. Accuracy scales *reward quality* (crystal payout ranges 50-200✦ based on closeness), while Paint/Nova Chip odds stay flat regardless of skill. Verified live: closeness 0.1 → 65✦, closeness 0.95 → 193✦, matching the formula exactly.
+  - **Factory / Prototypes** — a bigger commitment: buy up to 5 Processor slots (500/1000/1500/2000/2500✦, all locked to start, no free slot), win an "egg" from the same ring minigame (100✦/attempt, only a *hit* starts a 3-hour cooldown — a miss can be retried immediately), assign an egg to a slot and pay 100✦ to start a 20-hour incubation, then collect. Collection rolls a fixed rarity table (5% Legendary / 15% Rare / 30% Uncommon / 49.99% Common / 0.01% Cosmic — companions included) completely independent of minigame skill. Verified the full distribution at 20,000 rolls landed within a few percent of every target, including the ultra-rare 0.01% slot hitting exactly 2/20,000. Correctly excludes evolution-only species (Bushy) and event-exclusive species when their event isn't running (confirmed Sunbud is ineligible normally, becomes eligible the moment a matching Summer Event grant is live). Eggs can be **crushed** — either unassigned or mid-incubation (forfeiting the crystals already spent) — for a smaller-than-normal Nova Chip chance, since it's destroying unrealized potential rather than releasing something actually captured.
+  - **Beacons** — a consumable (300✦ to buy, 30 minutes once activated) that boosts Rare+ tier spawn weight specifically for the *activating player's own scans*, benefiting anyone else nearby too since spawns are shared once generated. This needed real new plumbing: `GET /spawns` now accepts an optional `playerId` so beacon status can be checked, and `weightedRandomSpecies` takes a beacon-boost flag. Verified with a real before/after comparison: rare+ spawn share roughly doubled (13.5% → 29.3%) with a beacon active — the gap from a naive 3x expectation is explained correctly by the existing city-wide Legendary/Cosmic caps still applying on top of the boost.
+  - **Two real bugs found and fixed while verifying Beacons**: `GET /workshop` wasn't returning `beacons`/`beaconActiveUntil` at all, and the actual scan function was never sending `playerId` to the spawns endpoint — meaning even with a correct backend, a beacon would never have boosted anything during real play. Both confirmed fixed together in one live test.
+- **Shared circle minigame** — a single reusable component (`playCircleMinigame()`) powers both Depot and Factory identically, distinct from the LOCK-ON sweep-bar capture minigame.
+- **Companion Overdrive** and **Legendary Lures** — two new admin-triggered events using the rarity-targeting and per-event-cooldown groundwork from round 8. 10-minute windows, 6h and 3h cooldowns respectively (your exact specified timings), each targeting one rarity tier independently without interfering with the other's cooldown.
+- **Redeem code materials seeded automatically** — `PAINTME10` (10 Paint), `WELCOME` (500 crystals), `CHIPSTART` (3 Nova Chips) now exist on every fresh server boot with zero manual step, via a new idempotent seeding function.
+- **Version 0.0.8** — shown in the terminal header and set in `package.json`.
+- **Tab bar compacted** — buttons now fit 3 per row (down from wrapping based on text length) via a fixed ~1/3-width flex-basis; "Events & Trading" renamed to "Trading" since Events moved to the Admin tab last round.
+- **Small polish**: Farm slot cards use the same colored-dot variant indicator as the Dex (fixes a real text-overflow bug), Admin tab button is now distinctly red.
+
 ## Beta feedback round 8 (guild depth, admin panel, Nebulfox rework)
 
 - **Guild kick + cooldowns** — creator-only kick, removes the target from the guild. Kicked players get a 24h global cooldown before joining *any* guild, plus a separate 30-day block on rejoining *that specific* guild. Verified live: both cooldowns fire independently and with the correct durations.
 - **Guild Dex leaderboard** — ranks members by Dex completion, shown right on the Guilds tab.
 - **Guild chat** — refresh-based (no websockets in this app, so messages appear on next poll/tab-open, not instantly — flagged clearly in the UI).
 - **Create/Join guild UI hidden once you're already in one** — cleaner Guilds tab.
-- **New Admin tab** (behind the `xxxxxx` code) — event creation moved here from Events & Trading; the Capture tab's event banner now shows full details (target, effect, and a proper day/hour/minute countdown) instead of a bare chip, and refreshes on login, not just after a scan.
+- **New Admin tab** (behind the `2026` code) — event creation moved here from Events & Trading; the Capture tab's event banner now shows full details (target, effect, and a proper day/hour/minute countdown) instead of a bare chip, and refreshes on login, not just after a scan.
 - **Admin player management** — list every account with last-online time, droid count, and balance; cascading delete that cleans up a player's droids, workshop slots, guild membership, wishlist entries, and resolves their pending trades, so nothing is left orphaned. Verified live: deleted a player, confirmed they're gone and correctly removed from their guild's member list, while the guild itself survives.
 - **Real bug found and fixed**: the starter-droid picker was letting new players choose Solar-collection (event-exclusive) and Wildcard commons as their free starter — clearly not intended. Restricted to the original 4 Mythical/Nature commons via a new `isStarterOption` flag; verified the old behavior is now rejected.
 - **Nebulfox reworked** — the +100% capture-rate buff was assessed as overpowered always-on. Now requires explicit activation: 1 hour active, then an 8-hour cooldown *per droid* (not per player — owning two Nebulfoxes gives two independent timers you can stagger). StarSprite's crystal buff is unaffected, still always-on while equipped. Verified the full state machine: can't activate without equipping, can't double-activate while active, correctly rejects while on cooldown, and the 1hr+8hr timing math is exact.
@@ -70,7 +84,7 @@ If you'd rather skip the Upstash setup for a very short test, just do Steps 2–
 
 ## Beta feedback round 7 (admin-lock events + redeem codes)
 
-- **Two endpoints that were open to anyone who found the URL are now admin-gated**: `POST /events` (spawn manipulation) requires `adminCode: "xxxxxx"`, `POST /redeem-codes` (creating promo codes) requires `adminCode: "xxxxxx"` — deliberately different codes, so one leaking doesn't expose both. Verified live: both correctly reject with no code or the wrong code, and confirmed the two codes are genuinely separate (xxxxxx does *not* unlock redeem-codes, and vice versa).
+- **Two endpoints that were open to anyone who found the URL are now admin-gated**: `POST /events` (spawn manipulation) requires `adminCode: "2026"`, `POST /redeem-codes` (creating promo codes) requires `adminCode: "3103"` — deliberately different codes, so one leaking doesn't expose both. Verified live: both correctly reject with no code or the wrong code, and confirmed the two codes are genuinely separate (2026 does *not* unlock redeem-codes, and vice versa).
 - The event buttons stay visible in the UI (Boost Nature/Mythical, Start Summer Event) rather than being hidden, with a "🔒 Chris Admin Only — no access" caption above them. Clicking one prompts for the code; entering it wrong surfaces the same rejection message in the console log.
 - This is still a shared-secret code, not real authentication — fine for a closed friends beta where the risk is "a curious tester pokes at the API," not fine if this ever opens up more widely.
 
@@ -204,6 +218,17 @@ Open `test-terminal.html` directly in a browser (double-click it, or drag it int
 | POST | `/guilds/leave` | `{ playerId }` | Leave your current guild |
 | POST | `/redeem` | `{ playerId, code }` | Redeem a promo code |
 | POST | `/redeem-codes` | `{ code, rewardCrystals?, rewardSpeciesId?, maxUses?, adminCode }` | Create a promo code — **admin-only, requires `adminCode: "3103"`** |
+| GET | `/depot/:playerId` | — | Depot cooldown status |
+| POST | `/depot/attempt` | `{ playerId, closeness, attemptDurationMs }` | Attempt the Depot minigame (100✦, 1hr cooldown) |
+| POST | `/beacon/buy` | `{ playerId }` | Buy a Beacon (300✦) |
+| POST | `/beacon/activate` | `{ playerId }` | Activate a Beacon (30 min, boosts your own scans) |
+| GET | `/factory/:playerId` | — | Processor slots + unassigned eggs + costs |
+| POST | `/factory/unlock-slot` | `{ playerId, slotId }` | Buy a Processor slot (500/1000/1500/2000/2500✦) |
+| POST | `/factory/attempt` | `{ playerId, hit, attemptDurationMs }` | Attempt the Factory minigame (100✦, 3hr cooldown on a hit only) |
+| POST | `/factory/assign` | `{ playerId, eggId, slotId }` | Assign an egg to a slot, pay 100✦, start 20hr incubation |
+| POST | `/factory/collect` | `{ playerId, slotId }` | Collect a finished Prototype (rolls the rarity table) |
+| POST | `/factory/crush-egg` | `{ playerId, eggId }` | Crush an unassigned egg for a small Nova Chip chance |
+| POST | `/factory/crush-slot` | `{ playerId, slotId }` | Crush an incubating egg (forfeits crystals spent starting it) |
 
 ## File map
 

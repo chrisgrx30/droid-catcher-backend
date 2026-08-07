@@ -33,7 +33,7 @@ function markCellActive(lat, lng) {
   return cell;
 }
 
-function weightedRandomSpecies(refLng) {
+function weightedRandomSpecies(refLng, beaconActive = false) {
   const daytime = isDaytime(refLng);
   const now = Date.now();
   const weights = db.droidSpecies.map((sp) => {
@@ -47,6 +47,9 @@ function weightedRandomSpecies(refLng) {
     }
     w *= db.getActiveEventMultiplier(sp, now); // time-exclusive boost event, if any (multiplicative)
     w += db.getActiveEventGrant(sp, now); // time-exclusive grant event, if any (additive — works even at 0 base weight)
+    if (beaconActive && ['rare', 'legendary', 'cosmic'].includes(sp.rarity)) {
+      w *= db.BEACON_BOOST_MULTIPLIER;
+    }
     return w;
   });
 
@@ -96,8 +99,8 @@ function countActiveCosmicsCityWide() {
 // across all active cells. Here it's exposed as a function callable
 // on-demand (invoked lazily when a player queries an active cell).
 // refLng is used only to estimate local time-of-day for the light/dark bias.
-function trySpawnInCell(cell, refLng = 0) {
-  const species = weightedRandomSpecies(refLng);
+function trySpawnInCell(cell, refLng = 0, beaconActive = false) {
+  const species = weightedRandomSpecies(refLng, beaconActive);
   const maxForRarity = db.RARITY_MAX_PER_CELL[species.rarity];
 
   if (countActiveSpawnsInCell(cell, species.rarity) >= maxForRarity) {
@@ -127,15 +130,17 @@ function trySpawnInCell(cell, refLng = 0) {
   return spawn;
 }
 
-// Called when a player opens the map / requests nearby spawns.
-function getNearbySpawns(lat, lng, radiusMeters = 500) {
+// Called when a player opens the map / requests nearby spawns. playerId
+// is optional (older calls without it just get no beacon boost).
+function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
   const cell = markCellActive(lat, lng);
   const cellsToCheck = geo.neighboringCells(lat, lng);
+  const beaconActive = playerId ? db.isBeaconActive(playerId) : false;
 
   // Lazily spawn in this cell if it's under its cap (stand-in for the
   // periodic background job — fine for a demo, use a real cron/worker
   // in production so spawns exist even before the first query).
-  trySpawnInCell(cell, lng);
+  trySpawnInCell(cell, lng, beaconActive);
 
   const results = [];
   for (const spawn of db.spawns.values()) {
@@ -169,6 +174,7 @@ function getNearbySpawns(lat, lng, radiusMeters = 500) {
     timeOfDay: isDaytime(lng) ? 'day' : 'night',
     estimatedLocalHour: Math.round(estimateLocalHour(lng) * 10) / 10,
     activeEvents: db.listActiveEvents(),
+    beaconActive,
   };
 }
 

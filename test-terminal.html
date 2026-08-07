@@ -104,26 +104,35 @@
   .tab-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
     margin-bottom: 16px;
     border-bottom: 1px solid var(--line);
-    padding-bottom: 12px;
+    padding-bottom: 10px;
   }
   .tab-btn {
     background: var(--panel);
     color: var(--text-dim);
     border: 1px solid var(--line);
     font-family: inherit;
-    font-size: 10px;
+    font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 8px 12px;
+    letter-spacing: 0.04em;
+    padding: 6px 2px;
     border-radius: 3px;
     cursor: pointer;
     margin: 0;
+    flex: 1 1 calc(33.333% - 3px);
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
   }
   .tab-btn:hover { color: var(--text); border-color: var(--cyan-dim); }
   .tab-btn.active { background: var(--cyan); color: #04181a; border-color: var(--cyan); font-weight: 600; }
+  .tab-btn-admin { color: var(--danger); border-color: var(--danger); }
+  .tab-btn-admin:hover { color: #fff; border-color: var(--danger); background: rgba(232,97,95,0.15); }
+  .tab-btn-admin.active { background: var(--danger); color: #fff; border-color: var(--danger); }
   .tab-page { display: none; }
   .tab-page.active { display: block; }
 
@@ -346,6 +355,22 @@
   .stat-grid .sg-item { background: var(--panel-raised); border: 1px solid var(--line); border-radius: 3px; padding: 8px; }
   .stat-grid .sg-label { font-size: 9px; text-transform: uppercase; color: var(--text-dim); }
   .stat-grid .sg-val { font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px; }
+
+  .ring-container { position: relative; width: 180px; height: 180px; margin: 16px auto; }
+  .ring-static {
+    position: absolute; top: 50%; left: 50%;
+    border-radius: 50%;
+    border: 3px solid var(--cyan);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px rgba(95,216,224,0.4);
+  }
+  .ring-pulse {
+    position: absolute; top: 50%; left: 50%;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.05);
+  }
   .slot-grid .slot { flex: 0 0 calc(20% - 5px); }
   .slot {
     flex: 1;
@@ -428,7 +453,7 @@
 <header>
   <div class="brand">
     <div class="brand-mark"></div>
-    <h1>Field Terminal <span>// Droid Catcher API Console</span></h1>
+    <h1>Field Terminal <span>// Droid Catcher API Console <span style="color:var(--text-dim); font-size:9px;">v0.0.9</span></span></h1>
   </div>
   <div class="conn">
     <span class="dot" id="connDot"></span>
@@ -445,9 +470,10 @@
   <button class="tab-btn" data-tab="storage">Storage</button>
   <button class="tab-btn" data-tab="guilds">Guilds</button>
   <button class="tab-btn" data-tab="inventory">Inventory</button>
-  <button class="tab-btn" data-tab="social">Events &amp; Trading</button>
+  <button class="tab-btn" data-tab="social">Trading</button>
   <button class="tab-btn" data-tab="dex">Dex</button>
-  <button class="tab-btn" data-tab="admin">Admin</button>
+  <button class="tab-btn" data-tab="fieldops">Field Ops</button>
+  <button class="tab-btn tab-btn-admin" data-tab="admin">Admin</button>
 </div>
 
 <!-- PLAYER TAB -->
@@ -646,6 +672,39 @@
   </div>
 </div>
 
+<!-- FIELD OPS TAB -->
+<div class="tab-page" id="tab-fieldops">
+  <div class="panel">
+    <div class="panel-title">Depot</div>
+    <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">Play the ring minigame for crystals — better placement means a bigger payout. Paint/Nova Chip odds stay flat either way. 100✦ per attempt, 1 hour cooldown after a visit.</div>
+    <div id="depotStatus"></div>
+    <button class="primary" id="btnPlayDepot">Visit Depot (100✦)</button>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">Beacon</div>
+    <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">While active, boosts Rare+ spawn odds for you (and anyone nearby) for 30 minutes.</div>
+    <div id="beaconStatus"></div>
+    <div style="display:flex; gap:6px;">
+      <button id="btnBuyBeacon">Buy Beacon (300✦)</button>
+      <button id="btnActivateBeacon">Activate</button>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">Factory — Prototypes</div>
+    <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">Win an egg from the ring minigame (100✦, 3hr cooldown after a win — a miss doesn't cost cooldown). Assign it to a Processor slot and pay 100✦ to start a 20hr incubation. Collect once ready — rarity is a fixed roll, skill doesn't affect it.</div>
+    <div id="factoryStatus"></div>
+    <button class="primary" id="btnPlayFactory">Attempt Egg (100✦)</button>
+
+    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Unassigned Eggs</div>
+    <div id="eggList"><div class="empty">None yet</div></div>
+
+    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Processor Slots</div>
+    <div class="slot-grid-detailed" id="processorGrid"></div>
+  </div>
+</div>
+
 <!-- ADMIN TAB -->
 <div class="tab-page" id="tab-admin">
   <div class="panel">
@@ -659,6 +718,11 @@
     </div>
     <label style="margin-top:10px;">Solar collection (only spawns during this event)</label>
     <button id="btnEventSummer" style="margin-top:6px; background:linear-gradient(90deg,#ff9a3d,#ffcf5c); color:#3a1e00; font-weight:700;">☀ Start Summer Event (7 days)</button>
+    <label style="margin-top:10px;">Short, high-intensity boosts</label>
+    <div style="display:flex; gap:6px; margin-top:6px;">
+      <button id="btnEventCompanionOverdrive" style="margin-top:0;">✦ Companion Overdrive (10min)</button>
+      <button id="btnEventLegendaryLures" style="margin-top:0;">⭐ Legendary Lures (10min)</button>
+    </div>
   </div>
 
   <div class="panel" style="margin-top:16px;">
@@ -680,7 +744,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, guildId: null };
+let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, guildId: null, processorSlots: [], unassignedEggs: [] };
 const FUNKY_PAINT_COST = 10; // matches db.FUNKY_EVOLVE_PAINT_COST default on the backend
 
 // ---- Tab navigation ----
@@ -747,6 +811,9 @@ async function activatePlayer(player) {
   populateWishSpeciesDropdown();
   refreshWishlist();
   api('GET', '/events').then((data) => renderEvents(data.events)).catch(() => {});
+  refreshDepot();
+  refreshBeacon();
+  refreshFactory();
 
   if (!player.hasStarterDroid) {
     showStarterPicker();
@@ -843,11 +910,12 @@ async function scanAt(lat, lng) {
   state.lastLat = lat;
   state.lastLng = lng;
   try {
-    const data = await api('GET', `/spawns?lat=${lat}&lng=${lng}&radius=${DEFAULT_SCAN_RADIUS}`);
+    const data = await api('GET', `/spawns?lat=${lat}&lng=${lng}&radius=${DEFAULT_SCAN_RADIUS}&playerId=${state.playerId}`);
     state.spawns = data.spawns;
     const badge = $('todBadge');
     badge.textContent = data.timeOfDay === 'day' ? '☀ Daytime here' : '🌑 Nighttime here';
     badge.style.color = data.timeOfDay === 'day' ? 'var(--amber)' : 'var(--legendary)';
+    if (data.beaconActive) log('SYS', '⚡ Beacon boost active on this scan!');
     renderEvents(data.activeEvents);
     renderSpawns();
   } catch (e) {}
@@ -1098,7 +1166,7 @@ function renderSlots() {
 
     const isExpanded = expandedSlotId === slot.id;
     div.innerHTML = `
-      <div class="sc-header"><span style="font-size:14px;">${droid.alignment === 'light' ? '☀' : '🌑'}</span><span class="sc-name">${droid.speciesName}</span>${droid.variant !== 'standard' ? `<span class="variant-tag ${droid.variant}" style="font-size:8px;">${droid.variant}</span>` : ''}</div>
+      <div class="sc-header"><span style="font-size:14px;">${droid.alignment === 'light' ? '☀' : '🌑'}</span><span class="sc-name">${droid.speciesName}</span>${droid.variant !== 'standard' ? `<span class="variant-dot ${droid.variant} caught" title="${droid.variant}" style="flex-shrink:0;"></span>` : ''}</div>
       <div class="sc-meta">Lv${droid.level} · ${droid.crystalsPerMinute}/min</div>
       ${isExpanded ? `
         <div class="sc-expand">
@@ -1282,6 +1350,59 @@ function renderDroids() {
     };
 
     list.appendChild(row);
+  });
+}
+
+// ---- Shared circle minigame (Depot + Factory) ----
+// A pulse ring grows outward from center on a sawtooth cycle; the player
+// stops it as close as possible to the static target ring. Distance from
+// the ring determines "closeness" (0-1), using the same two-tier falloff
+// formula as the LOCK-ON capture minigame for a consistent feel.
+function playCircleMinigame() {
+  return new Promise((resolve) => {
+    const overlay = $('captureResultOverlay');
+    const box = $('captureResultBox');
+
+    const STATIC_RADIUS = 60; // px
+    const TOLERANCE = 18; // px — how wide the "good" band around the ring is
+    const MAX_RADIUS = 90; // px — pulse resets to 0 once it passes this
+    const SPEED = 2.2; // px per tick
+    const TICK_MS = 20;
+
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">Stop the pulse on the ring!</div>
+      <div class="ring-container">
+        <div class="ring-static" style="width:${STATIC_RADIUS * 2}px; height:${STATIC_RADIUS * 2}px;"></div>
+        <div class="ring-pulse" id="ringPulse" style="width:0px; height:0px;"></div>
+      </div>
+      <button class="primary" id="btnRingStop" style="width:100%;">STOP</button>
+    `;
+    overlay.style.display = 'flex';
+
+    let pulseRadius = 0;
+    const startTime = Date.now();
+    const pulseEl = $('ringPulse');
+    const interval = setInterval(() => {
+      pulseRadius += SPEED;
+      if (pulseRadius > MAX_RADIUS) pulseRadius = 0;
+      pulseEl.style.width = (pulseRadius * 2) + 'px';
+      pulseEl.style.height = (pulseRadius * 2) + 'px';
+    }, TICK_MS);
+
+    $('btnRingStop').onclick = () => {
+      clearInterval(interval);
+      overlay.style.display = 'none';
+      const attemptDurationMs = Date.now() - startTime;
+      const distance = Math.abs(pulseRadius - STATIC_RADIUS);
+      let closeness;
+      if (distance <= TOLERANCE) {
+        closeness = 1 - (distance / TOLERANCE) * 0.3; // 0.7-1.0 inside the band
+      } else {
+        closeness = Math.max(0, 0.7 - (distance - TOLERANCE) / 40); // decays outside it
+      }
+      const hit = distance <= TOLERANCE;
+      resolve({ closeness, hit, attemptDurationMs });
+    };
   });
 }
 
@@ -1833,6 +1954,50 @@ $('btnEventSummer').onclick = async () => {
   } catch (e) {}
 };
 
+$('btnEventCompanionOverdrive').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
+  try {
+    const now = Date.now();
+    await api('POST', '/events', {
+      name: 'Companion Overdrive',
+      mode: 'boost',
+      rarity: 'cosmic',
+      spawnWeightMultiplier: 30,
+      startTime: now,
+      endTime: now + 10 * 60 * 1000, // 10 minutes
+      cooldownMs: 6 * 60 * 60 * 1000, // 6 hours
+      adminCode,
+    });
+    const data = await api('GET', '/events');
+    renderEvents(data.events);
+    log('SYS', '✦ Companion Overdrive started — 10 minutes of massively boosted companion spawns!');
+  } catch (e) {}
+};
+
+$('btnEventLegendaryLures').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
+  try {
+    const now = Date.now();
+    await api('POST', '/events', {
+      name: 'Legendary Lures',
+      mode: 'boost',
+      rarity: 'legendary',
+      spawnWeightMultiplier: 5,
+      startTime: now,
+      endTime: now + 10 * 60 * 1000, // 10 minutes
+      cooldownMs: 3 * 60 * 60 * 1000, // 3 hours
+      adminCode,
+    });
+    const data = await api('GET', '/events');
+    renderEvents(data.events);
+    log('SYS', '⭐ Legendary Lures started — 10 minutes of boosted Legendary spawns!');
+  } catch (e) {}
+};
+
 // ---- Admin: player accounts ----
 $('btnLoadAdminPlayers').onclick = async () => {
   const adminCode = promptAdminCode('player list');
@@ -1972,6 +2137,240 @@ function renderTrades(trades) {
     }
     list.appendChild(card);
   });
+}
+
+// ---- Field Ops: Depot ----
+async function refreshDepot() {
+  if (!state.playerId) return;
+  try {
+    const data = await api('GET', `/depot/${state.playerId}`);
+    const el = $('depotStatus');
+    const now = Date.now();
+    if (data.depotCooldownUntil && now < data.depotCooldownUntil) {
+      const minsLeft = Math.ceil((data.depotCooldownUntil - now) / 60000);
+      el.innerHTML = `<div class="empty">On cooldown — ready in ~${minsLeft}m</div>`;
+      $('btnPlayDepot').disabled = true;
+    } else {
+      el.innerHTML = `<div class="empty">Ready to visit</div>`;
+      $('btnPlayDepot').disabled = false;
+    }
+  } catch (e) {}
+}
+
+$('btnPlayDepot').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  const result = await playCircleMinigame();
+  try {
+    const data = await api('POST', '/depot/attempt', { playerId: state.playerId, closeness: result.closeness, attemptDurationMs: result.attemptDurationMs });
+    showDepotResultPopup(data);
+    await refreshWorkshop();
+    await refreshDepot();
+  } catch (e) {
+    await refreshDepot();
+  }
+};
+
+function showDepotResultPopup(data) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">⚙️</div>
+    <div class="mb-title success">Depot Visit</div>
+    <div class="mb-detail" style="color:var(--amber);">+${data.crystalsEarned} crystals</div>
+    ${data.gotPaint ? '<div class="mb-detail" style="color:var(--amber);">🎨 +1 Paint!</div>' : ''}
+    ${data.gotNovaChip ? '<div class="mb-detail" style="color:var(--cyan);">🔷 +1 Nova Chip!</div>' : ''}
+    <button class="primary mb-close">Nice</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
+
+// ---- Field Ops: Beacon ----
+async function refreshBeacon() {
+  if (!state.playerId) return;
+  try {
+    const data = await api('GET', `/workshop/${state.playerId}`);
+    const el = $('beaconStatus');
+    const now = Date.now();
+    const beacons = data.beacons ?? 0;
+    if (data.beaconActiveUntil && now < data.beaconActiveUntil) {
+      const minsLeft = Math.ceil((data.beaconActiveUntil - now) / 60000);
+      el.innerHTML = `<div class="empty">⚡ Active — ${minsLeft}m remaining. Owned: ${beacons}</div>`;
+    } else {
+      el.innerHTML = `<div class="empty">Not active. Owned: ${beacons}</div>`;
+    }
+  } catch (e) {}
+}
+
+$('btnBuyBeacon').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  try {
+    await api('POST', '/beacon/buy', { playerId: state.playerId });
+    await refreshWorkshop();
+    await refreshBeacon();
+  } catch (e) {}
+};
+
+$('btnActivateBeacon').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  try {
+    await api('POST', '/beacon/activate', { playerId: state.playerId });
+    log('SYS', 'Beacon active for 30 minutes!');
+    await refreshBeacon();
+  } catch (e) {}
+};
+
+// ---- Field Ops: Factory ----
+async function refreshFactory() {
+  if (!state.playerId) return;
+  try {
+    const data = await api('GET', `/factory/${state.playerId}`);
+    state.processorSlots = data.slots;
+    state.unassignedEggs = data.eggs;
+
+    const statusEl = $('factoryStatus');
+    const now = Date.now();
+    if (data.factoryCooldownUntil && now < data.factoryCooldownUntil) {
+      const minsLeft = Math.ceil((data.factoryCooldownUntil - now) / 60000);
+      statusEl.innerHTML = `<div class="empty">Egg attempts on cooldown — ready in ~${minsLeft}m</div>`;
+      $('btnPlayFactory').disabled = true;
+    } else {
+      statusEl.innerHTML = `<div class="empty">Ready to attempt</div>`;
+      $('btnPlayFactory').disabled = false;
+    }
+
+    renderEggList();
+    renderProcessorGrid();
+  } catch (e) {}
+}
+
+$('btnPlayFactory').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  const result = await playCircleMinigame();
+  try {
+    const data = await api('POST', '/factory/attempt', { playerId: state.playerId, hit: result.hit, attemptDurationMs: result.attemptDurationMs });
+    if (data.hit) {
+      log('SYS', 'Egg won! Assign it to a Processor slot to start incubating.');
+    } else {
+      log('SYS', 'Missed — 100 crystals spent, no egg this time.', true);
+    }
+    await refreshWorkshop();
+    await refreshFactory();
+  } catch (e) {
+    await refreshFactory();
+  }
+};
+
+function renderEggList() {
+  const el = $('eggList');
+  if (!state.unassignedEggs.length) {
+    el.innerHTML = '<div class="empty">None yet</div>';
+    return;
+  }
+  el.innerHTML = '';
+  state.unassignedEggs.forEach((egg) => {
+    const unlockedEmptySlots = state.processorSlots.filter((s) => s.unlocked && !s.eggId);
+    const options = unlockedEmptySlots.map((s) => `<option value="${s.id}">Slot ${s.slotIndex + 1}</option>`).join('');
+    const row = document.createElement('div');
+    row.className = 'droid-row';
+    row.innerHTML = `
+      <span style="flex:1;">🥚 Egg #${egg.id}</span>
+      <select style="margin-top:0;"><option value="">Assign to slot...</option>${options}</select>
+      <button class="crush-egg-btn" style="margin-top:0; width:auto; padding:5px 10px; font-size:9px; color:var(--danger); border-color:var(--danger);">Crush</button>
+    `;
+    row.querySelector('select').onchange = async (e) => {
+      const slotId = e.target.value;
+      if (!slotId) return;
+      try {
+        await api('POST', '/factory/assign', { playerId: state.playerId, eggId: egg.id, slotId: Number(slotId) });
+        await refreshWorkshop();
+        await refreshFactory();
+      } catch (err) {}
+    };
+    row.querySelector('.crush-egg-btn').onclick = async () => {
+      if (!confirm('Crush this egg for a small Nova Chip chance? Cannot be undone.')) return;
+      try {
+        const result = await api('POST', '/factory/crush-egg', { playerId: state.playerId, eggId: egg.id });
+        log('SYS', result.gotNovaChip ? '🔷 Crushed — got a Nova Chip!' : 'Crushed — no Nova Chip this time.');
+        await refreshWorkshop();
+        await refreshFactory();
+      } catch (err) {}
+    };
+    el.appendChild(row);
+  });
+}
+
+function renderProcessorGrid() {
+  const grid = $('processorGrid');
+  grid.innerHTML = '';
+  state.processorSlots.forEach((slot) => {
+    const div = document.createElement('div');
+    div.className = 'slot-card' + (slot.eggId ? ' filled' : (slot.unlocked ? ' empty-slot' : ' locked'));
+
+    if (!slot.unlocked) {
+      div.innerHTML = `<div class="sc-name">Slot ${slot.slotIndex + 1}</div><div class="sc-meta">🔒 ${slot.unlockCost}✦</div>`;
+      div.onclick = async () => {
+        try {
+          await api('POST', '/factory/unlock-slot', { playerId: state.playerId, slotId: slot.id });
+          await refreshWorkshop();
+          await refreshFactory();
+        } catch (e) {}
+      };
+    } else if (!slot.eggId) {
+      div.innerHTML = `<div class="sc-name">Slot ${slot.slotIndex + 1}</div><div class="sc-meta">Empty</div>`;
+    } else {
+      const now = Date.now();
+      const ready = now >= slot.hatchReadyAt;
+      if (ready) {
+        div.innerHTML = `<div class="sc-name">Slot ${slot.slotIndex + 1}</div><div class="sc-meta" style="color:var(--uncommon);">Ready!</div><div class="sc-expand"><button class="collect-btn">Collect</button><button class="crush-slot-btn" style="color:var(--danger); border-color:var(--danger);">Crush</button></div>`;
+      } else {
+        const minsLeft = Math.ceil((slot.hatchReadyAt - now) / 60000);
+        const hrs = Math.floor(minsLeft / 60), mins = minsLeft % 60;
+        div.innerHTML = `<div class="sc-name">Slot ${slot.slotIndex + 1}</div><div class="sc-meta">Incubating — ${hrs}h ${mins}m</div><div class="sc-expand"><button class="crush-slot-btn" style="color:var(--danger); border-color:var(--danger);">Crush</button></div>`;
+      }
+      const collectBtn = div.querySelector('.collect-btn');
+      if (collectBtn) {
+        collectBtn.onclick = async (e) => {
+          e.stopPropagation();
+          try {
+            const result = await api('POST', '/factory/collect', { playerId: state.playerId, slotId: slot.id });
+            showPrototypeResultPopup(result.droid);
+            await refreshWorkshop();
+            await refreshFactory();
+            await refreshDex();
+          } catch (err) {}
+        };
+      }
+      const crushBtn = div.querySelector('.crush-slot-btn');
+      if (crushBtn) {
+        crushBtn.onclick = async (e) => {
+          e.stopPropagation();
+          if (!confirm('Crush this incubating egg? You lose the crystals already spent starting it. Cannot be undone.')) return;
+          try {
+            const result = await api('POST', '/factory/crush-slot', { playerId: state.playerId, slotId: slot.id });
+            log('SYS', result.gotNovaChip ? '🔷 Crushed — got a Nova Chip!' : 'Crushed — no Nova Chip this time.');
+            await refreshWorkshop();
+            await refreshFactory();
+          } catch (err) {}
+        };
+      }
+    }
+    grid.appendChild(div);
+  });
+}
+
+function showPrototypeResultPopup(droid) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">🐣</div>
+    <div class="mb-title success">Prototype Collected!</div>
+    <div class="mb-detail">${droid.speciesName} <span class="spawn-rarity ${droid.rarity}">${droid.rarity}</span></div>
+    <div class="mb-detail" style="color:var(--text-dim);">Added to Storage</div>
+    <button class="primary mb-close">Nice</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
 }
 
 // ---- Wishlist ----
