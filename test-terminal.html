@@ -462,7 +462,7 @@
 <header>
   <div class="brand">
     <div class="brand-mark"></div>
-    <h1>Field Terminal <span>// Sparkfield API Console <span style="color:var(--text-dim); font-size:9px;">v0.1.1</span></span></h1>
+    <h1>Field Terminal <span>// Sparkfield API Console <span style="color:var(--text-dim); font-size:9px;">v0.1.2</span></span></h1>
   </div>
   <div class="conn">
     <span class="dot" id="connDot"></span>
@@ -488,13 +488,12 @@
 
 <!-- HOME TAB -->
 <div class="tab-page active" id="tab-home">
-  <div class="panel">
-    <div id="homeLogoArea" style="text-align:center; margin-bottom:16px;">
-      <img id="homeLogoImg" src="/assets/home/logo.png" style="max-width:100%; max-height:120px; display:none;" onload="this.style.display='block'; document.getElementById('homeLogoFallback').style.display='none';" onerror="this.style.display='none'; document.getElementById('homeLogoFallback').style.display='block';">
-      <div id="homeLogoFallback" class="panel-title" style="font-size:20px; text-align:center;">Sparkfield</div>
+  <div class="panel" id="homeWhatsNewPanel" style="position:relative; min-height:160px; background: linear-gradient(rgba(20,24,26,0.55), rgba(20,24,26,0.75)), url('/assets/home/logo.png') center/cover no-repeat, var(--panel-raised);">
+    <div id="homeLogoFallback" class="panel-title" style="font-size:20px; text-align:center; display:none;">Sparkfield</div>
+    <img id="homeLogoDetect" src="/assets/home/logo.png" style="display:none;" onerror="document.getElementById('homeWhatsNewPanel').style.backgroundImage='none'; document.getElementById('homeLogoFallback').style.display='block';">
+    <div style="text-align:right; margin-top:8px;">
+      <div class="panel-title" style="margin-bottom:8px;">What's New</div>
     </div>
-
-    <div class="panel-title" style="margin-bottom:8px;">What's New</div>
     <div id="homeChangelog" style="font-size:11px; line-height:1.6; color:var(--text-dim);"></div>
   </div>
 
@@ -528,30 +527,27 @@
       <button class="ghost" id="btnRefreshPlayer">Refresh</button>
       <a id="guideLink" href="/guide" target="_blank" style="display:block; text-align:center; margin-top:8px; font-size:10px; color:var(--cyan);">📖 User Guide</a>
 
-      <div style="display:flex; gap:10px; margin-top:16px;">
-        <div style="flex:1; padding:10px; border:1px solid var(--line); border-radius:4px; background: linear-gradient(rgba(20,24,26,0.65), rgba(20,24,26,0.65)), url('/assets/misc/control-pad.png') center/cover no-repeat, var(--panel-raised);">
-          <div class="panel-title" style="margin-bottom:6px;">Control Pad</div>
-          <div class="stat-row"><span class="stat-label">Pad Level</span><span class="stat-val" id="statPadLevel">0</span></div>
-          <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-val" id="statCritChance">2%</span></div>
-          <button id="btnUpgradePad">Upgrade Pad — <span id="padUpgradeCost">100</span> ✦</button>
-          <div id="padRamStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
+      <div style="padding:10px; border:1px solid var(--line); border-radius:4px; margin-top:16px; background: linear-gradient(rgba(20,24,26,0.65), rgba(20,24,26,0.65)), url('/assets/misc/control-pad.png') center/cover no-repeat, var(--panel-raised);">
+        <div class="panel-title" style="margin-bottom:6px;">Control Pad</div>
+        <div class="stat-row"><span class="stat-label">Pad Level</span><span class="stat-val" id="statPadLevel">0</span></div>
+        <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-val" id="statCritChance">2%</span></div>
+        <button id="btnUpgradePad">Upgrade Pad — <span id="padUpgradeCost">100</span> ✦</button>
+        <div id="padRamStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:16px; align-items:flex-end;">
+        <div style="flex:1;">
+          <div class="panel-title" style="margin-bottom:6px;">Change PIN</div>
+          <input type="text" id="currentPinInput" placeholder="Current PIN" maxlength="8" inputmode="numeric">
+          <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="margin-top:6px;">
+          <button id="btnChangePin" style="margin-top:6px; font-size:9px; padding:6px;">Update</button>
+          <button class="ghost" id="btnNewPilot" style="margin-top:12px; font-size:9px; padding:6px; color:var(--danger); border-color:var(--danger);">New Pilot (reset)</button>
         </div>
         <div style="flex:1.3; padding:10px; border:1px solid var(--line); border-radius:4px; min-height:180px;">
           <div class="panel-title" style="margin-bottom:6px;">Outfit</div>
           <div id="outfitDisplay" style="margin-bottom:8px;"></div>
           <div id="outfitOptions" style="font-size:9px; color:var(--text-dim);"></div>
         </div>
-      </div>
-
-      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Change PIN</div>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <input type="text" id="currentPinInput" placeholder="Current" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
-        <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
-        <button id="btnChangePin" style="width:auto; flex-shrink:0; font-size:9px; padding:6px 10px; margin-top:0;">Update</button>
-      </div>
-
-      <div style="margin-top:24px; text-align:center;">
-        <button class="ghost" id="btnNewPilot" style="width:25%; font-size:9px; padding:6px; color:var(--danger); border-color:var(--danger);">New Pilot (reset)</button>
       </div>
     </div>
     <div id="starterPicker" style="display:none; margin-top:14px;">
@@ -582,40 +578,39 @@
 
 <!-- FARM TAB -->
 <div class="tab-page" id="tab-farm">
-  <div class="panel">
+  <div class="panel" id="workshopMainPanel">
     <div class="panel-title">Workshop</div>
     <div class="stat-row"><span class="stat-label">Balance</span><span class="stat-val amber" id="wsBalance">0</span></div>
     <div class="stat-row"><span class="stat-label">Last collect earned</span><span class="stat-val" id="wsEarned">0</span></div>
     <div class="stat-row"><span class="stat-label">Total Rate</span><span class="stat-val" id="wsTotalRate">0/min</span></div>
     <div class="stat-row"><span class="stat-label">Active Buff</span><span class="stat-val" id="wsActiveBuff" style="font-size:11px;">None</span></div>
-    <button id="btnCollect">Collect Crystals</button>
+    <button id="btnCollect" style="background:#a855f7; color:#fff; border-color:#a855f7;">Collect Crystals</button>
+  </div>
 
-    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Workshop Slots <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(tap a farming slot to level up or unassign)</span></div>
+  <div class="panel" id="workshopSlotsPanel" style="margin-top:16px;">
+    <div class="panel-title" style="margin-bottom:6px;">Workshop Slots <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(tap a farming slot to level up or unassign)</span></div>
     <div class="slot-grid-detailed" id="slotGrid"></div>
   </div>
 </div>
 
 <!-- COMPANION TAB -->
 <div class="tab-page" id="tab-companion">
-  <div class="panel">
+  <div class="panel" id="companionMainPanel">
     <div class="panel-title">Companion <span id="companionBuffTag" style="color:var(--text-dim);"></span></div>
     <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">Companions don't farm crystals themselves — instead, whichever one you equip gives your whole pilot a passive buff. Only one active at a time.</div>
     <div id="companionSlot"><div class="empty">No companion equipped</div></div>
-    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Your Companions</div>
+  </div>
+  <div class="panel" id="yourCompanionsPanel" style="margin-top:16px;">
+    <div class="panel-title" style="margin-bottom:6px;">Your Companions</div>
     <div id="companionOptions"><div class="empty">Capture a Companion to equip one</div></div>
   </div>
 </div>
 
 <!-- BATTLES TAB -->
 <div class="tab-page" id="tab-battles">
-  <div class="panel">
-    <div class="panel-title">Choose Your Battle Team <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— exactly 4, no fainted</span></div>
-    <div id="battleTeamPicker" style="margin-top:8px;"></div>
-  </div>
+  <div class="panel" style="display:none;" id="selectedTeamPreview"></div>
 
-  <div class="panel" style="margin-top:16px; display:none;" id="selectedTeamPreview"></div>
-
-  <div class="panel" style="margin-top:16px;">
+  <div class="panel" id="titanEncounterPanel" style="margin-top:16px;">
     <div class="panel-title">Titan Encounter <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— 1000✦ entry, 2hr cooldown, rare chance to catch it</span></div>
     <button class="primary" id="btnStartTitan" style="margin-top:6px;">Fight the Titan (1000✦)</button>
     <div style="font-size:9px; color:var(--text-dim); margin:8px 0 4px;">— or invite others (up to 9, 10 total) —</div>
@@ -630,10 +625,15 @@
     <button class="primary" id="btnSendChallenge" style="margin-top:10px;">Send Challenge</button>
   </div>
 
-  <div class="panel" style="margin-top:16px;">
+  <div class="panel" id="yourBattlesPanel" style="margin-top:16px;">
     <div class="panel-title">Your Battles <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— refreshes when you open this tab</span></div>
     <button class="ghost" id="btnRefreshBattles" style="margin-bottom:10px;">Refresh</button>
     <div id="battleList"><div class="empty">No battles yet</div></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">Choose Your Battle Team <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— exactly 4, no fainted</span></div>
+    <div id="battleTeamPicker" style="margin-top:8px;"></div>
   </div>
 
   <div class="panel" style="margin-top:16px; display:none;" id="activeBattlePanel">
@@ -644,7 +644,7 @@
 
 <!-- STORAGE TAB -->
 <div class="tab-page" id="tab-storage">
-  <div class="panel">
+  <div class="panel" id="warehouseMainPanel">
     <div class="panel-title">Owned Droids <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(not farming — rarity, species, variant)</span></div>
     <input type="text" id="warehouseSearch" placeholder="Search by name...">
     <label style="display:flex; align-items:center; gap:6px; font-size:9px; color:var(--text-dim); margin:8px 0;">
@@ -653,7 +653,7 @@
         <input type="checkbox" id="autoReleaseVariantsToggle"> Also include Rusty/Platinum duplicates (matched exactly — a new Rusty only auto-releases if you already own a Rusty of that species. Funky is never auto-released, even with this on)
       </label>
     </label>
-    <button id="btnCleanupDuplicates" class="ghost" style="margin-bottom:10px; font-size:9px;">Clean Up Existing Duplicates Now (one-time — the toggle above only prevents new ones from piling up)</button>
+    <button id="btnCleanupDuplicates" style="margin-bottom:10px; font-size:9px; background:var(--danger); color:#fff; border-color:var(--danger); font-weight:600;">Clean Up Existing Duplicates Now (one-time — the toggle above only prevents new ones from piling up)</button>
     <div style="display:flex; gap:6px; margin-bottom:10px;">
       <button id="btnSelectAllDroids" class="ghost" style="margin-top:0;">Select All</button>
       <button id="btnReleaseSelected" class="ghost" style="margin-top:0; color:var(--danger); border-color:var(--danger);">Release Selected</button>
@@ -664,7 +664,7 @@
 
 <!-- GUILDS TAB -->
 <div class="tab-page" id="tab-guilds">
-  <div class="panel">
+  <div class="panel" id="guildMainPanel">
     <div class="panel-title">Guild</div>
     <div id="guildStatus"><div class="empty">Not in a guild</div></div>
     <div id="guildBadgeArea"></div>
@@ -695,7 +695,7 @@
 
 <!-- INVENTORY TAB -->
 <div class="tab-page" id="tab-inventory">
-  <div class="panel">
+  <div class="panel" id="inventoryMainPanel">
     <div class="panel-title">Inventory</div>
     <div class="stat-row"><span class="stat-label">✦ Crystals</span><span class="stat-val amber" id="statInvCrystals">0</span></div>
     <div class="stat-row"><span class="stat-label">🎨 Paint</span><span class="stat-val" id="statPaint">0</span></div>
@@ -704,21 +704,21 @@
     <div class="stat-row"><span class="stat-label">⚙️ Augment Cores</span><span class="stat-val" id="statAugmentCores">0</span></div>
     <div class="stat-row"><span class="stat-label">🩹 Repair Kits</span><span class="stat-val" id="statRepairKits">0</span></div>
     <div class="stat-row"><span class="stat-label">🔋 Energy Tubes</span><span class="stat-val" id="statEnergyTubes">0</span></div>
-
-    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Redeem Code</div>
-    <input type="text" id="redeemCodeInput" placeholder="e.g. WELCOME2026">
-    <button id="btnRedeemCode">Redeem</button>
   </div>
 
-  <div class="panel" style="margin-top:16px;">
-    <div class="panel-title">Shop <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— heavy crystal prices, a shortcut for players who can farm big amounts</span></div>
+  <div class="panel" id="shopMainPanel" style="margin-top:16px;">
+    <div class="panel-title" style="margin-bottom:6px;">Redeem Code</div>
+    <input type="text" id="redeemCodeInput" placeholder="e.g. WELCOME2026">
+    <button id="btnRedeemCode">Redeem</button>
+
+    <div class="panel-title" style="margin-top:16px;">Shop <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— heavy crystal prices, a shortcut for players who can farm big amounts</span></div>
     <div id="shopList"></div>
   </div>
 </div>
 
 <!-- EVENTS & TRADING TAB -->
 <div class="tab-page" id="tab-social">
-  <div class="panel">
+  <div class="panel" id="tradingMainPanel">
     <div class="panel-title">Trading</div>
     <label>Target Player ID</label>
     <input type="text" id="tradeTargetId" placeholder="e.g. 2">
@@ -740,7 +740,7 @@
     <div id="tradeList"><div class="empty">No trades yet</div></div>
   </div>
 
-  <div class="panel" style="margin-top:16px;">
+  <div class="panel" id="wishlistMainPanel" style="margin-top:16px;">
     <div class="panel-title">Wishlist <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— public board, anyone can offer</span></div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
       <select id="wishType" style="flex:1; min-width:100px;">
@@ -770,11 +770,11 @@
 
 <!-- DEX TAB -->
 <div class="tab-page" id="tab-dex">
-  <div class="panel">
+  <div class="panel" id="dexMainPanel">
     <div class="panel-title">Droid Dex <span id="dexProgress" style="color:var(--text-dim);">0 / 19</span></div>
     <div class="dex-grid" id="dexGrid"></div>
   </div>
-  <div class="panel" style="margin-top:16px;">
+  <div class="panel" id="eventDexPanel" style="margin-top:16px;">
     <div class="panel-title">Event Dex <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— doesn't count toward main Dex completion</span></div>
     <div id="eventDeckButtons" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;"></div>
     <div class="dex-grid" id="eventDexGrid"></div>
@@ -784,14 +784,14 @@
 <!-- FIELD OPS TAB -->
 <div class="tab-page" id="tab-fieldops">
   <div style="display:flex; gap:10px;">
-    <div class="panel" style="flex:1;">
+    <div class="panel" id="fieldOpsDepotPanel" style="flex:1;">
       <div class="panel-title">Depot</div>
       <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Ring minigame for crystals — better placement, bigger payout. 100✦, 1hr cooldown.</div>
       <div id="depotStatus"></div>
       <button class="primary" id="btnPlayDepot" style="font-size:9px; padding:7px;">Visit Depot (100✦)</button>
     </div>
 
-    <div class="panel" style="flex:1;">
+    <div class="panel" id="fieldOpsBeaconPanel" style="flex:1;">
       <div class="panel-title">Beacon</div>
       <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Boosts Rare+ spawn odds for you and anyone nearby, 30 minutes.</div>
       <div id="beaconStatus"></div>
@@ -805,7 +805,7 @@
     </div>
   </div>
 
-  <div class="panel" style="margin-top:16px;">
+  <div class="panel" id="fieldOpsFactoryPanel" style="margin-top:16px;">
     <div class="panel-title">Factory — Prototypes</div>
     <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">Win an egg from the ring minigame (100✦, 3hr cooldown after a win — a miss doesn't cost cooldown). Assign it to a Processor slot and pay 100✦ to start a 20hr incubation. Collect once ready — rarity is a fixed roll, skill doesn't affect it.</div>
     <div id="factoryStatus"></div>
@@ -1333,11 +1333,15 @@ function renderSpawns() {
     activeAnimations[spawn.id] = { intervalId };
 
     card.querySelector('.run-btn').onclick = async () => {
+      if (!confirm(`Run from ${spawn.speciesName}? It will disappear for good — you won't be able to try again.`)) return;
       clearInterval(intervalId);
       delete activeAnimations[spawn.id];
       try {
         await api('POST', `/spawns/${spawn.id}/flee`, { playerId: state.playerId });
-      } catch (e) {}
+        showGuildResultPopup(true, `Ran from ${spawn.speciesName}.`);
+      } catch (e) {
+        showGuildResultPopup(false, (e && e.message) || 'Could not flee that spawn.');
+      }
       card.remove();
       state.spawns = state.spawns.filter((s) => s.id !== spawn.id);
       renderSpawnMarkers(); // keep the map's markers consistent with what's actually still available
@@ -1466,10 +1470,12 @@ async function refreshWorkshop() {
     $('wsTotalRate').textContent = Math.round(state.crystalsPerSecond * 60 * 100) / 100 + '/min';
     if (data.companionDroid && data.companionBuffType) {
       const companion = data.companionDroid;
+      const isActive = companion.buffIsActive;
       if (data.companionBuffType === 'crystal') {
-        $('wsActiveBuff').textContent = `+${data.companionBuffPercent}% crystals (${companion.speciesName})`;
+        $('wsActiveBuff').textContent = isActive
+          ? `+${data.companionBuffPercent}% crystals (${companion.speciesName}, ACTIVE)`
+          : `${companion.speciesName} equipped — not activated`;
       } else {
-        const isActive = companion.buffIsActive;
         $('wsActiveBuff').textContent = isActive
           ? `+${data.companionBuffPercent}% capture (${companion.speciesName}, ACTIVE)`
           : `${companion.speciesName} equipped — not activated`;
@@ -1581,6 +1587,7 @@ function renderSlots() {
     div.innerHTML = `
       <div class="sc-header"><span style="font-size:14px;">${droid.alignment === 'light' ? '☀' : '🌑'}</span><span class="sc-name">${droid.speciesName}</span>${droid.variant !== 'standard' ? `<span class="variant-dot ${droid.variant} caught" title="${droid.variant}" style="flex-shrink:0;"></span>` : ''}</div>
       <div class="sc-meta">Lv${droid.level} · ${droid.crystalsPerMinute}/min</div>
+      <div class="sc-meta"><span class="spawn-rarity ${droid.rarity}" style="font-size:8px;">${droid.rarity}</span></div>
       ${isExpanded ? `
         <div class="sc-expand">
           <button class="slot-levelup-btn" ${droid.nextLevelCost === null ? 'disabled' : ''}>${droid.nextLevelCost === null ? 'MAX Level' : `Level Up (${droid.nextLevelCost}✦)`}</button>
@@ -1706,6 +1713,9 @@ function buildDroidRow(droid) {
       : '';
 
     const levelBtnLabel = droid.nextLevelCost === null ? 'MAX' : `Lv Up (${droid.nextLevelCost}✦)`;
+    const repairBtn = droid.fainted
+      ? `<button class="repair-row-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);"><img src="/assets/battle/repairkit.png" style="width:12px; height:12px; vertical-align:middle; margin-right:3px;" onerror="this.remove();">Repair</button>`
+      : '';
 
     row.innerHTML = `
       <input type="checkbox" class="droid-checkbox" ${selectedDroidIds.has(droid.id) ? 'checked' : ''}>
@@ -1715,10 +1725,23 @@ function buildDroidRow(droid) {
         <span class="spawn-rarity ${droid.rarity}" style="margin-left:4px;">${droid.rarity}</span>${variantTag}<br>
         <span style="color:var(--text-dim); font-size:9px;">${droid.crystalsPerMinute}/min · HP ${droid.hp} · ATK ${droid.attack} · tap for more</span>
       </span>
+      ${repairBtn}
       <button class="level-up-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;" ${droid.nextLevelCost === null ? 'disabled' : ''}>${levelBtnLabel}</button>
       <button class="release-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Release (${Math.floor((droid.captureCost||0)*1.5)}✦)</button>
     `;
     row.querySelector('.droid-icon').appendChild(createDroidVisual(droid, 26));
+
+    const repairBtnEl = row.querySelector('.repair-row-btn');
+    if (repairBtnEl) {
+      repairBtnEl.onclick = async () => {
+        try {
+          await api('POST', `/droids/${droid.id}/heal`, { playerId: state.playerId });
+          await refreshWorkshop();
+        } catch (e) {
+          showGuildResultPopup(false, (e && e.message) || 'Could not heal that droid.');
+        }
+      };
+    }
 
     row.querySelector('.droid-checkbox').onchange = (e) => {
       if (e.target.checked) selectedDroidIds.add(droid.id); else selectedDroidIds.delete(droid.id);
@@ -2147,28 +2170,26 @@ function renderShop() {
   const materialItems = (state.shopCatalog || []).filter((i) => i.type === 'material');
   const outfitItems = (state.shopCatalog || []).filter((i) => i.type === 'outfit');
 
-  const materialsHeader = document.createElement('div');
-  materialsHeader.className = 'panel-title';
-  materialsHeader.style.cssText = 'font-size:10px; margin-bottom:6px;';
-  materialsHeader.textContent = 'Materials';
-  list.appendChild(materialsHeader);
-  materialItems.forEach((item) => list.appendChild(buildShopRow(item, `Buy ${item.name} — ${item.cost}✦`)));
+  const materialsDetails = document.createElement('details');
+  materialsDetails.open = true;
+  materialsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Materials <span style="color:var(--text-dim);">(${materialItems.length})</span></summary>`;
+  materialItems.forEach((item) => materialsDetails.appendChild(buildShopRow(item, `Buy ${item.name} — ${item.cost}✦`)));
+  list.appendChild(materialsDetails);
 
-  const outfitsHeader = document.createElement('div');
-  outfitsHeader.className = 'panel-title';
-  outfitsHeader.style.cssText = 'font-size:10px; margin:14px 0 6px;';
-  outfitsHeader.textContent = 'Outfits';
-  list.appendChild(outfitsHeader);
+  const outfitsDetails = document.createElement('details');
+  outfitsDetails.open = true;
+  outfitsDetails.style.marginTop = '14px';
+  outfitsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Outfits <span style="color:var(--text-dim);">(${outfitItems.length})</span></summary>`;
   outfitItems.forEach((item) => {
     const owned = (state.ownedOutfits || []).includes(item.outfitId);
-    list.appendChild(buildShopRow(item, owned ? 'Owned' : `Buy ${item.name} — ${item.cost}✦`, owned));
+    outfitsDetails.appendChild(buildShopRow(item, owned ? 'Owned' : `Buy ${item.name} — ${item.cost}✦`, owned));
   });
+  list.appendChild(outfitsDetails);
 
-  const cosmeticsHeader = document.createElement('div');
-  cosmeticsHeader.className = 'panel-title';
-  cosmeticsHeader.style.cssText = 'font-size:10px; margin:14px 0 6px;';
-  cosmeticsHeader.textContent = 'Cosmetics';
-  list.appendChild(cosmeticsHeader);
+  const cosmeticsDetails = document.createElement('details');
+  cosmeticsDetails.open = true;
+  cosmeticsDetails.style.marginTop = '14px';
+  cosmeticsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Cosmetics <span style="color:var(--text-dim);">(${(state.cosmeticsCatalog || []).length})</span></summary>`;
   (state.cosmeticsCatalog || []).forEach((c) => {
     const owned = (state.cosmetics || []).includes(c.id);
     const row = document.createElement('div');
@@ -2187,8 +2208,9 @@ function renderShop() {
         } catch (e) {}
       };
     }
-    list.appendChild(row);
+    cosmeticsDetails.appendChild(row);
   });
+  list.appendChild(cosmeticsDetails);
 }
 
 function showOutfitLargeView(outfitId, name) {
@@ -2212,14 +2234,15 @@ function buildShopRow(item, label, owned = false) {
     : '';
   const isMaterial = item.type === 'material' && !owned;
   const qtyControls = isMaterial ? `
-    <button class="shop-qty-minus ghost" style="width:auto; padding:4px 8px; font-size:10px;">-</button>
-    <span class="shop-qty-display" style="font-size:10px; min-width:14px; text-align:center;">1</span>
-    <button class="shop-qty-plus ghost" style="width:auto; padding:4px 8px; font-size:10px;">+</button>
+    <div style="display:flex; align-items:center; gap:6px; width:100%; margin-top:4px;">
+      <button class="shop-qty-minus ghost" style="width:auto; padding:4px 10px; font-size:10px;">-</button>
+      <span class="shop-qty-display" style="font-size:10px; min-width:14px; text-align:center;">1</span>
+      <button class="shop-qty-plus ghost" style="width:auto; padding:4px 10px; font-size:10px;">+</button>
+    </div>
   ` : '';
   row.innerHTML = `
     ${thumb}
-    <span style="flex:1;">${item.name}</span>
-    ${qtyControls}
+    <div style="flex:1;">${item.name}${qtyControls}</div>
     <button class="shop-buy-btn" style="margin-top:0; width:auto; padding:5px 10px; font-size:9px;" ${owned ? 'disabled' : ''}>${label}</button>
   `;
   const thumbEl = row.querySelector('.outfit-thumb-click');
@@ -3003,6 +3026,50 @@ function showRedeemResultPopup(result) {
 // No custom character art yet — these are simple generated icons so
 // species are visually distinguishable in the meantime (alignment ->
 // palette, collection -> accent shape, rarity -> glow ring).
+// Tries <folder>/<name>.png first, then .gif, then leaves the panel's
+// normal solid background untouched if neither file exists. Same dark
+// overlay treatment as the existing control-pad.png background, so
+// text stays legible over any image dropped in.
+function applyPanelBackground(elementId, name, folder = 'misc') {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const tryExt = (ext, isLast) => {
+    const img = new Image();
+    img.onload = () => {
+      el.style.backgroundImage = `linear-gradient(rgba(20,24,26,0.65), rgba(20,24,26,0.65)), url('/assets/${folder}/${name}.${ext}')`;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+      el.style.backgroundRepeat = 'no-repeat';
+    };
+    img.onerror = () => { if (!isLast) tryExt('gif', true); };
+    img.src = `/assets/${folder}/${name}.${ext}`;
+  };
+  tryExt('png', false);
+}
+
+function applyAllPanelBackgrounds() {
+  applyPanelBackground('playerStats', 'pilot');
+  applyPanelBackground('fieldOpsDepotPanel', 'depot');
+  applyPanelBackground('fieldOpsBeaconPanel', 'beacon');
+  applyPanelBackground('fieldOpsFactoryPanel', 'factory');
+  applyPanelBackground('workshopMainPanel', 'workshop');
+  applyPanelBackground('workshopSlotsPanel', 'workshopslot');
+  applyPanelBackground('guildMainPanel', 'guild');
+  applyPanelBackground('companionMainPanel', 'companion');
+  applyPanelBackground('yourCompanionsPanel', 'yourcompanions');
+  applyPanelBackground('inventoryMainPanel', 'inventory');
+  applyPanelBackground('shopMainPanel', 'shop');
+  applyPanelBackground('tradingMainPanel', 'trading');
+  applyPanelBackground('wishlistMainPanel', 'wishlist');
+  applyPanelBackground('dexMainPanel', 'dex');
+  applyPanelBackground('eventDexPanel', 'summerdex');
+  applyPanelBackground('titanEncounterPanel', 'titanencounter');
+  applyPanelBackground('battleChallengeForm', 'challenger');
+  applyPanelBackground('yourBattlesPanel', 'battles');
+  applyPanelBackground('warehouseMainPanel', 'warehouse');
+}
+applyAllPanelBackgrounds();
+
 function battleIcon(type, fallbackEmoji, size = 12) {
   return `<img src="/assets/battle/${type}.png" style="width:${size}px; height:${size}px; vertical-align:middle;" onerror="this.outerHTML='${fallbackEmoji}';">`;
 }
@@ -3209,7 +3276,7 @@ function renderEventDex(entries) {
   // until the player clicks a specific deck button, so nothing shows
   // "underneath" before they've chosen to reveal it.
   buttonsEl.innerHTML = deckKeys.map((key) =>
-    `<button class="event-deck-btn" data-deck="${key}" style="margin-top:0; ${key === state.activeEventDeck ? 'background:var(--cyan); color:#04181a;' : ''}">${EVENT_DECK_LABELS[key] || key}</button>`
+    `<button class="event-deck-btn" data-deck="${key}" style="margin-top:0; ${key === state.activeEventDeck ? (key === 'solar' ? 'background:linear-gradient(90deg,#ff9a3d,#ffcf5c); color:#3a1e00; border-color:#ff9a3d;' : 'background:var(--cyan); color:#04181a;') : (key === 'solar' ? 'border-color:#ff9a3d; color:#ff9a3d;' : '')}">${EVENT_DECK_LABELS[key] || key}</button>`
   ).join('');
   buttonsEl.querySelectorAll('.event-deck-btn').forEach((btn) => {
     btn.onclick = () => {
@@ -3437,12 +3504,12 @@ $('btnLoadTradeTarget').onclick = async () => {
     const offerSelect = $('tradeOfferDroid');
     const tradeableDroids = state.droids.filter((d) => !d.workshopSlotId && !d.hiddenFromTrade);
     offerSelect.innerHTML = tradeableDroids.map((d) =>
-      `<option value="${d.id}">${d.speciesName} Lv${d.level} (#${d.id})</option>`
+      `<option value="${d.id}">${d.speciesName} Lv${d.level} · ${d.rarity}${d.variant !== 'standard' ? ' · ' + d.variant : ''} (#${d.id})</option>`
     ).join('') || '<option value="">No tradeable droids — check Farm assignments or hidden droids</option>';
 
     const requestSelect = $('tradeRequestDroid');
     requestSelect.innerHTML = '<option value="">Nothing (a gift, or ask crystals below)</option>' + state.tradeTargetDroids.map((d) =>
-      `<option value="${d.id}">${d.speciesName} Lv${d.level} (#${d.id})</option>`
+      `<option value="${d.id}">${d.speciesName} Lv${d.level} · ${d.rarity}${d.variant !== 'standard' ? ' · ' + d.variant : ''} (#${d.id})</option>`
     ).join('');
 
     $('tradeBuilder').style.display = 'block';

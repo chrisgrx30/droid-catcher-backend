@@ -249,6 +249,7 @@ function fleeSpawn(spawnId, playerId) {
   // confirmed ("droid disappears and cannot go through the capture
   // loop again"). No reward or penalty either way.
   spawn.claimedBy = playerId;
+  spawn.fledFrom = true; // distinguishes "you ran from this" from "someone actually captured it" in later error messages
   return { fled: true };
 }
 

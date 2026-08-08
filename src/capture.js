@@ -48,7 +48,9 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
 
   const spawn = db.spawns.get(spawnId);
   if (!spawn) throw new CaptureError('SPAWN_NOT_FOUND', 'Spawn no longer exists');
-  if (spawn.claimedBy) throw new CaptureError('ALREADY_CLAIMED', 'Spawn already captured');
+  if (spawn.claimedBy) {
+    throw new CaptureError('ALREADY_CLAIMED', spawn.fledFrom ? 'You already ran from this one — it\'s gone for good' : 'Spawn already captured');
+  }
   if (spawn.expiresAt <= Date.now()) throw new CaptureError('SPAWN_EXPIRED', 'Spawn expired');
 
   // --- anti-cheat validation ---
