@@ -33,7 +33,7 @@ const captureModule = require('./capture.js');
 // post-win capture roll grants the actual capturable Common-tier
 // Scaffitan species instead.
 const TITAN_ROSTER = [
-  { name: 'Scaffitan', hp: 400, attack: 35 },
+  { name: 'Scaffitan', hp: 1200, attack: 35 },
 ];
 // "Rare" per confirmed design, exact rate not specified — flagged as my
 // own placeholder number, easy to retune once you've seen it in play.

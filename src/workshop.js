@@ -581,6 +581,28 @@ function buyCosmetic(playerId, cosmeticId) {
   return { cosmetics: player.cosmetics, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
 }
 
+function equipCosmetic(playerId, slot, cosmeticId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!['head', 'body', 'arms', 'legs'].includes(slot)) throw new Error('Invalid cosmetic slot');
+  const item = db.COSMETICS_CATALOG.find((c) => c.id === cosmeticId);
+  if (!item) throw new Error('Unknown cosmetic');
+  if (item.slot !== slot) throw new Error(`This cosmetic goes in the ${item.slot} slot, not ${slot}`);
+  if (!player.cosmetics.includes(cosmeticId)) throw new Error('You don\'t own this cosmetic');
+  if (!player.equippedCosmetics) player.equippedCosmetics = { head: null, body: null, arms: null, legs: null };
+  player.equippedCosmetics[slot] = cosmeticId;
+  return { equippedCosmetics: player.equippedCosmetics };
+}
+
+function unequipCosmetic(playerId, slot) {
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!['head', 'body', 'arms', 'legs'].includes(slot)) throw new Error('Invalid cosmetic slot');
+  if (!player.equippedCosmetics) player.equippedCosmetics = { head: null, body: null, arms: null, legs: null };
+  player.equippedCosmetics[slot] = null;
+  return { equippedCosmetics: player.equippedCosmetics };
+}
+
 module.exports = {
   calculateEarnings,
   settleEarnings,
@@ -604,5 +626,7 @@ module.exports = {
   assignCompanion,
   unassignCompanion,
   buyCosmetic,
+  equipCosmetic,
+  unequipCosmetic,
   MAX_OFFLINE_HOURS,
 };

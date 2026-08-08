@@ -462,7 +462,7 @@
 <header>
   <div class="brand">
     <div class="brand-mark"></div>
-    <h1>Field Terminal <span>// Sparkfield API Console <span style="color:var(--text-dim); font-size:9px;">v0.1.2</span></span></h1>
+    <h1>Field Terminal <span>// Sparkfield API Console <span style="color:var(--text-dim); font-size:9px;">v0.1.4</span></span></h1>
   </div>
   <div class="conn">
     <span class="dot" id="connDot"></span>
@@ -535,20 +535,47 @@
         <div id="padRamStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
       </div>
 
-      <div style="display:flex; gap:10px; margin-top:16px; align-items:flex-end;">
-        <div style="flex:1;">
-          <div class="panel-title" style="margin-bottom:6px;">Change PIN</div>
-          <input type="text" id="currentPinInput" placeholder="Current PIN" maxlength="8" inputmode="numeric">
-          <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="margin-top:6px;">
-          <button id="btnChangePin" style="margin-top:6px; font-size:9px; padding:6px;">Update</button>
-          <button class="ghost" id="btnNewPilot" style="margin-top:12px; font-size:9px; padding:6px; color:var(--danger); border-color:var(--danger);">New Pilot (reset)</button>
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Change PIN</div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <input type="text" id="currentPinInput" placeholder="Current PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
+        <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
+        <button id="btnChangePin" style="width:auto; flex-shrink:0; font-size:9px; padding:8px 12px; margin-top:0;">Update</button>
+      </div>
+      <button id="btnNewPilot" style="margin-top:10px; font-size:9px; padding:8px 12px; color:var(--danger); border-color:var(--danger); background:transparent;">New Pilot (reset)</button>
+
+      <div style="padding:10px; border:1px solid var(--line); border-radius:4px; min-height:180px; margin-top:16px;">
+        <div class="panel-title" style="margin-bottom:6px;">Outfit</div>
+        <div id="outfitDisplay" style="margin-bottom:8px;"></div>
+        <div id="outfitOptions" style="font-size:9px; color:var(--text-dim);"></div>
+      </div>
+
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Cosmetics <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— head/body/arms/legs, more coming in a future update</span></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="cosmetic-slot-box" id="cosmeticSlotHead" style="flex:1; min-width:70px; padding:8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
+          <div style="font-size:9px; color:var(--text-dim); text-transform:uppercase;">Head</div>
+          <div id="cosmeticSlotHeadContent" style="margin-top:6px; font-size:9px;"></div>
         </div>
-        <div style="flex:1.3; padding:10px; border:1px solid var(--line); border-radius:4px; min-height:180px;">
-          <div class="panel-title" style="margin-bottom:6px;">Outfit</div>
-          <div id="outfitDisplay" style="margin-bottom:8px;"></div>
-          <div id="outfitOptions" style="font-size:9px; color:var(--text-dim);"></div>
+        <div style="flex:1; min-width:70px; padding:8px; border:1px solid var(--line); border-radius:4px; text-align:center; opacity:0.5;">
+          <div style="font-size:9px; color:var(--text-dim); text-transform:uppercase;">Body</div>
+          <div style="margin-top:6px; font-size:9px; color:var(--text-dim);">Coming soon</div>
+        </div>
+        <div style="flex:1; min-width:70px; padding:8px; border:1px solid var(--line); border-radius:4px; text-align:center; opacity:0.5;">
+          <div style="font-size:9px; color:var(--text-dim); text-transform:uppercase;">Arms</div>
+          <div style="margin-top:6px; font-size:9px; color:var(--text-dim);">Coming soon</div>
+        </div>
+        <div style="flex:1; min-width:70px; padding:8px; border:1px solid var(--line); border-radius:4px; text-align:center; opacity:0.5;">
+          <div style="font-size:9px; color:var(--text-dim); text-transform:uppercase;">Legs</div>
+          <div style="margin-top:6px; font-size:9px; color:var(--text-dim);">Coming soon</div>
         </div>
       </div>
+
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Friends</div>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="addFriendIdInput" placeholder="Player ID" style="flex:1; margin-top:0;">
+        <button id="btnAddFriend" style="width:auto; flex-shrink:0; font-size:9px; padding:8px 12px; margin-top:0;">Add Friend</button>
+      </div>
+      <div id="friendRequestsList" style="margin-top:8px;"></div>
+      <div id="friendsList" style="margin-top:8px;"><div class="empty">No friends yet</div></div>
     </div>
     <div id="starterPicker" style="display:none; margin-top:14px;">
       <div class="panel-title" style="margin-bottom:6px;">Choose Starter Droid</div>
@@ -631,7 +658,7 @@
     <div id="battleList"><div class="empty">No battles yet</div></div>
   </div>
 
-  <div class="panel" style="margin-top:16px;">
+  <div class="panel" id="chooseBattleTeamPanel" style="margin-top:16px;">
     <div class="panel-title">Choose Your Battle Team <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— exactly 4, no fainted</span></div>
     <div id="battleTeamPicker" style="margin-top:8px;"></div>
   </div>
@@ -1071,6 +1098,7 @@ async function activatePlayer(player) {
   const { species } = await api('GET', '/species');
   state.species = species;
   await loadHomePage(); // re-fetch with playerId now known — reflects this player's own dismissals/reactions
+  await refreshFriends();
   await refreshCosmeticsShop();
   populateWishSpeciesDropdown();
   refreshWishlist();
@@ -1143,6 +1171,71 @@ function showPinResultPopup(success, message) {
   overlay.style.display = 'flex';
   box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
 }
+
+// ---- Friends ----
+async function refreshFriends() {
+  if (!state.playerId) return;
+  try {
+    const data = await api('GET', `/friends/${state.playerId}`);
+    renderFriendRequests(data.incomingRequests);
+    renderFriendsList(data.friends);
+  } catch (e) {}
+}
+
+function renderFriendRequests(requests) {
+  const el = $('friendRequestsList');
+  if (!requests.length) { el.innerHTML = ''; return; }
+  el.innerHTML = requests.map((r) => `
+    <div class="droid-row" style="flex-direction:column; align-items:flex-start;">
+      <div>Friend request from ${r.username} (#${r.id})</div>
+      <div>
+        <button class="friend-accept-btn" data-id="${r.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">Accept</button>
+        <button class="friend-decline-btn" data-id="${r.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px; color:var(--danger); border-color:var(--danger);">Decline</button>
+      </div>
+    </div>
+  `).join('');
+  el.querySelectorAll('.friend-accept-btn').forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        await api('POST', '/friends/accept', { playerId: state.playerId, fromPlayerId: Number(btn.dataset.id) });
+        await refreshFriends();
+      } catch (e) {
+        showGuildResultPopup(false, (e && e.message) || 'Could not accept that request.');
+      }
+    };
+  });
+  el.querySelectorAll('.friend-decline-btn').forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        await api('POST', '/friends/decline', { playerId: state.playerId, fromPlayerId: Number(btn.dataset.id) });
+        await refreshFriends();
+      } catch (e) {}
+    };
+  });
+}
+
+function renderFriendsList(friends) {
+  const el = $('friendsList');
+  if (!friends.length) { el.innerHTML = '<div class="empty">No friends yet</div>'; return; }
+  el.innerHTML = friends.map((f) => `
+    <div class="droid-row">
+      <span style="flex:1;">${f.username} (#${f.id})</span>
+      <span style="color:var(--text-dim); font-size:9px;">Dex ${f.dexCaught}/${f.dexTotal}</span>
+    </div>
+  `).join('');
+}
+
+$('btnAddFriend').onclick = async () => {
+  const toPlayerId = Number($('addFriendIdInput').value);
+  if (!toPlayerId) { showGuildResultPopup(false, 'Enter a Player ID first.'); return; }
+  try {
+    await api('POST', '/friends/request', { fromPlayerId: state.playerId, toPlayerId });
+    showGuildResultPopup(true, `Friend request sent to Player ${toPlayerId}.`);
+    $('addFriendIdInput').value = '';
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not send that request.');
+  }
+};
 
 $('btnNewPilot').onclick = () => {
   localStorage.removeItem(PLAYER_STORAGE_KEY);
@@ -1217,7 +1310,7 @@ async function scanAt(lat, lng) {
   } catch (e) {}
 }
 
-const RARITY_ZONE_WIDTH = { common: 34, uncommon: 24, rare: 20, legendary: 12, cosmic: 8 }; // % of track width — narrower = harder. Common/Uncommon tightened per playtest feedback (were too easy at 44/32).
+const RARITY_ZONE_WIDTH = { common: 28, uncommon: 20, rare: 20, legendary: 12, cosmic: 8 }; // % of track width — narrower = harder. Common/Uncommon tightened twice per playtest feedback (44/32 → 34/24 → 28/20).
 
 // Once Pad Level passes 10, Rare+ tiers get progressively harder —
 // directly targets "a maxed-out pad trivializes everything." Floored so
@@ -1491,6 +1584,7 @@ async function refreshWorkshop() {
     state.growths = data.growths;
     state.repairKits = data.repairKits;
     state.energyTubes = data.energyTubes;
+    state.equippedCosmetics = data.equippedCosmetics;
     $('statCritChance').textContent = Math.round(data.critChance * 100) + '%';
     $('padUpgradeCost').textContent = data.nextPadUpgradeCost;
     $('padRamStatus').innerHTML = data.padRamNeededNext
@@ -1736,6 +1830,7 @@ function buildDroidRow(droid) {
       repairBtnEl.onclick = async () => {
         try {
           await api('POST', `/droids/${droid.id}/heal`, { playerId: state.playerId });
+          showGuildResultPopup(true, `${droid.speciesName} repaired — fully healed!`);
           await refreshWorkshop();
         } catch (e) {
           showGuildResultPopup(false, (e && e.message) || 'Could not heal that droid.');
@@ -1978,8 +2073,11 @@ function showStatsModal(droid) {
       try {
         await api('POST', `/droids/${droid.id}/heal`, { playerId: state.playerId });
         overlay.style.display = 'none';
+        showGuildResultPopup(true, `${droid.speciesName} repaired — fully healed!`);
         await refreshWorkshop();
-      } catch (e) {}
+      } catch (e) {
+        showGuildResultPopup(false, (e && e.message) || 'Could not heal that droid.');
+      }
     };
   }
 
@@ -2173,7 +2271,7 @@ function renderShop() {
   const materialsDetails = document.createElement('details');
   materialsDetails.open = true;
   materialsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Materials <span style="color:var(--text-dim);">(${materialItems.length})</span></summary>`;
-  materialItems.forEach((item) => materialsDetails.appendChild(buildShopRow(item, `Buy ${item.name} — ${item.cost}✦`)));
+  materialItems.forEach((item) => materialsDetails.appendChild(buildShopRow(item, `Buy — ${item.cost}✦`)));
   list.appendChild(materialsDetails);
 
   const outfitsDetails = document.createElement('details');
@@ -2182,7 +2280,7 @@ function renderShop() {
   outfitsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Outfits <span style="color:var(--text-dim);">(${outfitItems.length})</span></summary>`;
   outfitItems.forEach((item) => {
     const owned = (state.ownedOutfits || []).includes(item.outfitId);
-    outfitsDetails.appendChild(buildShopRow(item, owned ? 'Owned' : `Buy ${item.name} — ${item.cost}✦`, owned));
+    outfitsDetails.appendChild(buildShopRow(item, owned ? 'Owned' : `Buy — ${item.cost}✦`, owned));
   });
   list.appendChild(outfitsDetails);
 
@@ -2293,7 +2391,39 @@ async function refreshCosmeticsShop() {
     const shopData = await api('GET', '/shop');
     state.shopCatalog = shopData.items;
     renderShop();
+    renderHeadCosmeticSlot();
   } catch (e) {}
+}
+
+function renderHeadCosmeticSlot() {
+  const el = $('cosmeticSlotHeadContent');
+  if (!el) return;
+  const headItems = (state.cosmeticsCatalog || []).filter((c) => c.slot === 'head');
+  const owned = headItems.filter((c) => (state.cosmetics || []).includes(c.id));
+  const equippedId = state.equippedCosmetics && state.equippedCosmetics.head;
+
+  if (!owned.length) {
+    el.innerHTML = '<div style="color:var(--text-dim);">None owned</div>';
+    return;
+  }
+  el.innerHTML = owned.map((c) => `
+    <button class="head-cosmetic-btn" data-id="${c.id}" style="width:100%; margin-top:4px; font-size:8px; padding:4px; ${equippedId === c.id ? 'background:var(--common); color:#04180a;' : ''}">${equippedId === c.id ? '✓ ' : ''}${c.name}</button>
+  `).join('');
+  el.querySelectorAll('.head-cosmetic-btn').forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        if (equippedId === btn.dataset.id) {
+          await api('POST', `/players/${state.playerId}/cosmetics/unequip`, { slot: 'head' });
+        } else {
+          await api('POST', `/players/${state.playerId}/cosmetics/equip`, { slot: 'head', cosmeticId: btn.dataset.id });
+        }
+        await refreshWorkshop();
+        await refreshCosmeticsShop();
+      } catch (e) {
+        showGuildResultPopup(false, (e && e.message) || 'Could not update that cosmetic.');
+      }
+    };
+  });
 }
 
 const COSMETIC_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
@@ -3055,6 +3185,8 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('workshopMainPanel', 'workshop');
   applyPanelBackground('workshopSlotsPanel', 'workshopslot');
   applyPanelBackground('guildMainPanel', 'guild');
+  applyPanelBackground('guildLeaderboardPanel', 'guildleaderboard');
+  applyPanelBackground('guildChatPanel', 'guildchat');
   applyPanelBackground('companionMainPanel', 'companion');
   applyPanelBackground('yourCompanionsPanel', 'yourcompanions');
   applyPanelBackground('inventoryMainPanel', 'inventory');
@@ -3063,6 +3195,8 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('wishlistMainPanel', 'wishlist');
   applyPanelBackground('dexMainPanel', 'dex');
   applyPanelBackground('eventDexPanel', 'summerdex');
+  applyPanelBackground('chooseBattleTeamPanel', 'choosebattleteam');
+  applyPanelBackground('selectedTeamPreview', 'yourbattleteam');
   applyPanelBackground('titanEncounterPanel', 'titanencounter');
   applyPanelBackground('battleChallengeForm', 'challenger');
   applyPanelBackground('yourBattlesPanel', 'battles');

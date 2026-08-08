@@ -559,7 +559,7 @@ function activateCompanionBuff(playerId, droidId) {
 // maxed out the practical stuff. Extensible catalog; just one item for
 // this beta round.
 const COSMETICS_CATALOG = [
-  { id: 'beta_crown', name: 'Beta Crown', cost: 1000, description: 'No effect - just shows you were here for the beta.' },
+  { id: 'beta_crown', name: 'Beta Crown', cost: 1000, description: 'No effect - just shows you were here for the beta.', slot: 'head' },
 ];
 
 // ---- Shop ----
@@ -842,6 +842,69 @@ function eligiblePrototypeSpecies(rarity, now = Date.now()) {
 const guilds = new Map(); // id -> guild row
 const battles = new Map(); // id -> battle row (see battle.js)
 const GUILD_MAX_MEMBERS = 12;
+
+function sendFriendRequest(fromPlayerId, toPlayerId) {
+  const from = players.get(fromPlayerId);
+  const to = players.get(toPlayerId);
+  if (!from) throw new Error('Player not found');
+  if (!to) throw new Error('That Player ID doesn\'t exist');
+  if (fromPlayerId === toPlayerId) throw new Error('Cannot add yourself as a friend');
+  if (!from.friends) from.friends = [];
+  if (!from.friendRequestsSent) from.friendRequestsSent = [];
+  if (!to.friendRequestsReceived) to.friendRequestsReceived = [];
+  if (from.friends.includes(toPlayerId)) throw new Error('Already friends');
+  if (from.friendRequestsSent.includes(toPlayerId)) throw new Error('Request already sent');
+  if (to.friendRequestsReceived && to.friendRequestsReceived.includes(fromPlayerId)) throw new Error('Request already sent');
+  from.friendRequestsSent.push(toPlayerId);
+  to.friendRequestsReceived.push(fromPlayerId);
+  return { sent: true };
+}
+
+function acceptFriendRequest(playerId, fromPlayerId) {
+  const player = players.get(playerId);
+  const from = players.get(fromPlayerId);
+  if (!player || !from) throw new Error('Player not found');
+  if (!player.friendRequestsReceived || !player.friendRequestsReceived.includes(fromPlayerId)) {
+    throw new Error('No pending request from that player');
+  }
+  player.friendRequestsReceived = player.friendRequestsReceived.filter((id) => id !== fromPlayerId);
+  if (from.friendRequestsSent) from.friendRequestsSent = from.friendRequestsSent.filter((id) => id !== playerId);
+  if (!player.friends) player.friends = [];
+  if (!from.friends) from.friends = [];
+  if (!player.friends.includes(fromPlayerId)) player.friends.push(fromPlayerId);
+  if (!from.friends.includes(playerId)) from.friends.push(playerId);
+  return { friends: player.friends };
+}
+
+function declineFriendRequest(playerId, fromPlayerId) {
+  const player = players.get(playerId);
+  const from = players.get(fromPlayerId);
+  if (!player) throw new Error('Player not found');
+  if (player.friendRequestsReceived) {
+    player.friendRequestsReceived = player.friendRequestsReceived.filter((id) => id !== fromPlayerId);
+  }
+  if (from && from.friendRequestsSent) {
+    from.friendRequestsSent = from.friendRequestsSent.filter((id) => id !== playerId);
+  }
+  return { declined: true };
+}
+
+function getFriendsData(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const friendIds = player.friends || [];
+  const friends = friendIds.map((id) => {
+    const f = players.get(id);
+    if (!f) return null;
+    const dex = getDex(id);
+    return { id, username: f.username, dexCaught: dex.entries.filter((e) => e.caught).length, dexTotal: dex.entries.length };
+  }).filter(Boolean);
+  const incoming = (player.friendRequestsReceived || []).map((id) => {
+    const f = players.get(id);
+    return f ? { id, username: f.username } : null;
+  }).filter(Boolean);
+  return { friends, incomingRequests: incoming };
+}
 
 const GUILD_KICK_GLOBAL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 1 day before joining ANY guild
 const GUILD_KICK_SAME_GUILD_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days before rejoining THAT guild
@@ -1169,6 +1232,10 @@ function createPlayer(username, pin) {
     energyTubes: 0,
     displayedBadge: null,
     dismissedPosters: [],
+    equippedCosmetics: { head: null, body: null, arms: null, legs: null },
+    friends: [],
+    friendRequestsSent: [],
+    friendRequestsReceived: [],
     outfit: 'basic',
     ownedOutfits: ['basic'],
     lastScanAt: null,
@@ -1510,6 +1577,10 @@ function importState(state) {
     energyTubes: 0,
     displayedBadge: null,
     dismissedPosters: [],
+    equippedCosmetics: { head: null, body: null, arms: null, legs: null },
+    friends: [],
+    friendRequestsSent: [],
+    friendRequestsReceived: [],
     outfit: 'basic',
     ownedOutfits: ['basic'],
     lastScanAt: null,
@@ -1661,6 +1732,10 @@ module.exports = {
   loginOrCreatePlayer,
   changePin,
   adminResetPin,
+  sendFriendRequest,
+  acceptFriendRequest,
+  declineFriendRequest,
+  getFriendsData,
   reactToPoster,
   getPosterReactions,
   dismissPoster,

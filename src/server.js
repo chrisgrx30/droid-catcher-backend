@@ -448,6 +448,7 @@ const server = http.createServer(async (req, res) => {
         paint: player.paint,
         novaChips: player.novaChips,
         cosmetics: player.cosmetics,
+        equippedCosmetics: player.equippedCosmetics || { head: null, body: null, arms: null, legs: null },
         guildId: player.guildId,
         companionDroid,
         companionBuffType: companionDroid ? db.droidSpecies.find((s) => s.id === companionDroid.speciesId)?.companionBuffType : null,
@@ -769,6 +770,30 @@ const server = http.createServer(async (req, res) => {
       const { cosmeticId } = await readBody(req);
       try {
         const result = workshopModule.buyCosmetic(playerId, cosmeticId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'COSMETIC_ERROR', message: e.message });
+      }
+    }
+
+    // POST /players/:id/cosmetics/equip  { slot, cosmeticId }
+    if (req.method === 'POST' && pathname.match(/^\/players\/\d+\/cosmetics\/equip$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const { slot, cosmeticId } = await readBody(req);
+      try {
+        const result = workshopModule.equipCosmetic(playerId, slot, cosmeticId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'COSMETIC_ERROR', message: e.message });
+      }
+    }
+
+    // POST /players/:id/cosmetics/unequip  { slot }
+    if (req.method === 'POST' && pathname.match(/^\/players\/\d+\/cosmetics\/unequip$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const { slot } = await readBody(req);
+      try {
+        const result = workshopModule.unequipCosmetic(playerId, slot);
         return sendJson(res, 200, result);
       } catch (e) {
         return sendJson(res, 409, { error: 'COSMETIC_ERROR', message: e.message });
@@ -1151,6 +1176,49 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
       }
       return sendJson(res, 200, { players: db.listPlayersAdmin() });
+    }
+
+    // POST /friends/request  { fromPlayerId, toPlayerId }
+    if (req.method === 'POST' && pathname === '/friends/request') {
+      const { fromPlayerId, toPlayerId } = await readBody(req);
+      try {
+        const result = db.sendFriendRequest(fromPlayerId, toPlayerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'FRIEND_ERROR', message: e.message });
+      }
+    }
+
+    // POST /friends/accept  { playerId, fromPlayerId }
+    if (req.method === 'POST' && pathname === '/friends/accept') {
+      const { playerId, fromPlayerId } = await readBody(req);
+      try {
+        const result = db.acceptFriendRequest(playerId, fromPlayerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'FRIEND_ERROR', message: e.message });
+      }
+    }
+
+    // POST /friends/decline  { playerId, fromPlayerId }
+    if (req.method === 'POST' && pathname === '/friends/decline') {
+      const { playerId, fromPlayerId } = await readBody(req);
+      try {
+        const result = db.declineFriendRequest(playerId, fromPlayerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'FRIEND_ERROR', message: e.message });
+      }
+    }
+
+    // GET /friends/:playerId
+    if (req.method === 'GET' && pathname.match(/^\/friends\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try {
+        return sendJson(res, 200, db.getFriendsData(playerId));
+      } catch (e) {
+        return sendJson(res, 404, { error: 'NOT_FOUND', message: e.message });
+      }
     }
 
     // POST /admin/players/:id/reset-pin  { adminCode, newPin }
