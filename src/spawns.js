@@ -240,6 +240,18 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
 }
 
 // Cleanup pass — in production, Redis TTL does this for free.
+function fleeSpawn(spawnId, playerId) {
+  const spawn = db.spawns.get(spawnId);
+  if (!spawn) throw new Error('Spawn not found');
+  if (spawn.claimedBy) throw new Error('This spawn is no longer available');
+  // Reuses the same claimedBy mechanism a real capture uses — the spawn
+  // is permanently excluded from every future listing, exactly as
+  // confirmed ("droid disappears and cannot go through the capture
+  // loop again"). No reward or penalty either way.
+  spawn.claimedBy = playerId;
+  return { fled: true };
+}
+
 function purgeExpiredSpawns() {
   const now = Date.now();
   for (const [key, spawn] of db.spawns.entries()) {
@@ -247,4 +259,4 @@ function purgeExpiredSpawns() {
   }
 }
 
-module.exports = { getNearbySpawns, trySpawnInCell, purgeExpiredSpawns, markCellActive };
+module.exports = { getNearbySpawns, trySpawnInCell, purgeExpiredSpawns, markCellActive, fleeSpawn };

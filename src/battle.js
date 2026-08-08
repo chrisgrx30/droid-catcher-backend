@@ -20,6 +20,7 @@
 
 const db = require('./db.js');
 const workshop = require('./workshop.js');
+const captureModule = require('./capture.js');
 
 // PLACEHOLDER Titan — no real Titan design/stats were ever provided
 // (only "I have a good rarity Titan, will confirm the name later" was
@@ -80,6 +81,47 @@ function firstNonFaintedIndex(droids) {
 
 function randInt(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+function attemptScaffitanCapture(battleId, playerId, padAccuracy, crystalsSpent) {
+  const battle = db.battles.get(battleId);
+  if (!battle) throw new Error('Battle not found');
+  if (!battle.scaffitanCaptureAvailable) throw new Error('No Scaffitan capture attempt available on this battle');
+
+  if (battle.isGroupTitanBattle) {
+    if (!battle.winnerParticipantIds.includes(playerId)) throw new Error('You did not win this fight');
+    if (battle.scaffitanCaptureUsedBy.includes(playerId)) throw new Error('You already attempted this capture');
+  } else {
+    if (battle.winnerId !== playerId) throw new Error('You did not win this fight');
+    if (battle.scaffitanCaptureUsed) throw new Error('You already attempted this capture');
+  }
+
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (player.crystalBalance < crystalsSpent) throw new Error('Not enough crystals');
+  player.crystalBalance -= crystalsSpent;
+  if (crystalsSpent > 0) {
+    db.crystalTransactions.push({ id: db.nextId(), playerId, amount: -crystalsSpent, source: 'scaffitan_capture_attempt', createdAt: Date.now() });
+  }
+
+  const scaffitanSpecies = db.droidSpecies.find((s) => s.name === 'Scaffitan');
+  let captureChance = scaffitanSpecies.baseCaptureRate
+    * captureModule.crystalBonus(crystalsSpent)
+    * captureModule.padSkillMultiplier(padAccuracy, player.padLevel);
+  captureChance = Math.max(0.01, Math.min(0.5, captureChance)); // even a perfect attempt caps well below a normal capture — this is meant to be genuinely hard
+
+  const success = Math.random() < captureChance;
+  if (battle.isGroupTitanBattle) {
+    battle.scaffitanCaptureUsedBy.push(playerId);
+  } else {
+    battle.scaffitanCaptureUsed = true;
+  }
+
+  if (!success) {
+    return { success: false, captureChance, crystalBalance: player.crystalBalance };
+  }
+  const droid = grantScaffitan(playerId);
+  return { success: true, captureChance, crystalBalance: player.crystalBalance, droid: workshop.enrichDroid(droid) };
 }
 
 function grantScaffitan(playerId) {
@@ -323,8 +365,9 @@ function attackGroupTitan(battleId, playerId) {
       p.beacons = (p.beacons || 0) + TITAN_REWARDS.beacons;
       const tubesWon = randInt(4, 7);
       p.energyTubes = (p.energyTubes || 0) + tubesWon;
-      if (Math.random() < SCAFFITAN_CAPTURE_CHANCE) grantScaffitan(pid);
     });
+    battle.scaffitanCaptureAvailable = true;
+    battle.scaffitanCaptureUsedBy = [];
     logEntry.groupWin = true;
     return { battle, logEntry };
   }
@@ -494,11 +537,8 @@ function attack(battleId, playerId) {
         winner.energyTubes = (winner.energyTubes || 0) + tubesWon;
         logEntry.titanRewards = { ...TITAN_REWARDS, energyTubes: tubesWon };
 
-        if (Math.random() < SCAFFITAN_CAPTURE_CHANCE) {
-          const caughtScaffitan = grantScaffitan(playerId);
-          logEntry.scaffitanCaught = true;
-          logEntry.scaffitanDroidId = caughtScaffitan.id;
-        }
+        battle.scaffitanCaptureAvailable = true;
+        battle.scaffitanCaptureUsed = false;
       } else {
         const winner = db.players.get(playerId);
         winner.crystalBalance += PVP_WIN_CRYSTAL_REWARD;
@@ -597,4 +637,4 @@ function getBattlesForPlayer(playerId) {
     .map((b) => getBattleView(b.id));
 }
 
-module.exports = { createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp };
+module.exports = { createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp };

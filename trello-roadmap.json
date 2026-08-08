@@ -1,0 +1,73 @@
+{
+  "board": "Sparkfield Roadmap",
+  "lists": [
+    {
+      "name": "Completed",
+      "cards": [
+        {
+          "name": "v0.0.9 — Field Ops Foundation",
+          "desc": "Depot, Beacons, Factory/Processors, Guilds (chat, leaderboard, kick), Wishlist + gift trades, Admin player management."
+        },
+        {
+          "name": "v0.0.10 — Sparkfield Rename & Shop",
+          "desc": "Renamed to Sparkfield. Shop (all non-crystal materials + outfits). The Enforcer companion. 20-species Football roster (weekend/hour-gated). Anti-spam scan rate limit. Image asset support added across the game."
+        },
+        {
+          "name": "v0.0.11 — Home Page & Two New Droid Lines",
+          "desc": "Home page (logo, posters, changelog). Economy tuning (variant-odds fix, capture cost scaling). Void Zombie + Lumen Sentinel lines. Warehouse rework. StarSprite activation. Live location map. Guild badges + notice."
+        },
+        {
+          "name": "v0.0.12 — Bug Fixes & Full Evolution Chains",
+          "desc": "Fixed starter picker bug, Dex evolution-chain bug (species vanishing past 2 tiers), background placement swap. Zombie/Lumen redesigned to full 4-tier chains. Map spawn density + droid markers. Pad leveling economy overhaul (escalating costs, Pad RAM gate, recalibrated crit). Large QOL pass."
+        },
+        {
+          "name": "v0.1.0 — Battle Engine",
+          "desc": "Full PVP (challenge/accept/decline, alternating turns, rotating 4-droid teams). Solo & Group Titan encounters (up to 10 participants). Scaffitan: rare post-win capture, 5-tier mastery system (Common to Galactic) via Energy Tubes. Repair Kits."
+        }
+      ]
+    },
+    {
+      "name": "Next (0.x.0 Roadmap)",
+      "cards": [
+        {
+          "name": "0.2.0 — Depot / Galactic / Cosmetics / Attachments / Trading",
+          "desc": "DEPOT: 10,000✦ Depot, full material reward pool, Galactic pity system (5-10 lucky / 12-18 average / 30 hard pity), Fragments (account-bound), 2 launch Galactic droids: Depotus Prime (buffs Depot rewards) and Ovumen Arcanjx (-60% hatch time). COSMETICS: 4 new slots (head/body/arms/legs), rarity-based buffs (2/4/10/15%), HP from head+body, Attack from arms+legs, VIP Crown becomes a Legendary head cosmetic, Wardrobe storage, recycle-to-Threads material. ATTACHMENTS: Mod Chips (Common), USB Dongles (Uncommon), Energy Bottles (Rare) — HP/Attack/Special/Crystal/Reward buffs, 3 attachment slots per droid, 1 attachment per droid but multiple owned. TRADING: material trades (item-item, item-crystal, droid-item), rename to Underground Store."
+        },
+        {
+          "name": "0.3.0 — Breeding",
+          "desc": "Breeding/Duplicator mechanism. The Astral Brood — 10 breeding-exclusive droids (Astralmatron, Voidpaladin, Starwarden, Crystacore, Forgegrub, Nebulonix, Gravimite, Sparkmite, Dustbyte, Orbitch). Two droids lost per breed, weighted-random exclusive output."
+        },
+        {
+          "name": "0.4.0 — Player Leveling & Re-Boot",
+          "desc": "XP system (1 XP per qualifying action), Level 0-20 curve, milestone rewards every 5 levels, Re-Boot prestige system (permanent +2% Crystal/Material bonuses per Re-Boot, max 10 initially), fully configurable per the spec."
+        },
+        {
+          "name": "0.5.0 — Full Balance Review & Live Infrastructure",
+          "desc": "Complete economy/balance pass across the whole game. Move to real-time push infrastructure (messaging, live updates) instead of polling."
+        },
+        {
+          "name": "0.6.0 — TestFlight Migration",
+          "desc": "Native wrapper for iOS distribution, Apple Developer account setup, admin tooling properly gated for external testers."
+        }
+      ]
+    },
+    {
+      "name": "QOL Backlog",
+      "cards": [
+        { "name": "Escape from capture", "desc": "Option to flee a capture attempt; that spawn is removed and can't be re-engaged." },
+        { "name": "Battle turn indicator", "desc": "Player badge borders in battle: blue = you, yellow = other players, red = Titan." },
+        { "name": "HP/Attack/Special icons", "desc": "Custom PNGs provided — need exact filenames confirmed once battle UI is being built." },
+        { "name": "Pad RAM missing popup", "desc": "Clear popup when a pad upgrade needs Pad RAM the player doesn't have, not just an inline error." },
+        { "name": "Trading: hide farming droids", "desc": "Droids currently assigned to a Foundry slot shouldn't appear in the trade list." },
+        { "name": "Trading: hide-from-trade toggle", "desc": "Per-droid option in the stats view to exclude it from ever being tradeable." },
+        { "name": "Player badge as icon", "desc": "Let players display an unlocked achievement badge as their visible player icon." },
+        { "name": "Materials audit", "desc": "Review every material in the game, group by purpose in the Inventory UI, ensure every material is represented in the Shop as 'not purchasable' if it isn't buyable, build PNG-if-present-else-fallback-icon system." }
+      ]
+    },
+    {
+      "name": "Bugs",
+      "cards": []
+    }
+  ],
+  "note": "Trello does not support importing a hand-written JSON file directly through its own UI — its native export/import format is a complex internal dump. Use a Trello Power-Up like 'Import to Board (JSON) for Trello' or 'JSON/CSV Boards Importer', or use the CSV version instead, which is more commonly supported."
+}

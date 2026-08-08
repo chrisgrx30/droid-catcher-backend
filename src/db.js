@@ -176,7 +176,7 @@ const droidSpecies = [
   // separate progression axis from normal leveling, which it also does.
   // Distinct names per tier so each of the 5 confirmed PNGs maps to a
   // real, separate image slug.
-  { id: id(), name: 'Scaffitan',          alignment: 'cosmic', rarity: 'common',    collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 5,  spawnWeight: 0, ...statsFor('common') },
+  { id: id(), name: 'Scaffitan',          alignment: 'cosmic', rarity: 'common',    collection: 'titan', baseCaptureRate: 0.03, baseCrystalRate: 5,  spawnWeight: 0, ...statsFor('common') },
   { id: id(), name: 'Scaffitan Prime',     alignment: 'cosmic', rarity: 'uncommon',  collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 10, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('uncommon') },
   { id: id(), name: 'Scaffitan Ascendant', alignment: 'cosmic', rarity: 'rare',      collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 20, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('rare') },
   { id: id(), name: 'Scaffitan Apex',      alignment: 'cosmic', rarity: 'legendary', collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 35, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
@@ -372,6 +372,38 @@ function critChanceForPadLevel(padLevel) {
 // collection) for a fixed time window. Generalizes the same multiplier
 // pattern the day/night alignment bias already uses in spawns.js.
 const events = new Map(); // id -> event row
+const posterReactions = new Map(); // filename -> { likes: 0, dislikes: 0, reactedBy: { playerId: 'like'|'dislike' } }
+
+function reactToPoster(playerId, filename, reaction) {
+  if (!['like', 'dislike'].includes(reaction)) throw new Error('Reaction must be like or dislike');
+  if (!posterReactions.has(filename)) posterReactions.set(filename, { likes: 0, dislikes: 0, reactedBy: {} });
+  const row = posterReactions.get(filename);
+  const previous = row.reactedBy[playerId];
+  if (previous === reaction) {
+    // tapping the same reaction again removes it — a real toggle, not a one-way lock
+    row[previous === 'like' ? 'likes' : 'dislikes'] -= 1;
+    delete row.reactedBy[playerId];
+  } else {
+    if (previous) row[previous === 'like' ? 'likes' : 'dislikes'] -= 1;
+    row[reaction === 'like' ? 'likes' : 'dislikes'] += 1;
+    row.reactedBy[playerId] = reaction;
+  }
+  return { likes: row.likes, dislikes: row.dislikes, yourReaction: row.reactedBy[playerId] || null };
+}
+
+function getPosterReactions(filename, playerId = null) {
+  const row = posterReactions.get(filename) || { likes: 0, dislikes: 0, reactedBy: {} };
+  return { likes: row.likes, dislikes: row.dislikes, yourReaction: playerId ? (row.reactedBy[playerId] || null) : null };
+}
+
+function dismissPoster(playerId, filename) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!player.dismissedPosters) player.dismissedPosters = [];
+  if (!player.dismissedPosters.includes(filename)) player.dismissedPosters.push(filename);
+  return { dismissedPosters: player.dismissedPosters };
+}
+
 const EVENT_COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
 const lastEventLaunchByTarget = new Map(); // targetKey -> timestamp
 
@@ -550,7 +582,7 @@ const SHOP_CATALOG = [
   { id: 'pad_ram', name: 'Pad RAM', cost: 5000, type: 'material', grants: { padRam: 1 } },
   // Repair Kit's real intended source is Titan battle rewards — not
   // built yet. Shop is a stopgap, same reasoning as Pad RAM above.
-  { id: 'repair_kit', name: 'Repair Kit', cost: 1500, type: 'material', grants: { repairKits: 1 } },
+  { id: 'repair_kit', name: 'Repair Kit', cost: 1000, type: 'material', grants: { repairKits: 1 } },
   { id: 'time_warp', name: 'Time Warp', cost: 100, type: 'material', grants: { timeWarps: 1 } },
   { id: 'growth', name: 'Growth', cost: 100, type: 'material', grants: { growths: 1 } },
   { id: 'outfit_earthy', name: 'Earthy Outfit', cost: 5000, type: 'outfit', outfitId: 'earthy' },
@@ -559,7 +591,7 @@ const SHOP_CATALOG = [
   { id: 'outfit_funky', name: 'Funky Outfit', cost: 5000, type: 'outfit', outfitId: 'funky' },
 ];
 
-function buyShopItem(playerId, itemId) {
+function buyShopItem(playerId, itemId, quantity = 1) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
   const item = SHOP_CATALOG.find((i) => i.id === itemId);
@@ -567,27 +599,29 @@ function buyShopItem(playerId, itemId) {
   if (item.type === 'outfit' && player.ownedOutfits.includes(item.outfitId)) {
     throw new Error('You already own this outfit');
   }
-  if (player.crystalBalance < item.cost) throw new Error(`Not enough crystals — ${item.name} costs ${item.cost}`);
+  const qty = item.type === 'outfit' ? 1 : Math.max(1, Math.floor(quantity)); // outfits are one-time, quantity is meaningless for them
+  const totalCost = item.cost * qty;
+  if (player.crystalBalance < totalCost) throw new Error(`Not enough crystals — ${qty > 1 ? qty + 'x ' : ''}${item.name} costs ${totalCost}`);
 
-  player.crystalBalance -= item.cost;
-  crystalTransactions.push({ id: id(), playerId, amount: -item.cost, source: 'shop_purchase', createdAt: Date.now() });
+  player.crystalBalance -= totalCost;
+  crystalTransactions.push({ id: id(), playerId, amount: -totalCost, source: 'shop_purchase', createdAt: Date.now() });
 
   if (item.type === 'material') {
-    if (item.grants.paint) player.paint += item.grants.paint;
-    if (item.grants.novaChips) player.novaChips += item.grants.novaChips;
-    if (item.grants.beacons) player.beacons += item.grants.beacons;
-    if (item.grants.augmentCores) player.augmentCores += item.grants.augmentCores;
-    if (item.grants.timeWarps) player.timeWarps += item.grants.timeWarps;
-    if (item.grants.growths) player.growths += item.grants.growths;
-    if (item.grants.lightStones) player.lightStones += item.grants.lightStones;
-    if (item.grants.darkCrystals) player.darkCrystals += item.grants.darkCrystals;
-    if (item.grants.padRam) player.padRam += item.grants.padRam;
-    if (item.grants.repairKits) player.repairKits += item.grants.repairKits;
+    if (item.grants.paint) player.paint += item.grants.paint * qty;
+    if (item.grants.novaChips) player.novaChips += item.grants.novaChips * qty;
+    if (item.grants.beacons) player.beacons += item.grants.beacons * qty;
+    if (item.grants.augmentCores) player.augmentCores += item.grants.augmentCores * qty;
+    if (item.grants.timeWarps) player.timeWarps += item.grants.timeWarps * qty;
+    if (item.grants.growths) player.growths += item.grants.growths * qty;
+    if (item.grants.lightStones) player.lightStones += item.grants.lightStones * qty;
+    if (item.grants.darkCrystals) player.darkCrystals += item.grants.darkCrystals * qty;
+    if (item.grants.padRam) player.padRam += item.grants.padRam * qty;
+    if (item.grants.repairKits) player.repairKits += item.grants.repairKits * qty;
   } else if (item.type === 'outfit') {
     player.ownedOutfits.push(item.outfitId);
   }
 
-  return { item, crystalBalance: player.crystalBalance, paint: player.paint, novaChips: player.novaChips, beacons: player.beacons, augmentCores: player.augmentCores, timeWarps: player.timeWarps, growths: player.growths, lightStones: player.lightStones, darkCrystals: player.darkCrystals, ownedOutfits: player.ownedOutfits };
+  return { item, quantityBought: qty, totalCost, crystalBalance: player.crystalBalance, paint: player.paint, novaChips: player.novaChips, beacons: player.beacons, augmentCores: player.augmentCores, timeWarps: player.timeWarps, growths: player.growths, lightStones: player.lightStones, darkCrystals: player.darkCrystals, ownedOutfits: player.ownedOutfits };
 }
 
 // Pad plug-ins (Time Warp, Growth) — single-use, consumed the moment
@@ -701,14 +735,16 @@ const BEACON_COST = 300; // crystals to buy one
 const BEACON_DURATION_MS = 30 * 60 * 1000; // 30 minutes once activated
 const BEACON_BOOST_MULTIPLIER = 3; // applied to rare/legendary/cosmic tier weights only, while active
 
-function buyBeacon(playerId) {
+function buyBeacon(playerId, quantity = 1) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
-  if (player.crystalBalance < BEACON_COST) throw new Error(`Not enough crystals — a Beacon costs ${BEACON_COST}`);
-  player.crystalBalance -= BEACON_COST;
-  crystalTransactions.push({ id: id(), playerId, amount: -BEACON_COST, source: 'beacon_purchase', createdAt: Date.now() });
-  player.beacons += 1;
-  return { beacons: player.beacons, crystalBalance: player.crystalBalance };
+  const qty = Math.max(1, Math.floor(quantity));
+  const totalCost = BEACON_COST * qty;
+  if (player.crystalBalance < totalCost) throw new Error(`Not enough crystals — ${qty} Beacon${qty > 1 ? 's' : ''} costs ${totalCost}`);
+  player.crystalBalance -= totalCost;
+  crystalTransactions.push({ id: id(), playerId, amount: -totalCost, source: 'beacon_purchase', createdAt: Date.now() });
+  player.beacons += qty;
+  return { beacons: player.beacons, crystalBalance: player.crystalBalance, quantityBought: qty, totalCost };
 }
 
 function activateBeacon(playerId) {
@@ -1131,6 +1167,8 @@ function createPlayer(username, pin) {
     repairKits: 0,
     titanCooldownUntil: null,
     energyTubes: 0,
+    displayedBadge: null,
+    dismissedPosters: [],
     outfit: 'basic',
     ownedOutfits: ['basic'],
     lastScanAt: null,
@@ -1211,6 +1249,17 @@ function changePin(playerId, currentPin, newPin) {
   if (!newPin || !/^\d{4,8}$/.test(newPin)) throw new Error('New PIN must be 4-8 digits');
   player.pin = newPin;
   return { success: true };
+}
+
+// Admin-only reset — no proof of the current PIN required, since this
+// exists specifically for the case where a player has no PIN set (or
+// forgot it) and can't clear the normal changePin bar themselves.
+function adminResetPin(playerId, newPin) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!newPin || !/^\d{4,8}$/.test(newPin)) throw new Error('New PIN must be 4-8 digits');
+  player.pin = newPin;
+  return { success: true, username: player.username };
 }
 
 // One-time free starter droid, common tier only, skips the capture step
@@ -1459,6 +1508,8 @@ function importState(state) {
     repairKits: 0,
     titanCooldownUntil: null,
     energyTubes: 0,
+    displayedBadge: null,
+    dismissedPosters: [],
     outfit: 'basic',
     ownedOutfits: ['basic'],
     lastScanAt: null,
@@ -1609,6 +1660,10 @@ module.exports = {
   findPlayerByUsername,
   loginOrCreatePlayer,
   changePin,
+  adminResetPin,
+  reactToPoster,
+  getPosterReactions,
+  dismissPoster,
   setAutoReleaseDuplicates,
   setAutoReleaseIncludeVariants,
   grantStarterDroid,

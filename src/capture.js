@@ -84,8 +84,11 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
 
   let successChance =
     species.baseCaptureRate * crystalBonus(crystalsSpent) * padSkillMultiplier(padAccuracy, player.padLevel);
-  successChance *= workshop.companionCaptureRateMultiplier(playerId); // Nebulfox: +100% success chance, helps with tough Legendary attempts
+  const companionMultiplier = workshop.companionCaptureRateMultiplier(playerId); // Nebulfox: +100% success chance, helps with tough Legendary attempts
+  successChance *= companionMultiplier;
   successChance = Math.max(0.05, Math.min(0.95, successChance)); // clamp 5%-95%
+  const buffsApplied = [];
+  if (companionMultiplier > 1) buffsApplied.push({ name: 'Nebulfox', effect: `+${Math.round((companionMultiplier - 1) * 100)}% capture chance` });
 
   // --- critical capture: pad-level-based chance of a guaranteed success ---
   const critChance = db.critChanceForPadLevel(player.padLevel || 0);
@@ -121,6 +124,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
       capturedAt: Date.now(),
       workshopSlotId: null,
       currentHpDamage: 0, // damage taken in battle, persists until healed — null/0 means full HP
+      hiddenFromTrade: false,
     };
     db.ownedDroids.set(newDroid.id, newDroid);
     db.markDexSeen(playerId, species.id, spawn.variant);
@@ -186,7 +190,8 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     spawnExpiresAt: spawn.expiresAt,
     autoReleased,
     autoReleaseRefund,
+    buffsApplied,
   };
 }
 
-module.exports = { resolveCaptureAttempt, CaptureError };
+module.exports = { resolveCaptureAttempt, CaptureError, crystalBonus, padSkillMultiplier };

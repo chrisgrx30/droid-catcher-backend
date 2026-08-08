@@ -74,6 +74,7 @@ function enrichDroid(droid) {
     evolvesToName: evolvesToSpecies?.name || null,
     evolveNovaChipCost: evolution?.novaChipCost || null,
     isEvolutionOnly: species?.isEvolutionOnly || false,
+    hiddenFromTrade: droid.hiddenFromTrade || false,
     masteryNextTierName: db.SCAFFITAN_MASTERY_TABLE[droid.speciesId] ? speciesById(db.SCAFFITAN_MASTERY_TABLE[droid.speciesId].masterTo)?.name : null,
     masteryTubeCost: db.SCAFFITAN_MASTERY_TABLE[droid.speciesId]?.tubeCost || null,
   };
@@ -297,6 +298,58 @@ function rollScaffitanReleaseTubes() {
   return 1; // fallback, should never hit given the loop above sums to totalWeight
 }
 
+// One-time retroactive sweep — auto-release-duplicates only prevents
+// NEW duplicates from accumulating going forward; it was never meant
+// to reach back into the Warehouse and clean up what's already there.
+// This button does that specific, separate job, using the exact same
+// eligibility rules as the at-capture-time version (common/uncommon
+// only, standard always eligible, rusty/platinum only if the second
+// toggle is on, Funky and Scaffitan never eligible) — keeping the
+// oldest droid of each duplicate group and releasing the rest.
+function cleanupExistingDuplicates(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const includeVariants = !!player.autoReleaseIncludeVariants;
+
+  const myDroids = [...db.ownedDroids.values()]
+    .filter((d) => d.playerId === playerId && !d.workshopSlotId) // don't touch anything currently farming
+    .map((d) => ({ droid: d, species: db.droidSpecies.find((s) => s.id === d.speciesId) }))
+    .filter(({ species, droid }) => {
+      if (!species || species.collection === 'titan') return false; // Scaffitan never eligible
+      if (!['common', 'uncommon'].includes(species.rarity)) return false;
+      if (droid.variant === 'standard') return true;
+      if (includeVariants && ['rusty', 'platinum'].includes(droid.variant)) return true;
+      return false; // Funky, or variants when the second toggle is off
+    });
+
+  const groups = {};
+  myDroids.forEach(({ droid, species }) => {
+    const key = species.id + ':' + droid.variant;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(droid);
+  });
+
+  let releasedCount = 0;
+  let totalRefund = 0;
+  Object.values(groups).forEach((group) => {
+    if (group.length < 2) return;
+    group.sort((a, b) => a.capturedAt - b.capturedAt); // keep the oldest
+    group.slice(1).forEach((droid) => {
+      const refund = Math.floor((droid.captureCost || 0) * db.RELEASE_REFUND_MULTIPLIER);
+      player.crystalBalance += refund;
+      if (refund > 0) {
+        db.crystalTransactions.push({ id: db.nextId(), playerId, amount: refund, source: 'duplicate_cleanup', createdAt: Date.now() });
+      }
+      if (player.companionDroidId === droid.id) player.companionDroidId = null;
+      db.ownedDroids.delete(droid.id);
+      releasedCount += 1;
+      totalRefund += refund;
+    });
+  });
+
+  return { releasedCount, totalRefund, crystalBalance: player.crystalBalance };
+}
+
 function releaseDroid(playerId, droidId) {
   const settled = settleEarnings(playerId);
   const player = db.players.get(playerId);
@@ -379,6 +432,13 @@ function releaseDroidsBulk(playerId, droidIds) {
 // Species evolution (e.g. Leafkin -> Bushy): spends Nova Chips, swaps the
 // droid's speciesId in place — keeps its level/variant/slot, just becomes
 // a stronger species going forward.
+function toggleHiddenFromTrade(playerId, droidId) {
+  const droid = db.ownedDroids.get(droidId);
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+  droid.hiddenFromTrade = !droid.hiddenFromTrade;
+  return { droid: enrichDroid(droid) };
+}
+
 function masterScaffitan(playerId, droidId) {
   const player = db.players.get(playerId);
   const droid = db.ownedDroids.get(droidId);
@@ -534,10 +594,12 @@ module.exports = {
   companionCaptureRateMultiplier,
   enrichDroid,
   releaseDroid,
+  cleanupExistingDuplicates,
   releaseDroidsBulk,
   evolveSpecies,
   healDroid,
   masterScaffitan,
+  toggleHiddenFromTrade,
   evolveFunky,
   assignCompanion,
   unassignCompanion,

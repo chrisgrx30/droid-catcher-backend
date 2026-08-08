@@ -43,6 +43,7 @@ const ASSETS_COSMETICS_DIR = path.join(__dirname, '..', 'assets', 'cosmetics');
 const ASSETS_OUTFITS_DIR = path.join(__dirname, '..', 'assets', 'outfits');
 const ASSETS_MISC_DIR = path.join(__dirname, '..', 'assets', 'misc');
 const ASSETS_HOME_DIR = path.join(__dirname, '..', 'assets', 'home');
+const ASSETS_BATTLE_DIR = path.join(__dirname, '..', 'assets', 'battle');
 const ASSETS_POSTERS_DIR = path.join(__dirname, '..', 'assets', 'home', 'posters');
 const IMAGE_MIME_TYPES = {
   '.png': 'image/png',
@@ -234,6 +235,27 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // GET /assets/battle/<filename> -> hp.png / attack.png / special.png
+    if (req.method === 'GET' && pathname.startsWith('/assets/battle/')) {
+      const filename = pathname.slice('/assets/battle/'.length);
+      if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+        return sendJson(res, 400, { error: 'invalid filename' });
+      }
+      const filePath = path.join(ASSETS_BATTLE_DIR, filename);
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+        res.writeHead(200, {
+          'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return res.end(data);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
     // GET /assets/home/posters/<filename> -> any poster, any filename
     if (req.method === 'GET' && pathname.startsWith('/assets/home/posters/')) {
       const filename = pathname.slice('/assets/home/posters/'.length);
@@ -255,14 +277,43 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // GET /home-posters -> lists whatever poster filenames currently exist,
-    // so new posters need zero code changes, just drop the file in
+    // GET /home-posters?playerId=X -> lists whatever poster filenames currently
+    // exist (minus ones this player dismissed), plus reaction counts.
+    // New posters need zero code changes, just drop the file in.
     if (req.method === 'GET' && pathname === '/home-posters') {
       try {
-        const files = fs.readdirSync(ASSETS_POSTERS_DIR).filter((f) => /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(f));
-        return sendJson(res, 200, { posters: files });
+        const playerId = searchParams.get('playerId') ? Number(searchParams.get('playerId')) : null;
+        const player = playerId ? db.players.get(playerId) : null;
+        const dismissed = player?.dismissedPosters || [];
+        const files = fs.readdirSync(ASSETS_POSTERS_DIR)
+          .filter((f) => /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(f))
+          .filter((f) => !dismissed.includes(f));
+        const posters = files.map((filename) => ({ filename, ...db.getPosterReactions(filename, playerId) }));
+        return sendJson(res, 200, { posters });
       } catch (e) {
         return sendJson(res, 200, { posters: [] }); // folder doesn't exist yet — not an error, just nothing to show
+      }
+    }
+
+    // POST /home-posters/react  { playerId, filename, reaction }
+    if (req.method === 'POST' && pathname === '/home-posters/react') {
+      const { playerId, filename, reaction } = await readBody(req);
+      try {
+        const result = db.reactToPoster(playerId, filename, reaction);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'REACT_ERROR', message: e.message });
+      }
+    }
+
+    // POST /home-posters/dismiss  { playerId, filename }
+    if (req.method === 'POST' && pathname === '/home-posters/dismiss') {
+      const { playerId, filename } = await readBody(req);
+      try {
+        const result = db.dismissPoster(playerId, filename);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'DISMISS_ERROR', message: e.message });
       }
     }
 
@@ -341,6 +392,18 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, result);
     }
 
+    // POST /spawns/:id/flee  { playerId } -> back out of a capture attempt; the spawn is gone for good
+    if (req.method === 'POST' && pathname.match(/^\/spawns\/\d+\/flee$/)) {
+      const spawnId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = spawnsModule.fleeSpawn(spawnId, playerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'FLEE_ERROR', message: e.message });
+      }
+    }
+
     // POST /capture-attempt
     // { playerId, spawnId, crystalsSpent, padAccuracy, attemptDurationMs, playerLat, playerLng }
     if (req.method === 'POST' && pathname === '/capture-attempt') {
@@ -395,6 +458,7 @@ const server = http.createServer(async (req, res) => {
         padRam: player.padRam,
         repairKits: player.repairKits,
         energyTubes: player.energyTubes,
+        displayedBadge: player.displayedBadge,
         padRamNeededNext: db.padRequiresRam(player.padLevel + 1),
         timeWarps: player.timeWarps,
         autoReleaseDuplicates: player.autoReleaseDuplicates,
@@ -486,6 +550,18 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, result);
       } catch (e) {
         return sendJson(res, 409, { error: 'EVOLVE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /droids/:id/toggle-hidden-from-trade  { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/droids\/\d+\/toggle-hidden-from-trade$/)) {
+      const droidId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = workshopModule.toggleHiddenFromTrade(playerId, droidId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'TOGGLE_ERROR', message: e.message });
       }
     }
 
@@ -583,11 +659,11 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // POST /beacon/buy  { playerId }
+    // POST /beacon/buy  { playerId, quantity }
     if (req.method === 'POST' && pathname === '/beacon/buy') {
-      const { playerId } = await readBody(req);
+      const { playerId, quantity } = await readBody(req);
       try {
-        const result = db.buyBeacon(playerId);
+        const result = db.buyBeacon(playerId, quantity);
         return sendJson(res, 200, result);
       } catch (e) {
         return sendJson(res, 409, { error: 'BEACON_ERROR', message: e.message });
@@ -704,11 +780,11 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { items: db.SHOP_CATALOG });
     }
 
-    // POST /shop/buy  { playerId, itemId }
+    // POST /shop/buy  { playerId, itemId, quantity }
     if (req.method === 'POST' && pathname === '/shop/buy') {
-      const { playerId, itemId } = await readBody(req);
+      const { playerId, itemId, quantity } = await readBody(req);
       try {
-        const result = db.buyShopItem(playerId, itemId);
+        const result = db.buyShopItem(playerId, itemId, quantity);
         return sendJson(res, 200, result);
       } catch (e) {
         return sendJson(res, 409, { error: 'SHOP_ERROR', message: e.message });
@@ -737,6 +813,17 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // POST /player/cleanup-duplicates  { playerId } -> one-time retroactive sweep of existing Warehouse duplicates
+    if (req.method === 'POST' && pathname === '/player/cleanup-duplicates') {
+      const { playerId } = await readBody(req);
+      try {
+        const result = workshopModule.cleanupExistingDuplicates(playerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'CLEANUP_ERROR', message: e.message });
+      }
+    }
+
     // POST /player/auto-release-duplicates  { playerId, enabled }
     if (req.method === 'POST' && pathname === '/player/auto-release-duplicates') {
       const { playerId, enabled } = await readBody(req);
@@ -756,6 +843,18 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, result);
       } catch (e) {
         return sendJson(res, 409, { error: 'SETTING_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/catch-titan  { playerId, padAccuracy, crystalsSpent }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/catch-titan$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId, padAccuracy, crystalsSpent } = await readBody(req);
+      try {
+        const result = battleModule.attemptScaffitanCapture(battleId, playerId, padAccuracy, crystalsSpent);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'CAPTURE_ERROR', message: e.message });
       }
     }
 
@@ -1052,6 +1151,21 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
       }
       return sendJson(res, 200, { players: db.listPlayersAdmin() });
+    }
+
+    // POST /admin/players/:id/reset-pin  { adminCode, newPin }
+    if (req.method === 'POST' && pathname.match(/^\/admin\/players\/\d+\/reset-pin$/)) {
+      const playerId = Number(pathname.split('/')[3]);
+      const body = await readBody(req);
+      if (body.adminCode !== ADMIN_CODES.events) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
+      try {
+        const result = db.adminResetPin(playerId, body.newPin);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'RESET_ERROR', message: e.message });
+      }
     }
 
     // POST /admin/players/:id/delete  { adminCode } -> cascading delete
