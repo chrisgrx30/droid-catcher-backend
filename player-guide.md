@@ -1,4 +1,4 @@
-# Droid Catcher — Player Guide (Beta)
+# Sparkfield — Player Guide (Beta)
 
 Welcome to the beta! This covers everything currently in the game.
 

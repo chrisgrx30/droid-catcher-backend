@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Field Terminal — Droid Catcher</title>
+<title>Field Terminal — Sparkfield</title>
+<link rel="apple-touch-icon" href="/assets/home/icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root {
     --bg: #0a0d0f;
@@ -279,6 +281,8 @@
   .spawn-meta { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
 
   /* ---- capture timing minigame ---- */
+  /* Alignment background lives HERE (inside the minigame track), not on
+     the general spawn card — moved per correction. */
   .capture-track {
     position: relative;
     height: 24px;
@@ -288,6 +292,9 @@
     margin-top: 8px;
     overflow: hidden;
   }
+  .capture-track.align-light { background: linear-gradient(rgba(20,24,26,0.55), rgba(20,24,26,0.55)), url('/assets/misc/bg-light.png') center/cover no-repeat, var(--panel-raised); }
+  .capture-track.align-dark { background: linear-gradient(rgba(20,24,26,0.55), rgba(20,24,26,0.55)), url('/assets/misc/bg-dark.png') center/cover no-repeat, var(--panel-raised); }
+  .capture-track.align-cosmic { background: linear-gradient(rgba(20,24,26,0.55), rgba(20,24,26,0.55)), url('/assets/misc/bg-cosmic.png') center/cover no-repeat, var(--panel-raised); }
   .capture-track .zone {
     position: absolute;
     top: 0; bottom: 0;
@@ -453,7 +460,7 @@
 <header>
   <div class="brand">
     <div class="brand-mark"></div>
-    <h1>Field Terminal <span>// Droid Catcher API Console <span style="color:var(--text-dim); font-size:9px;">v0.0.9</span></span></h1>
+    <h1>Field Terminal <span>// Sparkfield API Console <span style="color:var(--text-dim); font-size:9px;">v0.1.0</span></span></h1>
   </div>
   <div class="conn">
     <span class="dot" id="connDot"></span>
@@ -463,21 +470,41 @@
 </header>
 
 <div class="tab-nav" id="tabNav">
-  <button class="tab-btn active" data-tab="player">Player</button>
-  <button class="tab-btn" data-tab="capture">Capture</button>
-  <button class="tab-btn" data-tab="farm">Farm</button>
-  <button class="tab-btn" data-tab="companion">Companion</button>
-  <button class="tab-btn" data-tab="storage">Storage</button>
+  <button class="tab-btn active" data-tab="home">Home</button>
+  <button class="tab-btn" data-tab="player">Player</button>
+  <button class="tab-btn" data-tab="capture">Override</button>
+  <button class="tab-btn" data-tab="fieldops">Field Ops</button>
+  <button class="tab-btn" data-tab="farm">Foundry</button>
   <button class="tab-btn" data-tab="guilds">Guilds</button>
+  <button class="tab-btn" data-tab="companion">Companion</button>
   <button class="tab-btn" data-tab="inventory">Inventory</button>
   <button class="tab-btn" data-tab="social">Trading</button>
   <button class="tab-btn" data-tab="dex">Dex</button>
-  <button class="tab-btn" data-tab="fieldops">Field Ops</button>
+  <button class="tab-btn" data-tab="battles">Battles</button>
+  <button class="tab-btn" data-tab="storage">Warehouse</button>
   <button class="tab-btn tab-btn-admin" data-tab="admin">Admin</button>
 </div>
 
+<!-- HOME TAB -->
+<div class="tab-page active" id="tab-home">
+  <div class="panel">
+    <div id="homeLogoArea" style="text-align:center; margin-bottom:16px;">
+      <img id="homeLogoImg" src="/assets/home/logo.png" style="max-width:100%; max-height:120px; display:none;" onload="this.style.display='block'; document.getElementById('homeLogoFallback').style.display='none';" onerror="this.style.display='none'; document.getElementById('homeLogoFallback').style.display='block';">
+      <div id="homeLogoFallback" class="panel-title" style="font-size:20px; text-align:center;">Sparkfield</div>
+    </div>
+
+    <div class="panel-title" style="margin-bottom:8px;">What's New</div>
+    <div id="homeChangelog" style="font-size:11px; line-height:1.6; color:var(--text-dim);"></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title" style="margin-bottom:8px;">Events &amp; News</div>
+    <div id="homePosters"><div class="empty">No posters right now — check back soon!</div></div>
+  </div>
+</div>
+
 <!-- PLAYER TAB -->
-<div class="tab-page active" id="tab-player">
+<div class="tab-page" id="tab-player">
   <div class="panel">
     <div class="panel-title">Pilot</div>
     <div id="noPlayer">
@@ -494,16 +521,31 @@
       <div class="stat-row"><span class="stat-label">Crystals</span><span class="stat-val amber" id="statCrystals">0</span></div>
       <div class="stat-row"><span class="stat-label">Droids</span><span class="stat-val" id="statDroidCount">0</span></div>
       <button class="ghost" id="btnRefreshPlayer">Refresh</button>
-      <button class="ghost" id="btnNewPilot" style="color:var(--danger); border-color:var(--danger);">New Pilot (reset)</button>
+      <a id="guideLink" href="/guide" target="_blank" style="display:block; text-align:center; margin-top:8px; font-size:10px; color:var(--cyan);">📖 User Guide</a>
 
-      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Control Pad</div>
-      <div class="stat-row"><span class="stat-label">Pad Level</span><span class="stat-val" id="statPadLevel">0</span></div>
-      <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-val" id="statCritChance">2%</span></div>
-      <button id="btnUpgradePad">Upgrade Pad — <span id="padUpgradeCost">100</span> ✦</button>
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <div style="flex:1; padding:10px; border:1px solid var(--line); border-radius:4px; background: linear-gradient(rgba(20,24,26,0.65), rgba(20,24,26,0.65)), url('/assets/misc/control-pad.png') center/cover no-repeat, var(--panel-raised);">
+          <div class="panel-title" style="margin-bottom:6px;">Control Pad</div>
+          <div class="stat-row"><span class="stat-label">Pad Level</span><span class="stat-val" id="statPadLevel">0</span></div>
+          <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-val" id="statCritChance">2%</span></div>
+          <button id="btnUpgradePad">Upgrade Pad — <span id="padUpgradeCost">100</span> ✦</button>
+          <div id="padRamStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
+        </div>
+        <div style="flex:1.3; padding:10px; border:1px solid var(--line); border-radius:4px;">
+          <div class="panel-title" style="margin-bottom:6px;">Outfit</div>
+          <div id="outfitDisplay" style="margin-bottom:8px;"></div>
+          <div id="outfitOptions" style="font-size:9px; color:var(--text-dim);"></div>
+        </div>
+      </div>
 
-      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Cosmetics</div>
-      <div id="cosmeticsOwned" style="margin-bottom:8px;"></div>
-      <div id="cosmeticsShop"></div>
+      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Change PIN</div>
+      <input type="text" id="currentPinInput" placeholder="Current PIN" maxlength="8" inputmode="numeric">
+      <input type="text" id="newPinInput" placeholder="New PIN (4-8 digits)" maxlength="8" inputmode="numeric">
+      <button id="btnChangePin" style="width:25%; font-size:9px; padding:6px;">Update PIN</button>
+
+      <div style="margin-top:24px; text-align:center;">
+        <button class="ghost" id="btnNewPilot" style="width:25%; font-size:9px; padding:6px; color:var(--danger); border-color:var(--danger);">New Pilot (reset)</button>
+      </div>
     </div>
     <div id="starterPicker" style="display:none; margin-top:14px;">
       <div class="panel-title" style="margin-bottom:6px;">Choose Starter Droid</div>
@@ -517,6 +559,7 @@
 <div class="tab-page" id="tab-capture">
   <div class="panel">
     <div class="panel-title">Radar Sweep <span id="todBadge" style="color: var(--text-dim);"></span></div>
+    <div id="beaconCellBanner"></div>
     <div id="eventBanner"></div>
     <button class="primary" id="btnUseLocation">📍 Use My Location &amp; Scan</button>
     <div id="locationStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
@@ -524,6 +567,9 @@
     <div class="spawn-list" id="spawnList">
       <div class="empty">No sweep yet — tap Use My Location</div>
     </div>
+
+    <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Your Location</div>
+    <div id="locationMap" style="height:220px; border-radius:4px; border:1px solid var(--line); background:var(--panel-raised);"></div>
   </div>
 </div>
 
@@ -553,10 +599,48 @@
   </div>
 </div>
 
+<!-- BATTLES TAB -->
+<div class="tab-page" id="tab-battles">
+  <div class="panel">
+    <div class="panel-title">Titan Encounter <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— 1000✦ entry, 2hr cooldown, rare chance to catch it</span></div>
+    <button class="primary" id="btnStartTitan" style="margin-top:6px;">Fight the Titan (1000✦)</button>
+    <div style="font-size:9px; color:var(--text-dim); margin:8px 0 4px;">— or invite others (up to 9, 10 total) —</div>
+    <input type="text" id="titanGroupInvites" placeholder="Player IDs, comma-separated e.g. 12,15,20">
+    <button id="btnCreateGroupTitan" style="margin-top:6px;">Create Group Encounter</button>
+  </div>
+
+  <div class="panel" style="margin-top:16px;" id="battleChallengeForm">
+    <div class="panel-title">Challenge a Player</div>
+    <label>Opponent Player ID</label>
+    <input type="text" id="battleOpponentId" placeholder="e.g. 12">
+    <div class="panel-title" style="margin-top:12px; margin-bottom:6px; font-size:10px;">Choose Your Team (exactly 4, no fainted)</div>
+    <div id="battleTeamPicker"></div>
+    <button class="primary" id="btnSendChallenge" style="margin-top:10px;">Send Challenge</button>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">Your Battles <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— refreshes when you open this tab</span></div>
+    <button class="ghost" id="btnRefreshBattles" style="margin-bottom:10px;">Refresh</button>
+    <div id="battleList"><div class="empty">No battles yet</div></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px; display:none;" id="activeBattlePanel">
+    <div class="panel-title">Battle #<span id="activeBattleId"></span></div>
+    <div id="activeBattleView"></div>
+  </div>
+</div>
+
 <!-- STORAGE TAB -->
 <div class="tab-page" id="tab-storage">
   <div class="panel">
     <div class="panel-title">Owned Droids <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(not farming — rarity, species, variant)</span></div>
+    <input type="text" id="warehouseSearch" placeholder="Search by name...">
+    <label style="display:flex; align-items:center; gap:6px; font-size:9px; color:var(--text-dim); margin:8px 0;">
+      <input type="checkbox" id="autoReleaseToggle"> Auto-release duplicate Common/Uncommon captures (off by default)
+      <label style="display:flex; align-items:center; gap:6px; font-size:9px; color:var(--text-dim); margin:4px 0 8px 18px;">
+        <input type="checkbox" id="autoReleaseVariantsToggle"> Also include Rusty/Platinum duplicates (matched exactly — a new Rusty only auto-releases if you already own a Rusty of that species. Funky is never auto-released, even with this on)
+      </label>
+    </label>
     <div style="display:flex; gap:6px; margin-bottom:10px;">
       <button id="btnSelectAllDroids" class="ghost" style="margin-top:0;">Select All</button>
       <button id="btnReleaseSelected" class="ghost" style="margin-top:0; color:var(--danger); border-color:var(--danger);">Release Selected</button>
@@ -570,6 +654,8 @@
   <div class="panel">
     <div class="panel-title">Guild</div>
     <div id="guildStatus"><div class="empty">Not in a guild</div></div>
+    <div id="guildBadgeArea"></div>
+    <div id="guildNoticeArea"></div>
     <div id="guildMembers"></div>
     <div id="guildCreateJoin">
       <label style="margin-top:10px;">Guild name (to create)</label>
@@ -601,10 +687,19 @@
     <div class="stat-row"><span class="stat-label">✦ Crystals</span><span class="stat-val amber" id="statInvCrystals">0</span></div>
     <div class="stat-row"><span class="stat-label">🎨 Paint</span><span class="stat-val" id="statPaint">0</span></div>
     <div class="stat-row"><span class="stat-label">🔷 Nova Chips</span><span class="stat-val" id="statNovaChips">0</span></div>
+    <div class="stat-row"><span class="stat-label">📡 Beacons</span><span class="stat-val" id="statInvBeacons">0</span></div>
+    <div class="stat-row"><span class="stat-label">⚙️ Augment Cores</span><span class="stat-val" id="statAugmentCores">0</span></div>
+    <div class="stat-row"><span class="stat-label">🩹 Repair Kits</span><span class="stat-val" id="statRepairKits">0</span></div>
+    <div class="stat-row"><span class="stat-label">🔋 Energy Tubes</span><span class="stat-val" id="statEnergyTubes">0</span></div>
 
     <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Redeem Code</div>
     <input type="text" id="redeemCodeInput" placeholder="e.g. WELCOME2026">
     <button id="btnRedeemCode">Redeem</button>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">Shop <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— heavy crystal prices, a shortcut for players who can farm big amounts</span></div>
+    <div id="shopList"></div>
   </div>
 </div>
 
@@ -667,27 +762,30 @@
     <div class="dex-grid" id="dexGrid"></div>
   </div>
   <div class="panel" style="margin-top:16px;">
-    <div class="panel-title">☀ Event Dex <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— doesn't count toward main Dex completion</span></div>
+    <div class="panel-title">Event Dex <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— doesn't count toward main Dex completion</span></div>
+    <div id="eventDeckButtons" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;"></div>
     <div class="dex-grid" id="eventDexGrid"></div>
   </div>
 </div>
 
 <!-- FIELD OPS TAB -->
 <div class="tab-page" id="tab-fieldops">
-  <div class="panel">
-    <div class="panel-title">Depot</div>
-    <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">Play the ring minigame for crystals — better placement means a bigger payout. Paint/Nova Chip odds stay flat either way. 100✦ per attempt, 1 hour cooldown after a visit.</div>
-    <div id="depotStatus"></div>
-    <button class="primary" id="btnPlayDepot">Visit Depot (100✦)</button>
-  </div>
+  <div style="display:flex; gap:10px;">
+    <div class="panel" style="flex:1;">
+      <div class="panel-title">Depot</div>
+      <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Ring minigame for crystals — better placement, bigger payout. 100✦, 1hr cooldown.</div>
+      <div id="depotStatus"></div>
+      <button class="primary" id="btnPlayDepot" style="font-size:9px; padding:7px;">Visit Depot (100✦)</button>
+    </div>
 
-  <div class="panel" style="margin-top:16px;">
-    <div class="panel-title">Beacon</div>
-    <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">While active, boosts Rare+ spawn odds for you (and anyone nearby) for 30 minutes.</div>
-    <div id="beaconStatus"></div>
-    <div style="display:flex; gap:6px;">
-      <button id="btnBuyBeacon">Buy Beacon (300✦)</button>
-      <button id="btnActivateBeacon">Activate</button>
+    <div class="panel" style="flex:1;">
+      <div class="panel-title">Beacon</div>
+      <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Boosts Rare+ spawn odds for you and anyone nearby, 30 minutes.</div>
+      <div id="beaconStatus"></div>
+      <div style="display:flex; gap:4px;">
+        <button id="btnBuyBeacon" style="font-size:9px; padding:7px;">Buy (300✦)</button>
+        <button id="btnActivateBeacon" style="font-size:9px; padding:7px;">Activate</button>
+      </div>
     </div>
   </div>
 
@@ -695,7 +793,7 @@
     <div class="panel-title">Factory — Prototypes</div>
     <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">Win an egg from the ring minigame (100✦, 3hr cooldown after a win — a miss doesn't cost cooldown). Assign it to a Processor slot and pay 100✦ to start a 20hr incubation. Collect once ready — rarity is a fixed roll, skill doesn't affect it.</div>
     <div id="factoryStatus"></div>
-    <button class="primary" id="btnPlayFactory">Attempt Egg (100✦)</button>
+    <button class="primary" id="btnPlayFactory">Attempt Prototype (100✦)</button>
 
     <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Unassigned Eggs</div>
     <div id="eggList"><div class="empty">None yet</div></div>
@@ -731,10 +829,13 @@
     <button id="btnLoadAdminPlayers">Load Player List</button>
     <div id="adminPlayerList" style="margin-top:10px;"></div>
   </div>
-</div>
 
-<div class="console" id="console">
-  <div class="console-line"><span class="tag">SYS</span> <span class="body">Terminal ready. Deploy a pilot to begin.</span></div>
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-title">Console Log</div>
+    <div class="console" id="console">
+      <div class="console-line"><span class="tag">SYS</span> <span class="body">Terminal ready. Deploy a pilot to begin.</span></div>
+    </div>
+  </div>
 </div>
 
 <!-- CAPTURE RESULT POPUP -->
@@ -742,9 +843,10 @@
   <div class="modal-box" id="captureResultBox"></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, guildId: null, processorSlots: [], unassignedEggs: [] };
+let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, guildId: null, processorSlots: [], unassignedEggs: [], beacons: 0, augmentCores: 0, outfit: 'basic', ownedOutfits: ['basic'], shopCatalog: [], activeEventDeck: null };
 const FUNKY_PAINT_COST = 10; // matches db.FUNKY_EVOLVE_PAINT_COST default on the backend
 
 // ---- Tab navigation ----
@@ -754,8 +856,111 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     document.querySelectorAll('.tab-page').forEach((p) => p.classList.remove('active'));
     btn.classList.add('active');
     $('tab-' + btn.dataset.tab).classList.add('active');
+    // Leaflet renders incorrectly (often blank) if the map was
+    // initialized or updated while its container was hidden by the
+    // previous tab's display:none — recalculating size on every visit
+    // to this tab fixes it reliably.
+    if (btn.dataset.tab === 'capture' && locationMap) {
+      setTimeout(() => locationMap.invalidateSize(), 50);
+    }
+    if (btn.dataset.tab === 'battles') {
+      renderTeamPicker();
+      refreshBattles();
+    }
   };
 });
+
+// ---- Live location map ----
+// Uses Leaflet + OpenStreetMap tiles (no API key needed). Fails
+// gracefully if the CDN didn't load (e.g. offline) — the rest of the
+// app doesn't depend on this working.
+let locationMap = null;
+let locationMarker = null;
+
+let spawnMarkers = []; // cleared and rebuilt on every scan
+
+function updateLocationMap(lat, lng) {
+  if (typeof L === 'undefined') return; // Leaflet didn't load — skip silently, nothing else in the app needs it
+  try {
+    if (!locationMap) {
+      locationMap = L.map('locationMap').setView([lat, lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(locationMap);
+      locationMarker = L.marker([lat, lng]).addTo(locationMap);
+    } else {
+      locationMap.setView([lat, lng], locationMap.getZoom());
+      locationMarker.setLatLng([lat, lng]);
+    }
+  } catch (e) {} // don't let a map failure break the rest of the scan flow
+}
+
+const SPAWN_MARKER_COLOR = { light: '#f5c451', dark: '#8b6de0', cosmic: '#ff9df0' };
+
+function renderSpawnMarkers() {
+  if (typeof L === 'undefined' || !locationMap) return;
+  try {
+    spawnMarkers.forEach((m) => locationMap.removeLayer(m));
+    spawnMarkers = [];
+    state.spawns.forEach((spawn) => {
+      const color = SPAWN_MARKER_COLOR[spawn.alignment] || '#5fd8e0';
+      const icon = L.divIcon({
+        className: 'spawn-map-marker',
+        html: `<div style="width:16px; height:16px; border-radius:50%; background:${color}; border:2px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>`,
+        iconSize: [16, 16],
+      });
+      const marker = L.marker([spawn.lat, spawn.lng], { icon }).addTo(locationMap);
+      marker.bindPopup(`<strong>${spawn.speciesName}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}`);
+      marker.on('click', () => highlightSpawnCard(spawn.id));
+      spawnMarkers.push(marker);
+    });
+  } catch (e) {}
+}
+
+function highlightSpawnCard(spawnId) {
+  const card = document.getElementById('spawn-card-' + spawnId);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.style.transition = 'none';
+  card.style.boxShadow = '0 0 0 2px var(--cyan)';
+  setTimeout(() => {
+    card.style.transition = 'box-shadow 0.6s';
+    card.style.boxShadow = 'none';
+  }, 900);
+}
+
+// ---- Home page ----
+// Written each build round — a short, plain-language summary of what
+// just shipped. Update this string when packaging a new release.
+const HOME_CHANGELOG = `
+  <p><strong>Latest update:</strong></p>
+  <ul style="margin:6px 0 0; padding-left:18px;">
+    <li>Two brand-new droid lines: Void Zombies (11pm-1am) and Lumen Sentinels (11am-1pm), both spawning daily</li>
+    <li>Warehouse got a cleanup — droids now group by rarity, and a search bar helps find a specific one fast</li>
+    <li>New Shop: buy materials, outfits, and pad plug-ins (Time Warp, Growth) directly with crystals</li>
+    <li>Guild badges, guild notices, and a Dex leaderboard for your guild</li>
+    <li>Capture minigame got trickier at high Pad Levels — and Rusty/Platinum odds are now at their real intended rarity</li>
+  </ul>
+`;
+
+async function loadHomePage() {
+  $('homeChangelog').innerHTML = HOME_CHANGELOG;
+  try {
+    const res = await fetch(serverUrl() + '/home-posters');
+    const data = await res.json();
+    const postersEl = $('homePosters');
+    if (!data.posters || !data.posters.length) {
+      postersEl.innerHTML = '<div class="empty">No posters right now — check back soon!</div>';
+      return;
+    }
+    postersEl.innerHTML = data.posters.map((filename) =>
+      `<img src="/assets/home/posters/${filename}" style="width:100%; border-radius:4px; margin-bottom:10px; display:block;">`
+    ).join('');
+  } catch (e) {}
+}
+loadHomePage();
+
 let tickInterval = null;
 
 function serverUrl() {
@@ -853,6 +1058,33 @@ $('btnCreatePlayer').onclick = async () => {
 
 $('btnRefreshPlayer').onclick = () => refreshWorkshop();
 
+$('btnChangePin').onclick = async () => {
+  const currentPin = $('currentPinInput').value.trim();
+  const newPin = $('newPinInput').value.trim();
+  if (!currentPin || !newPin) { showPinResultPopup(false, 'Enter both your current and new PIN'); return; }
+  try {
+    await api('POST', '/player/change-pin', { playerId: state.playerId, currentPin, newPin });
+    $('currentPinInput').value = '';
+    $('newPinInput').value = '';
+    showPinResultPopup(true, 'Your PIN has been updated.');
+  } catch (e) {
+    showPinResultPopup(false, (e && e.message) || 'Something went wrong — try again.');
+  }
+};
+
+function showPinResultPopup(success, message) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">${success ? '✅' : '⚠️'}</div>
+    <div class="mb-title ${success ? 'success' : 'fail'}">${success ? 'PIN Updated' : 'PIN Update Failed'}</div>
+    <div class="mb-detail">${message}</div>
+    <button class="${success ? 'primary' : ''} mb-close">${success ? 'Nice' : 'OK'}</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
+
 $('btnNewPilot').onclick = () => {
   localStorage.removeItem(PLAYER_STORAGE_KEY);
   window.location.reload();
@@ -865,7 +1097,7 @@ function updatePlayerStats(player) {
 }
 
 function showStarterPicker() {
-  const commonSpecies = state.species.filter((s) => s.rarity === 'common');
+  const commonSpecies = state.species.filter((s) => s.isStarterOption);
   const container = $('starterOptions');
   container.innerHTML = '';
   commonSpecies.forEach((s) => {
@@ -909,19 +1141,41 @@ $('btnUseLocation').onclick = () => {
 async function scanAt(lat, lng) {
   state.lastLat = lat;
   state.lastLng = lng;
+  updateLocationMap(lat, lng);
   try {
     const data = await api('GET', `/spawns?lat=${lat}&lng=${lng}&radius=${DEFAULT_SCAN_RADIUS}&playerId=${state.playerId}`);
     state.spawns = data.spawns;
     const badge = $('todBadge');
     badge.textContent = data.timeOfDay === 'day' ? '☀ Daytime here' : '🌑 Nighttime here';
     badge.style.color = data.timeOfDay === 'day' ? 'var(--amber)' : 'var(--legendary)';
-    if (data.beaconActive) log('SYS', '⚡ Beacon boost active on this scan!');
+    const beaconBanner = $('beaconCellBanner');
+    beaconBanner.innerHTML = data.cellBeaconActive
+      ? `<div style="background:rgba(95,216,224,0.12); border:1px solid var(--cyan-dim); border-radius:3px; padding:6px 10px; margin:8px 0; font-size:10px; color:var(--cyan);">📡 A Beacon is active nearby — better odds on Rare+ droids here${data.beaconActive ? ' (yours!)' : ''}</div>`
+      : '';
     renderEvents(data.activeEvents);
+    renderSpawnMarkers();
     renderSpawns();
   } catch (e) {}
 }
 
 const RARITY_ZONE_WIDTH = { common: 34, uncommon: 24, rare: 20, legendary: 12, cosmic: 8 }; // % of track width — narrower = harder. Common/Uncommon tightened per playtest feedback (were too easy at 44/32).
+
+// Once Pad Level passes 10, Rare+ tiers get progressively harder —
+// directly targets "a maxed-out pad trivializes everything." Floored so
+// it's never truly unwinnable (never below 40% of the original width /
+// above 1.5x the original speed).
+function scaledZoneWidth(baseWidth, rarity, padLevel) {
+  if (!['rare', 'legendary', 'cosmic'].includes(rarity) || padLevel <= 10) return baseWidth;
+  const extraLevels = padLevel - 10;
+  const reduction = Math.min(baseWidth * 0.5, extraLevels * 0.5);
+  return Math.max(baseWidth - reduction, baseWidth * 0.4);
+}
+function scaledMarkerSpeed(baseSpeed, rarity, padLevel) {
+  if (!['rare', 'legendary', 'cosmic'].includes(rarity) || padLevel <= 10) return baseSpeed;
+  const extraLevels = padLevel - 10;
+  return baseSpeed * (1 + Math.min(0.5, extraLevels * 0.02));
+}
+
 const activeAnimations = {}; // spawnId -> { intervalId, getPosition }
 
 function stopAllAnimations() {
@@ -939,28 +1193,40 @@ function renderSpawns() {
   list.innerHTML = '';
   state.spawns.forEach((spawn) => {
     const card = document.createElement('div');
-    card.className = `spawn-card ${spawn.rarity}` + (spawn.variant !== 'standard' ? ` variant-${spawn.variant}` : '');
+    card.className = `spawn-card ${spawn.rarity} align-${spawn.alignment}` + (spawn.variant !== 'standard' ? ` variant-${spawn.variant}` : '');
+    card.id = 'spawn-card-' + spawn.id;
     const variantTag = spawn.variant !== 'standard'
       ? `<span class="variant-tag ${spawn.variant}">${spawn.variant}</span>`
       : '';
     const minCost = spawn.minCrystalCost;
     const sliderMax = Math.max(minCost * 3, 50);
-    const zoneWidth = RARITY_ZONE_WIDTH[spawn.rarity] || 30;
+    let zoneWidth = scaledZoneWidth(RARITY_ZONE_WIDTH[spawn.rarity] || 30, spawn.rarity, state.padLevel || 0);
     const zoneCenter = 15 + Math.random() * 70; // keep the zone fully on-track (15%-85% range)
+    let baseSpeed = scaledMarkerSpeed(2.2, spawn.rarity, state.padLevel || 0);
 
     const alreadyCaught = spawn.variant === 'standard'
       ? (state.dexCaughtIds && state.dexCaughtIds.has(spawn.speciesId))
       : (state.dexCaughtVariants && state.dexCaughtVariants.has(`${spawn.speciesId}:${spawn.variant}`));
-    const dexPadIcon = alreadyCaught ? '<span title="Already in your Dex" style="margin-left:4px;">🎮</span>' : '';
+    const dexPadIcon = alreadyCaught ? '<span title="Already in your Dex" style="margin-left:4px; color:#4dff88; font-weight:900; text-shadow:0 0 4px rgba(77,255,136,0.6);">✓</span>' : '';
+    const boostIcon = spawn.boostSource === 'event' ? '<span title="Boosted by an active event" style="margin-left:4px;">⚡</span>'
+      : spawn.boostSource === 'beacon' ? '<span title="Boosted by an active Beacon" style="margin-left:4px;">📡</span>'
+      : '';
+
+    const pluginRow = (state.timeWarps > 0 || state.growths > 0) ? `
+      <div style="display:flex; gap:10px; margin-top:4px; font-size:9px; color:var(--text-dim);">
+        ${state.timeWarps > 0 ? `<label style="display:flex; align-items:center; gap:3px;"><input type="checkbox" class="use-timewarp-cb"> Time Warp (${state.timeWarps})</label>` : ''}
+        ${state.growths > 0 ? `<label style="display:flex; align-items:center; gap:3px;"><input type="checkbox" class="use-growth-cb"> Growth (${state.growths})</label>` : ''}
+      </div>` : '';
 
     card.innerHTML = `
       <div class="spawn-top">
         <div class="spawn-icon"></div>
-        <span class="spawn-name">${spawn.alignment === 'light' ? '☀' : '🌑'} ${spawn.speciesName}${variantTag}${dexPadIcon}</span>
+        <span class="spawn-name">${spawn.alignment === 'light' ? '☀' : '🌑'} ${spawn.speciesName}${variantTag}${dexPadIcon}${boostIcon}</span>
         <span class="spawn-rarity ${spawn.rarity}">${spawn.rarity}</span>
       </div>
       <div class="spawn-meta">${spawn.distanceMeters}m away · expires ${new Date(spawn.expiresAt).toLocaleTimeString()} · needs ${minCost}+ crystals</div>
-      <div class="capture-track">
+      ${pluginRow}
+      <div class="capture-track align-${spawn.alignment}">
         <div class="zone" style="left:${zoneCenter - zoneWidth / 2}%; width:${zoneWidth}%;"></div>
         <div class="marker" style="left:0%;"></div>
       </div>
@@ -974,6 +1240,23 @@ function renderSpawns() {
     const crVal = card.querySelector('.cr-val');
     crSlider.oninput = () => crVal.textContent = crSlider.value;
 
+    const zoneEl = card.querySelector('.zone');
+    const timeWarpCb = card.querySelector('.use-timewarp-cb');
+    const growthCb = card.querySelector('.use-growth-cb');
+    let speed = baseSpeed;
+    if (timeWarpCb) {
+      timeWarpCb.onchange = () => {
+        speed = timeWarpCb.checked ? baseSpeed * 0.6 : baseSpeed; // 40% slower while active
+      };
+    }
+    if (growthCb) {
+      growthCb.onchange = () => {
+        zoneWidth = growthCb.checked ? Math.min(70, (RARITY_ZONE_WIDTH[spawn.rarity] || 30) * 1.4) : scaledZoneWidth(RARITY_ZONE_WIDTH[spawn.rarity] || 30, spawn.rarity, state.padLevel || 0); // 40% wider while active
+        zoneEl.style.width = zoneWidth + '%';
+        zoneEl.style.left = (zoneCenter - zoneWidth / 2) + '%';
+      };
+    }
+
     // Marker sweeps 0% -> 100% -> 0% continuously; player stops it as close
     // to the zone center as they can. Distance from center -> accuracy,
     // which feeds the server's padSkillMultiplier — a real, earned skill
@@ -981,7 +1264,6 @@ function renderSpawns() {
     const marker = card.querySelector('.marker');
     let markerPos = 0;
     let direction = 1;
-    const speed = 2.2; // % per tick (20ms ticks -> ~1s per full sweep)
     const intervalId = setInterval(() => {
       markerPos += direction * speed;
       if (markerPos >= 100) { markerPos = 100; direction = -1; }
@@ -990,9 +1272,18 @@ function renderSpawns() {
     }, 20);
     activeAnimations[spawn.id] = { intervalId };
 
-    card.querySelector('.stop-btn').onclick = () => {
+    card.querySelector('.stop-btn').onclick = async () => {
       clearInterval(intervalId);
       delete activeAnimations[spawn.id];
+
+      // Plugins are consumed the moment the attempt is made — gone either
+      // way, win or lose — matching how every other consumable works here.
+      if (timeWarpCb && timeWarpCb.checked) {
+        try { await api('POST', '/player/use-time-warp', { playerId: state.playerId }); state.timeWarps--; } catch (e) {}
+      }
+      if (growthCb && growthCb.checked) {
+        try { await api('POST', '/player/use-growth', { playerId: state.playerId }); state.growths--; } catch (e) {}
+      }
 
       const distance = Math.abs(markerPos - zoneCenter);
       const halfZone = zoneWidth / 2;
@@ -1038,7 +1329,16 @@ async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
 function showCaptureResultPopup(spawn, result, crystalsSpent) {
   const overlay = $('captureResultOverlay');
   const box = $('captureResultBox');
-  if (result.success) {
+  if (result.success && result.autoReleased) {
+    box.innerHTML = `
+      <div class="mb-icon">♻️</div>
+      <div class="mb-title success">Captured & Auto-Released</div>
+      <div class="mb-detail">${spawn.speciesName} was a duplicate — released automatically</div>
+      <div class="mb-detail" style="color:var(--amber);">✦ +${result.autoReleaseRefund} crystals</div>
+      ${result.gotPaint ? '<div class="mb-detail" style="color:var(--amber);">🎨 +1 Paint dropped!</div>' : ''}
+      <button class="primary mb-close">Nice!</button>
+    `;
+  } else if (result.success) {
     box.innerHTML = `
       <div class="mb-icon">✅</div>
       <div class="mb-title success">Captured!</div>
@@ -1090,8 +1390,18 @@ async function refreshWorkshop() {
       $('wsActiveBuff').textContent = 'None';
     }
     $('statPadLevel').textContent = data.padLevel;
+    state.padLevel = data.padLevel;
+    state.timeWarps = data.timeWarps;
+    $('autoReleaseToggle').checked = !!data.autoReleaseDuplicates;
+    $('autoReleaseVariantsToggle').checked = !!data.autoReleaseIncludeVariants;
+    state.growths = data.growths;
+    state.repairKits = data.repairKits;
+    state.energyTubes = data.energyTubes;
     $('statCritChance').textContent = Math.round(data.critChance * 100) + '%';
     $('padUpgradeCost').textContent = data.nextPadUpgradeCost;
+    $('padRamStatus').innerHTML = data.padRamNeededNext
+      ? `⚙️ This level also needs 1 Pad RAM — you have ${data.padRam}${data.padRam < 1 ? ' <span style="color:var(--danger);">(need more)</span>' : ''}`
+      : `⚙️ Pad RAM owned: ${data.padRam}`;
     $('statDroidCount').textContent = data.droids.length; // bug fix: this never updated before
     state.paint = data.paint;
     state.novaChips = data.novaChips;
@@ -1103,6 +1413,16 @@ async function refreshWorkshop() {
     state.companionBuffPercent = data.companionBuffPercent;
     state.companionBuffType = data.companionBuffType;
     state.guildId = data.guildId;
+    state.beacons = data.beacons;
+    state.augmentCores = data.augmentCores;
+    state.outfit = data.outfit;
+    state.ownedOutfits = data.ownedOutfits;
+    $('statInvBeacons').textContent = data.beacons;
+    $('statAugmentCores').textContent = data.augmentCores;
+    $('statRepairKits').textContent = data.repairKits;
+    $('statEnergyTubes').textContent = data.energyTubes;
+    renderOutfitSection();
+    if (state.shopCatalog && state.shopCatalog.length) renderShop();
     renderSlots();
     renderDroids();
     renderCompanion();
@@ -1166,7 +1486,7 @@ function renderSlots() {
 
     const isExpanded = expandedSlotId === slot.id;
     div.innerHTML = `
-      <div class="sc-header"><span style="font-size:14px;">${droid.alignment === 'light' ? '☀' : '🌑'}</span><span class="sc-name">${droid.speciesName}</span>${droid.variant !== 'standard' ? `<span class="variant-dot ${droid.variant} caught" title="${droid.variant}" style="flex-shrink:0;"></span>` : ''}</div>
+      <div class="sc-header"><span style="font-size:14px;">${droid.alignment === 'light' ? '☀' : '🌑'}</span><span class="sc-name">${droid.speciesName}</span>${droid.variant !== 'standard' ? `<span class="variant-dot ${droid.variant} caught" title="${droid.variant}" style="flex-shrink:0;"></span>` : ''}<img src="/assets/misc/working.gif" style="width:14px; height:14px; margin-left:auto; flex-shrink:0;" onerror="this.remove();"></div>
       <div class="sc-meta">Lv${droid.level} · ${droid.crystalsPerMinute}/min</div>
       ${isExpanded ? `
         <div class="sc-expand">
@@ -1226,15 +1546,37 @@ let selectedDroidIds = new Set();
 
 function renderDroids() {
   const list = $('droidList');
-  const sorted = sortedDroidsForDisplay().filter((d) => !d.workshopSlotId); // farming droids live on the Farm tab now
+  const searchTerm = ($('warehouseSearch').value || '').trim().toLowerCase();
+  let sorted = sortedDroidsForDisplay().filter((d) => !d.workshopSlotId); // farming droids live on the Farm tab now
+  if (searchTerm) sorted = sorted.filter((d) => d.speciesName.toLowerCase().includes(searchTerm));
   selectedDroidIds = new Set([...selectedDroidIds].filter((id) => sorted.some((d) => d.id === id)));
 
   if (!sorted.length) {
-    list.innerHTML = '<div class="empty">Nothing in storage — everything is farming, or you haven\'t captured anything yet</div>';
+    list.innerHTML = searchTerm
+      ? '<div class="empty">No droids match that search</div>'
+      : '<div class="empty">Nothing in storage — everything is farming, or you haven\'t captured anything yet</div>';
     return;
   }
   list.innerHTML = '';
-  sorted.forEach((droid) => {
+
+  // Grouped into collapsible sub-sections by rarity — keeps a large roster
+  // navigable instead of one long undifferentiated list.
+  const RARITY_GROUP_ORDER = ['common', 'uncommon', 'rare', 'legendary', 'cosmic'];
+  const groups = {};
+  sorted.forEach((d) => {
+    if (!groups[d.rarity]) groups[d.rarity] = [];
+    groups[d.rarity].push(d);
+  });
+
+  RARITY_GROUP_ORDER.filter((r) => groups[r]).forEach((rarity) => {
+    const details = document.createElement('details');
+    details.open = true; // expanded by default — collapsible for players who want to tidy up, not hidden by default
+    const summary = document.createElement('summary');
+    summary.style.cssText = 'cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:10px 0 6px; padding:4px 0; border-bottom:1px dashed var(--line);';
+    summary.innerHTML = `<span class="spawn-rarity ${rarity}">${rarity}</span> <span style="color:var(--text-dim);">(${groups[rarity].length})</span>`;
+    details.appendChild(summary);
+
+    groups[rarity].forEach((droid) => {
     const row = document.createElement('div');
     row.className = 'droid-row';
     row.style.flexWrap = 'wrap';
@@ -1243,27 +1585,7 @@ function renderDroids() {
       ? ` · <span class="variant-tag ${droid.variant}">${droid.variant}${droid.color ? ' ' + droid.color : ''}</span>`
       : '';
 
-    let assignmentControl;
-    if (droid.isCompanion) {
-      const isEquipped = state.companionDroid && state.companionDroid.id === droid.id;
-      assignmentControl = `<button class="companion-assign-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;" ${isEquipped ? 'disabled' : ''}>${isEquipped ? 'Equipped' : 'Set as Companion'}</button>`;
-    } else {
-      const unlockedSlots = state.slots.filter((s) => s.unlocked && !state.droids.some((d) => d.workshopSlotId === s.id));
-      const options = unlockedSlots.map((s) => `<option value="${s.id}">Slot ${s.slotIndex + 1}</option>`).join('');
-      assignmentControl = `
-        <select style="margin-top:4px;">
-          <option value="">Assign to slot...</option>
-          ${options}
-        </select>`;
-    }
-
     const levelBtnLabel = droid.nextLevelCost === null ? 'MAX' : `Lv Up (${droid.nextLevelCost}✦)`;
-    const evolveSpeciesBtn = droid.evolvesToName
-      ? `<button class="evolve-species-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;">Evolve → ${droid.evolvesToName} (${droid.evolveNovaChipCost} 🔷)</button>`
-      : '';
-    const evolveFunkyBtn = droid.variant === 'rusty'
-      ? `<button class="evolve-funky-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;">Paint Funky (${FUNKY_PAINT_COST} 🎨)</button>`
-      : '';
 
     row.innerHTML = `
       <input type="checkbox" class="droid-checkbox" ${selectedDroidIds.has(droid.id) ? 'checked' : ''}>
@@ -1271,12 +1593,9 @@ function renderDroids() {
       <span style="flex:1; cursor:pointer;" class="droid-info-click">
         ${droid.alignment === 'light' ? '☀' : droid.alignment === 'cosmic' ? '✦' : '🌑'} ${droid.speciesName} · Lv${droid.level}
         <span class="spawn-rarity ${droid.rarity}" style="margin-left:4px;">${droid.rarity}</span>${variantTag}<br>
-        <span style="color:var(--text-dim); font-size:9px;">${droid.crystalsPerMinute}/min · HP ${droid.hp} · ATK ${droid.attack}</span>
+        <span style="color:var(--text-dim); font-size:9px;">${droid.crystalsPerMinute}/min · HP ${droid.hp} · ATK ${droid.attack} · tap for more</span>
       </span>
-      ${assignmentControl}
       <button class="level-up-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px;" ${droid.nextLevelCost === null ? 'disabled' : ''}>${levelBtnLabel}</button>
-      ${evolveSpeciesBtn}
-      ${evolveFunkyBtn}
       <button class="release-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Release (${Math.floor((droid.captureCost||0)*1.5)}✦)</button>
     `;
     row.querySelector('.droid-icon').appendChild(createDroidVisual(droid, 26));
@@ -1286,27 +1605,6 @@ function renderDroids() {
     };
     row.querySelector('.droid-icon').onclick = () => showStatsModal(droid);
     row.querySelector('.droid-info-click').onclick = () => showStatsModal(droid);
-
-    if (droid.isCompanion) {
-      const btn = row.querySelector('.companion-assign-btn');
-      if (btn && !btn.disabled) {
-        btn.onclick = async () => {
-          try {
-            await api('POST', '/companion/assign', { playerId: state.playerId, droidId: droid.id });
-            await refreshWorkshop();
-          } catch (e) {}
-        };
-      }
-    } else {
-      row.querySelector('select').onchange = async (e) => {
-        const slotId = e.target.value;
-        if (!slotId) return;
-        try {
-          await api('POST', '/workshop/assign', { playerId: state.playerId, droidId: droid.id, slotId: Number(slotId) });
-          await refreshWorkshop();
-        } catch (err) {}
-      };
-    }
 
     const levelBtn = row.querySelector('.level-up-btn');
     if (droid.nextLevelCost !== null) {
@@ -1318,38 +1616,18 @@ function renderDroids() {
       };
     }
 
-    const evolveSpeciesBtnEl = row.querySelector('.evolve-species-btn');
-    if (evolveSpeciesBtnEl) {
-      evolveSpeciesBtnEl.onclick = async () => {
-        try {
-          await api('POST', `/droids/${droid.id}/evolve-species`, { playerId: state.playerId });
-          await refreshWorkshop();
-        } catch (e) {}
-      };
-    }
-
-    const evolveFunkyBtnEl = row.querySelector('.evolve-funky-btn');
-    if (evolveFunkyBtnEl) {
-      evolveFunkyBtnEl.onclick = async () => {
-        const color = prompt('Choose a primary color: red, yellow, or blue');
-        if (!color) return;
-        try {
-          await api('POST', `/droids/${droid.id}/evolve-funky`, { playerId: state.playerId, color: color.trim().toLowerCase() });
-          await refreshWorkshop();
-        } catch (e) {}
-      };
-    }
-
     row.querySelector('.release-btn').onclick = async () => {
       if (!confirm(`Release this ${droid.speciesName}? This cannot be undone.`)) return;
       try {
         const result = await api('POST', `/droids/${droid.id}/release`, { playerId: state.playerId });
-        showReleaseResultPopup([droid.speciesName], result.refund, result.gotNovaChip ? 1 : 0);
+        showReleaseResultPopup([droid.speciesName], result.refund, result.gotNovaChip ? 1 : 0, result.scaffitanTubesGranted || 0);
         await refreshWorkshop();
       } catch (e) {}
     };
 
-    list.appendChild(row);
+      details.appendChild(row);
+    });
+    list.appendChild(details);
   });
 }
 
@@ -1406,44 +1684,184 @@ function playCircleMinigame() {
   });
 }
 
+function showFunkyColorPicker(droid) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-title" style="color:#fff;">Paint ${droid.speciesName} Funky</div>
+    <div class="mb-detail">Choose a primary color:</div>
+    <select id="funkyColorSelect" style="margin-top:10px;">
+      <option value="red">Red</option>
+      <option value="yellow">Yellow</option>
+      <option value="blue">Blue</option>
+    </select>
+    <button class="primary" id="btnConfirmFunkyColor" style="margin-top:12px;">Confirm</button>
+    <button class="mb-close" style="margin-top:6px;">Cancel</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+  box.querySelector('#btnConfirmFunkyColor').onclick = async () => {
+    const color = $('funkyColorSelect').value;
+    overlay.style.display = 'none';
+    try {
+      await api('POST', `/droids/${droid.id}/evolve-funky`, { playerId: state.playerId, color });
+      await refreshWorkshop();
+    } catch (e) {}
+  };
+}
+
 function showStatsModal(droid) {
   const overlay = $('captureResultOverlay');
   const box = $('captureResultBox');
+
+  let assignmentControl;
+  if (droid.isCompanion) {
+    const isEquipped = state.companionDroid && state.companionDroid.id === droid.id;
+    assignmentControl = `<button class="companion-assign-btn" style="margin-top:10px; width:100%;" ${isEquipped ? 'disabled' : ''}>${isEquipped ? 'Equipped as Companion' : 'Set as Companion'}</button>`;
+  } else {
+    const unlockedSlots = state.slots.filter((s) => s.unlocked && !state.droids.some((d) => d.workshopSlotId === s.id));
+    const options = unlockedSlots.map((s) => `<option value="${s.id}">Slot ${s.slotIndex + 1}</option>`).join('');
+    assignmentControl = `
+      <select id="statsModalAssignSelect" style="margin-top:10px;">
+        <option value="">Assign to slot...</option>
+        ${options}
+      </select>`;
+  }
+  const evolveSpeciesBtn = droid.evolvesToName
+    ? `<button class="evolve-species-btn" style="margin-top:6px; width:100%;">Evolve → ${droid.evolvesToName} (${droid.evolveNovaChipCost} 🔷)</button>`
+    : '';
+  const evolveFunkyBtn = droid.variant === 'rusty'
+    ? `<button class="evolve-funky-btn" style="margin-top:6px; width:100%;">Paint Funky (${FUNKY_PAINT_COST} 🎨)</button>`
+    : '';
+  const healBtn = droid.fainted
+    ? `<button class="heal-droid-btn" style="margin-top:6px; width:100%; color:var(--danger); border-color:var(--danger);">Heal (1 Repair Kit — you have ${state.repairKits || 0})</button>`
+    : '';
+  const masterBtn = droid.masteryNextTierName
+    ? `<button class="master-scaffitan-btn" style="margin-top:6px; width:100%;">Master → ${droid.masteryNextTierName} (${droid.masteryTubeCost} 🔋 — you have ${state.energyTubes || 0})</button>`
+    : '';
+
   box.innerHTML = `
     <div class="mb-icon"></div>
     <div id="statsModalIcon" style="margin-bottom:10px;"></div>
     <div class="mb-title" style="color:#fff;">${droid.speciesName}</div>
     <div class="mb-detail">Level ${droid.level} · ${droid.rarity} · ${droid.variant !== 'standard' ? droid.variant : 'standard'}</div>
+    ${droid.fainted ? '<div class="mb-detail" style="color:var(--danger); font-weight:700;">💀 FAINTED — can\'t farm or battle until healed</div>' : ''}
     <div class="stat-grid">
-      <div class="sg-item"><div class="sg-label">HP</div><div class="sg-val">${droid.hp}</div></div>
+      <div class="sg-item"><div class="sg-label">HP</div><div class="sg-val">${droid.currentHp}/${droid.hp}</div></div>
       <div class="sg-item"><div class="sg-label">Attack</div><div class="sg-val">${droid.attack}</div></div>
       <div class="sg-item"><div class="sg-label">Crystals/min</div><div class="sg-val">${droid.crystalsPerMinute}</div></div>
       <div class="sg-item"><div class="sg-label">Next Level</div><div class="sg-val" style="font-size:11px;">${droid.nextLevelCost === null ? 'MAX' : droid.nextLevelCost + '✦'}</div></div>
     </div>
-    <button class="primary mb-close" style="margin-top:16px;">Close</button>
+    ${healBtn}
+    ${masterBtn}
+    ${assignmentControl}
+    ${evolveSpeciesBtn}
+    ${evolveFunkyBtn}
+    <button class="primary mb-close" style="margin-top:16px; width:100%;">Close</button>
   `;
   box.querySelector('#statsModalIcon').appendChild(createDroidVisual(droid, 64));
   overlay.style.display = 'flex';
   box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+
+  if (droid.isCompanion) {
+    const btn = box.querySelector('.companion-assign-btn');
+    if (btn && !btn.disabled) {
+      btn.onclick = async () => {
+        try {
+          await api('POST', '/companion/assign', { playerId: state.playerId, droidId: droid.id });
+          overlay.style.display = 'none';
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    }
+  } else {
+    const select = box.querySelector('#statsModalAssignSelect');
+    if (select) {
+      select.onchange = async (e) => {
+        const slotId = e.target.value;
+        if (!slotId) return;
+        try {
+          await api('POST', '/workshop/assign', { playerId: state.playerId, droidId: droid.id, slotId: Number(slotId) });
+          overlay.style.display = 'none';
+          await refreshWorkshop();
+        } catch (err) {}
+      };
+    }
+  }
+
+  const evolveSpeciesBtnEl = box.querySelector('.evolve-species-btn');
+  if (evolveSpeciesBtnEl) {
+    evolveSpeciesBtnEl.onclick = async () => {
+      try {
+        await api('POST', `/droids/${droid.id}/evolve-species`, { playerId: state.playerId });
+        overlay.style.display = 'none';
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+  }
+
+  const evolveFunkyBtnEl = box.querySelector('.evolve-funky-btn');
+  if (evolveFunkyBtnEl) {
+    evolveFunkyBtnEl.onclick = () => { overlay.style.display = 'none'; showFunkyColorPicker(droid); };
+  }
+
+  const healBtnEl = box.querySelector('.heal-droid-btn');
+  if (healBtnEl) {
+    healBtnEl.onclick = async () => {
+      try {
+        await api('POST', `/droids/${droid.id}/heal`, { playerId: state.playerId });
+        overlay.style.display = 'none';
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+  }
+
+  const masterBtnEl = box.querySelector('.master-scaffitan-btn');
+  if (masterBtnEl) {
+    masterBtnEl.onclick = async () => {
+      try {
+        await api('POST', `/droids/${droid.id}/master-scaffitan`, { playerId: state.playerId });
+        overlay.style.display = 'none';
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+  }
 }
 
-function showReleaseResultPopup(names, totalRefund, novaChipsGained) {
+function showReleaseResultPopup(names, totalRefund, novaChipsGained, scaffitanTubes) {
   const overlay = $('captureResultOverlay');
   const box = $('captureResultBox');
   box.innerHTML = `
     <div class="mb-icon">♻️</div>
     <div class="mb-title" style="color:#fff;">Released</div>
     <div class="mb-detail">${names.join(', ')}</div>
-    <div class="mb-detail" style="color:var(--amber);">+${totalRefund} crystals</div>
+    ${totalRefund > 0 ? `<div class="mb-detail" style="color:var(--amber);">+${totalRefund} crystals</div>` : ''}
     ${novaChipsGained > 0 ? `<div class="mb-detail" style="color:var(--cyan);">🔷 +${novaChipsGained} Nova Chip${novaChipsGained > 1 ? 's' : ''}!</div>` : ''}
+    ${scaffitanTubes > 0 ? `<div class="mb-detail" style="color:var(--cyan);">🔋 +${scaffitanTubes} Energy Tube${scaffitanTubes > 1 ? 's' : ''}!</div>` : ''}
     <button class="primary mb-close">Nice</button>
   `;
   overlay.style.display = 'flex';
   box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
 }
 
+$('warehouseSearch').oninput = () => renderDroids();
+
+$('autoReleaseToggle').onchange = async (e) => {
+  try {
+    await api('POST', '/player/auto-release-duplicates', { playerId: state.playerId, enabled: e.target.checked });
+  } catch (err) { e.target.checked = !e.target.checked; }
+};
+
+$('autoReleaseVariantsToggle').onchange = async (e) => {
+  try {
+    await api('POST', '/player/auto-release-include-variants', { playerId: state.playerId, enabled: e.target.checked });
+  } catch (err) { e.target.checked = !e.target.checked; }
+};
+
 $('btnSelectAllDroids').onclick = () => {
-  const sorted = sortedDroidsForDisplay().filter((d) => !d.workshopSlotId);
+  const searchTerm = ($('warehouseSearch').value || '').trim().toLowerCase();
+  let sorted = sortedDroidsForDisplay().filter((d) => !d.workshopSlotId);
+  if (searchTerm) sorted = sorted.filter((d) => d.speciesName.toLowerCase().includes(searchTerm));
   if (selectedDroidIds.size === sorted.length) {
     selectedDroidIds.clear();
   } else {
@@ -1472,13 +1890,17 @@ function renderCompanion() {
     tag.textContent = '';
   } else {
     const c = state.companionDroid;
-    const buffLabel = state.companionBuffType === 'capture_rate'
-      ? `+${state.companionBuffPercent}% capture success chance`
-      : `+${state.companionBuffPercent}% total farm rate`;
+    const buffLabelMap = {
+      capture_rate: `+${state.companionBuffPercent}% capture success chance`,
+      damage: `+${state.companionBuffPercent}% battle damage`,
+      crystal: `+${state.companionBuffPercent}% total farm rate`,
+    };
+    const buffLabel = buffLabelMap[state.companionBuffType] || `+${state.companionBuffPercent}% buff`;
     tag.textContent = buffLabel;
 
     let activationHTML = '';
-    if (state.companionBuffType === 'capture_rate') {
+    const needsActivation = state.companionBuffType === 'capture_rate' || state.companionBuffType === 'damage' || state.companionBuffType === 'crystal';
+    if (needsActivation) {
       const now = Date.now();
       if (c.buffIsActive) {
         const minsLeft = Math.ceil((c.buffActiveUntil - now) / 60000);
@@ -1550,11 +1972,100 @@ function renderCompanion() {
 }
 
 // ---- Cosmetics ----
+function renderShop() {
+  const list = $('shopList');
+  list.innerHTML = '';
+
+  const materialItems = (state.shopCatalog || []).filter((i) => i.type === 'material');
+  const outfitItems = (state.shopCatalog || []).filter((i) => i.type === 'outfit');
+
+  const materialsHeader = document.createElement('div');
+  materialsHeader.className = 'panel-title';
+  materialsHeader.style.cssText = 'font-size:10px; margin-bottom:6px;';
+  materialsHeader.textContent = 'Materials';
+  list.appendChild(materialsHeader);
+  materialItems.forEach((item) => list.appendChild(buildShopRow(item, `Buy ${item.name} — ${item.cost}✦`)));
+
+  const outfitsHeader = document.createElement('div');
+  outfitsHeader.className = 'panel-title';
+  outfitsHeader.style.cssText = 'font-size:10px; margin:14px 0 6px;';
+  outfitsHeader.textContent = 'Outfits';
+  list.appendChild(outfitsHeader);
+  outfitItems.forEach((item) => {
+    const owned = (state.ownedOutfits || []).includes(item.outfitId);
+    list.appendChild(buildShopRow(item, owned ? 'Owned' : `Buy ${item.name} — ${item.cost}✦`, owned));
+  });
+
+  const cosmeticsHeader = document.createElement('div');
+  cosmeticsHeader.className = 'panel-title';
+  cosmeticsHeader.style.cssText = 'font-size:10px; margin:14px 0 6px;';
+  cosmeticsHeader.textContent = 'Cosmetics';
+  list.appendChild(cosmeticsHeader);
+  (state.cosmeticsCatalog || []).forEach((c) => {
+    const owned = (state.cosmetics || []).includes(c.id);
+    const row = document.createElement('div');
+    row.className = 'droid-row';
+    row.innerHTML = `
+      <span class="droid-icon" style="flex-shrink:0;"></span>
+      <span style="flex:1;">${c.name}</span>
+      <button class="buy-cosmetic-btn" style="margin-top:0; width:auto; padding:5px 10px; font-size:9px;" ${owned ? 'disabled' : ''}>${owned ? 'Owned' : `Buy — ${c.cost}✦`}</button>
+    `;
+    row.querySelector('.droid-icon').appendChild(createCosmeticVisual(c, 26));
+    if (!owned) {
+      row.querySelector('.buy-cosmetic-btn').onclick = async () => {
+        try {
+          await api('POST', `/players/${state.playerId}/cosmetics/buy`, { cosmeticId: c.id });
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    }
+    list.appendChild(row);
+  });
+}
+
+function showOutfitLargeView(outfitId, name) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div style="width:160px; height:160px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; font-size:80px;"><img src="/assets/outfits/${outfitId}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></div>
+    <div class="mb-title" style="color:#fff; text-transform:capitalize;">${name || outfitId}</div>
+    <button class="primary mb-close">Close</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
+
+function buildShopRow(item, label, owned = false) {
+  const row = document.createElement('div');
+  row.className = 'droid-row';
+  const thumb = item.type === 'outfit'
+    ? `<span class="outfit-thumb-click" data-outfit="${item.outfitId}" data-name="${item.name}" style="width:22px; height:22px; flex-shrink:0; display:inline-block; cursor:pointer;"><img src="/assets/outfits/${item.outfitId}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></span>`
+    : '';
+  row.innerHTML = `
+    ${thumb}
+    <span style="flex:1;">${item.name}</span>
+    <button class="shop-buy-btn" style="margin-top:0; width:auto; padding:5px 10px; font-size:9px;" ${owned ? 'disabled' : ''}>${label}</button>
+  `;
+  const thumbEl = row.querySelector('.outfit-thumb-click');
+  if (thumbEl) thumbEl.onclick = () => showOutfitLargeView(thumbEl.dataset.outfit, thumbEl.dataset.name);
+  if (!owned) {
+    row.querySelector('.shop-buy-btn').onclick = async () => {
+      try {
+        await api('POST', '/shop/buy', { playerId: state.playerId, itemId: item.id });
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+  }
+  return row;
+}
+
 async function refreshCosmeticsShop() {
   try {
     const data = await api('GET', '/cosmetics');
     state.cosmeticsCatalog = data.cosmetics;
-    renderCosmetics();
+    const shopData = await api('GET', '/shop');
+    state.shopCatalog = shopData.items;
+    renderShop();
   } catch (e) {}
 }
 
@@ -1579,41 +2090,428 @@ function createCosmeticVisual(item, size = 40) {
   img.onerror = tryNext;
   tryNext();
   wrapper.appendChild(img);
-  const label = document.createElement('span');
-  label.style.cssText = 'font-size:8px; color:var(--text-dim); margin-top:2px; text-align:center;';
-  label.textContent = item.name;
-  wrapper.appendChild(label);
   return wrapper;
 }
 
-function renderCosmetics() {
-  const owned = $('cosmeticsOwned');
-  owned.innerHTML = '';
-  const ownedItems = (state.cosmetics || [])
-    .map((id) => (state.cosmeticsCatalog || []).find((c) => c.id === id))
-    .filter(Boolean);
-  if (!ownedItems.length) {
-    owned.innerHTML = '<span style="font-size:9px; color:var(--text-dim);">None owned</span>';
-  } else {
-    ownedItems.forEach((item) => owned.appendChild(createCosmeticVisual(item)));
-  }
+function renderOutfitSection() {
+  const display = $('outfitDisplay');
+  const options = $('outfitOptions');
+  const equipped = state.outfit || 'basic';
+  display.innerHTML = `
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <span style="width:88px; height:88px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:48px; cursor:pointer;" id="outfitBigDisplay" onclick="showOutfitLargeView('${equipped}', '${equipped}')"><img src="/assets/outfits/${equipped}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></span>
+      <span style="font-size:9px; color:var(--text-dim); text-transform:capitalize;">${equipped}</span>
+    </div>
+  `;
 
-  const shop = $('cosmeticsShop');
-  const available = (state.cosmeticsCatalog || []).filter((c) => !(state.cosmetics || []).includes(c.id));
-  shop.innerHTML = available.map((c) =>
-    `<button class="buy-cosmetic-btn" data-id="${c.id}" style="margin-top:6px;">Buy ${c.name} (${c.cost}✦)</button>`
-  ).join('');
-  shop.querySelectorAll('.buy-cosmetic-btn').forEach((btn) => {
-    btn.onclick = async () => {
-      try {
-        await api('POST', `/players/${state.playerId}/cosmetics/buy`, { cosmeticId: btn.dataset.id });
-        await refreshWorkshop();
-      } catch (e) {}
-    };
+  const owned = state.ownedOutfits || ['basic'];
+  if (owned.length <= 1) {
+    options.innerHTML = 'Buy more outfits from the Shop (Inventory tab).';
+    return;
+  }
+  options.innerHTML = '';
+  owned.forEach((outfitId) => {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'margin-top:4px; margin-right:4px; width:auto; padding:4px 8px; font-size:9px; text-transform:capitalize;';
+    btn.textContent = outfitId;
+    btn.disabled = outfitId === state.outfit;
+    if (outfitId !== state.outfit) {
+      btn.onclick = async () => {
+        try {
+          await api('POST', '/player/equip-outfit', { playerId: state.playerId, outfitId });
+          await refreshWorkshop();
+        } catch (e) {}
+      };
+    }
+    options.appendChild(btn);
   });
 }
 
 // ---- Guild ----
+// ---- Battles ----
+let selectedBattleTeam = new Set();
+
+function renderTeamPicker() {
+  const el = $('battleTeamPicker');
+  const usable = (state.droids || []).filter((d) => !d.fainted);
+  if (!usable.length) {
+    el.innerHTML = '<div class="empty">No usable droids — everything is fainted. Heal with a Repair Kit first.</div>';
+    return;
+  }
+  selectedBattleTeam = new Set([...selectedBattleTeam].filter((id) => usable.some((d) => d.id === id)));
+  el.innerHTML = usable.map((d) => `
+    <label style="display:flex; align-items:center; gap:6px; font-size:10px; padding:4px 0;">
+      <input type="checkbox" class="battle-team-cb" data-id="${d.id}" ${selectedBattleTeam.has(d.id) ? 'checked' : ''}>
+      ${d.speciesName} Lv${d.level} · HP ${d.currentHp}/${d.hp} · ATK ${d.attack}
+    </label>
+  `).join('');
+  el.querySelectorAll('.battle-team-cb').forEach((cb) => {
+    cb.onchange = () => {
+      const id = Number(cb.dataset.id);
+      if (cb.checked) {
+        if (selectedBattleTeam.size >= 4) { cb.checked = false; return; }
+        selectedBattleTeam.add(id);
+      } else {
+        selectedBattleTeam.delete(id);
+      }
+    };
+  });
+}
+
+$('btnStartTitan').onclick = async () => {
+  if (selectedBattleTeam.size !== 4) { showGuildResultPopup(false, 'Pick exactly 4 droids for your team first.'); return; }
+  try {
+    const data = await api('POST', '/battles/titan', { playerId: state.playerId, teamDroidIds: [...selectedBattleTeam] });
+    selectedBattleTeam = new Set();
+    await refreshWorkshop();
+    await refreshBattles();
+    showActiveBattle(data.battle.id);
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not start the encounter.');
+  }
+};
+
+$('btnCreateGroupTitan').onclick = async () => {
+  const raw = $('titanGroupInvites').value.trim();
+  const invitedPlayerIds = raw.split(',').map((s) => Number(s.trim())).filter((n) => n && !isNaN(n));
+  if (!invitedPlayerIds.length) { showGuildResultPopup(false, 'Enter at least one Player ID to invite.'); return; }
+  if (selectedBattleTeam.size !== 4) { showGuildResultPopup(false, 'Pick exactly 4 droids for your team first.'); return; }
+  try {
+    const data = await api('POST', '/battles/titan-group', { creatorId: state.playerId, invitedPlayerIds, teamDroidIds: [...selectedBattleTeam] });
+    selectedBattleTeam = new Set();
+    $('titanGroupInvites').value = '';
+    showGuildResultPopup(true, `Group encounter created! Invited: ${invitedPlayerIds.join(', ')}`);
+    await refreshBattles();
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not create the group encounter.');
+  }
+};
+
+$('btnSendChallenge').onclick = async () => {
+  const opponentId = Number($('battleOpponentId').value);
+  if (!opponentId) { showGuildResultPopup(false, 'Enter an opponent Player ID.'); return; }
+  if (selectedBattleTeam.size !== 4) { showGuildResultPopup(false, 'Pick exactly 4 droids for your team.'); return; }
+  try {
+    await api('POST', '/battles/challenge', { challengerId: state.playerId, opponentId, teamDroidIds: [...selectedBattleTeam] });
+    showGuildResultPopup(true, `Challenge sent to Player ${opponentId}!`);
+    selectedBattleTeam = new Set();
+    await refreshBattles();
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not send that challenge.');
+  }
+};
+
+$('btnRefreshBattles').onclick = () => refreshBattles();
+
+async function refreshBattles() {
+  try {
+    const data = await api('GET', `/players/${state.playerId}/battles`);
+    renderBattleList(data.battles);
+  } catch (e) {}
+}
+
+function renderBattleList(battles) {
+  const el = $('battleList');
+  if (!battles.length) {
+    el.innerHTML = '<div class="empty">No battles yet</div>';
+    return;
+  }
+  el.innerHTML = battles.map((b) => {
+    let label, statusLabel, actionHtml = '';
+
+    if (b.isGroupTitanBattle) {
+      label = `Group Titan (${b.participantIds.length} joined)`;
+      const isCreator = b.creatorId === state.playerId;
+      const hasJoined = b.participantIds.includes(state.playerId);
+      if (b.status === 'forming') {
+        if (!hasJoined) {
+          statusLabel = 'You\'re invited!';
+          actionHtml = `<button class="titan-join-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">Join</button>`;
+        } else if (isCreator) {
+          statusLabel = 'Forming — you can start whenever ready';
+          actionHtml = `<button class="titan-start-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">Start Fight</button>`;
+        } else {
+          statusLabel = 'Joined — waiting for the creator to start';
+        }
+      } else if (b.status === 'active') {
+        statusLabel = b.turnParticipantId === state.playerId ? 'Your turn!' : 'Waiting on another participant';
+        actionHtml = `<button class="battle-view-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">View Battle</button>`;
+      } else if (b.status === 'finished') {
+        statusLabel = (b.winnerParticipantIds || []).includes(state.playerId) ? '🏆 Victory!' : 'The Titan won';
+      }
+    } else if (b.isTitanBattle) {
+      label = 'Solo Titan';
+      if (b.status === 'active') {
+        statusLabel = 'Your turn!';
+        actionHtml = `<button class="battle-view-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">View Battle</button>`;
+      } else if (b.status === 'finished') {
+        statusLabel = b.winnerId === state.playerId ? '🏆 Victory!' : 'The Titan won';
+      }
+    } else {
+      const isP1 = b.player1Id === state.playerId;
+      const opponentId = isP1 ? b.player2Id : b.player1Id;
+      label = `vs Player ${opponentId}`;
+      if (b.status === 'pending_acceptance') {
+        if (isP1) {
+          statusLabel = `Waiting on Player ${opponentId} to accept`;
+        } else {
+          statusLabel = `Player ${opponentId} challenged you!`;
+          actionHtml = `<button class="battle-accept-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">Accept</button> <button class="battle-decline-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px; color:var(--danger); border-color:var(--danger);">Decline</button>`;
+        }
+      } else if (b.status === 'active') {
+        statusLabel = b.turnPlayerId === state.playerId ? 'Your turn!' : `Waiting on Player ${opponentId}`;
+        actionHtml = `<button class="battle-view-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">View Battle</button>`;
+      } else if (b.status === 'finished') {
+        statusLabel = b.winnerId === state.playerId ? '🏆 You won!' : 'You lost';
+      } else {
+        statusLabel = 'Declined';
+      }
+    }
+
+    return `
+      <div class="droid-row" style="flex-direction:column; align-items:flex-start;">
+        <div>${label} — <span style="color:var(--text-dim);">${statusLabel}</span></div>
+        <div>${actionHtml}</div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('.battle-accept-btn').forEach((btn) => {
+    btn.onclick = () => showAcceptTeamPicker(Number(btn.dataset.id));
+  });
+  el.querySelectorAll('.battle-decline-btn').forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        await api('POST', `/battles/${btn.dataset.id}/decline`, { playerId: state.playerId });
+        await refreshBattles();
+      } catch (e) {}
+    };
+  });
+  el.querySelectorAll('.battle-view-btn').forEach((btn) => {
+    btn.onclick = () => showActiveBattle(Number(btn.dataset.id));
+  });
+  el.querySelectorAll('.titan-join-btn').forEach((btn) => {
+    btn.onclick = () => showGroupTitanJoinPicker(Number(btn.dataset.id));
+  });
+  el.querySelectorAll('.titan-start-btn').forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        await api('POST', `/battles/${btn.dataset.id}/start`, { playerId: state.playerId });
+        await refreshBattles();
+        showActiveBattle(Number(btn.dataset.id));
+      } catch (e) {
+        showGuildResultPopup(false, (e && e.message) || 'Could not start the fight.');
+      }
+    };
+  });
+}
+
+function showGroupTitanJoinPicker(battleId) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const usable = (state.droids || []).filter((d) => !d.fainted);
+  let picked = new Set();
+  box.innerHTML = `
+    <div class="mb-title" style="color:#fff;">Join the Group Encounter</div>
+    <div class="mb-detail">Pick exactly 4 — costs 1000✦ to join</div>
+    <div id="joinTeamList" style="text-align:left; margin-top:10px;"></div>
+    <button class="primary" id="btnConfirmJoin" style="margin-top:12px;">Join (1000✦)</button>
+    <button class="mb-close" style="margin-top:6px;">Cancel</button>
+  `;
+  const listEl = box.querySelector('#joinTeamList');
+  listEl.innerHTML = usable.map((d) => `
+    <label style="display:flex; align-items:center; gap:6px; font-size:10px; padding:4px 0;">
+      <input type="checkbox" class="join-team-cb" data-id="${d.id}">
+      ${d.speciesName} Lv${d.level} · HP ${d.currentHp}/${d.hp}
+    </label>
+  `).join('');
+  listEl.querySelectorAll('.join-team-cb').forEach((cb) => {
+    cb.onchange = () => {
+      const id = Number(cb.dataset.id);
+      if (cb.checked) {
+        if (picked.size >= 4) { cb.checked = false; return; }
+        picked.add(id);
+      } else picked.delete(id);
+    };
+  });
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+  box.querySelector('#btnConfirmJoin').onclick = async () => {
+    if (picked.size !== 4) { showGuildResultPopup(false, 'Pick exactly 4 droids.'); return; }
+    try {
+      await api('POST', `/battles/${battleId}/join`, { playerId: state.playerId, teamDroidIds: [...picked] });
+      overlay.style.display = 'none';
+      await refreshWorkshop();
+      await refreshBattles();
+    } catch (e) {
+      showGuildResultPopup(false, (e && e.message) || 'Could not join.');
+    }
+  };
+}
+
+function showAcceptTeamPicker(battleId) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const usable = (state.droids || []).filter((d) => !d.fainted);
+  let picked = new Set();
+  box.innerHTML = `
+    <div class="mb-title" style="color:#fff;">Choose Your Team</div>
+    <div class="mb-detail">Pick exactly 4 to accept this challenge</div>
+    <div id="acceptTeamList" style="text-align:left; margin-top:10px;"></div>
+    <button class="primary" id="btnConfirmAccept" style="margin-top:12px;">Accept Challenge</button>
+    <button class="mb-close" style="margin-top:6px;">Cancel</button>
+  `;
+  const listEl = box.querySelector('#acceptTeamList');
+  listEl.innerHTML = usable.map((d) => `
+    <label style="display:flex; align-items:center; gap:6px; font-size:10px; padding:4px 0;">
+      <input type="checkbox" class="accept-team-cb" data-id="${d.id}">
+      ${d.speciesName} Lv${d.level} · HP ${d.currentHp}/${d.hp}
+    </label>
+  `).join('');
+  listEl.querySelectorAll('.accept-team-cb').forEach((cb) => {
+    cb.onchange = () => {
+      const id = Number(cb.dataset.id);
+      if (cb.checked) {
+        if (picked.size >= 4) { cb.checked = false; return; }
+        picked.add(id);
+      } else picked.delete(id);
+    };
+  });
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+  box.querySelector('#btnConfirmAccept').onclick = async () => {
+    if (picked.size !== 4) { showGuildResultPopup(false, 'Pick exactly 4 droids.'); return; }
+    try {
+      await api('POST', `/battles/${battleId}/accept`, { playerId: state.playerId, teamDroidIds: [...picked] });
+      overlay.style.display = 'none';
+      await refreshBattles();
+      showActiveBattle(battleId);
+    } catch (e) {
+      showGuildResultPopup(false, (e && e.message) || 'Could not accept.');
+    }
+  };
+}
+
+async function showActiveBattle(battleId) {
+  try {
+    const data = await api('GET', `/battles/${battleId}`);
+    $('activeBattlePanel').style.display = 'block';
+    $('activeBattleId').textContent = battleId;
+    renderActiveBattle(data.battle);
+  } catch (e) {}
+}
+
+function renderActiveBattle(battle) {
+  if (battle.isGroupTitanBattle) return renderGroupTitanBattle(battle);
+  const el = $('activeBattleView');
+  const isP1 = battle.player1Id === state.playerId;
+  const myTeam = isP1 ? battle.team1 : battle.team2;
+  const theirTeam = isP1 ? battle.team2 : battle.team1;
+  const myActiveIdx = isP1 ? battle.activeIndex1 : battle.activeIndex2;
+  const theirActiveIdx = isP1 ? battle.activeIndex2 : battle.activeIndex1;
+  const myActive = myTeam[myActiveIdx];
+  const theirActive = theirTeam[theirActiveIdx];
+  const myTurn = battle.turnPlayerId === state.playerId;
+
+  const hpBar = (droid) => {
+    const pct = Math.round((droid.currentHp / droid.hp) * 100);
+    return `<div style="background:var(--panel-raised); border:1px solid var(--line); border-radius:3px; height:10px; overflow:hidden; margin-top:2px;"><div style="width:${pct}%; height:100%; background:${pct > 40 ? 'var(--common)' : 'var(--danger)'};"></div></div>`;
+  };
+
+  el.innerHTML = `
+    <div class="stat-row"><span class="stat-label">Them</span><span class="stat-val">${theirActive.speciesName} — ${theirActive.currentHp}/${theirActive.hp} HP</span></div>
+    ${hpBar(theirActive)}
+    <div class="stat-row" style="margin-top:10px;"><span class="stat-label">You</span><span class="stat-val">${myActive.speciesName} — ${myActive.currentHp}/${myActive.hp} HP</span></div>
+    ${hpBar(myActive)}
+    ${battle.status === 'finished'
+      ? `<div class="mb-title ${battle.winnerId === state.playerId ? 'success' : 'fail'}" style="margin-top:12px;">${battle.winnerId === state.playerId ? '🏆 You won!' : 'You lost'}</div>`
+      : `<button class="primary" id="btnBattleAttack" style="margin-top:12px;" ${myTurn ? '' : 'disabled'}>${myTurn ? 'Attack!' : "Opponent's turn — check back soon"}</button>`}
+    <div style="margin-top:10px; max-height:150px; overflow-y:auto; font-size:9px; color:var(--text-dim);">
+      ${battle.log.slice().reverse().map((l) => `
+        <div>${l.attackerDroidName} hit ${l.defenderDroidName} for ${l.damage}${l.defenderFainted ? ' — fainted!' : ''}</div>
+        ${l.titanRewards ? `<div style="color:var(--cyan);">🔋 +${l.titanRewards.energyTubes} Tubes, 🩹 +${l.titanRewards.repairKits} Repair Kit, 📡 +${l.titanRewards.beacons} Beacon, 🎨 +${l.titanRewards.paint} Paint, 🔷 +${l.titanRewards.novaChips} Nova Chips</div>` : ''}
+        ${l.tubesAwarded ? `<div style="color:var(--cyan);">🔋 +${l.tubesAwarded} Tube${l.tubesAwarded > 1 ? 's' : ''} (consolation)</div>` : ''}
+        ${l.scaffitanCaught ? `<div style="color:var(--legendary); font-weight:700;">✨ You caught a Scaffitan!</div>` : ''}
+      `).join('')}
+    </div>
+  `;
+
+  if (myTurn && battle.status === 'active') {
+    el.querySelector('#btnBattleAttack').onclick = async () => {
+      try {
+        await api('POST', `/battles/${battle.id}/attack`, { playerId: state.playerId });
+        await refreshWorkshop(); // droid HP changed, refresh state.droids too
+        await showActiveBattle(battle.id);
+        await refreshBattles();
+      } catch (e) {}
+    };
+  }
+}
+
+function renderGroupTitanBattle(battle) {
+  const el = $('activeBattleView');
+  const myTeam = battle.teamsByParticipant[state.playerId];
+  if (!myTeam) {
+    el.innerHTML = '<div class="empty">You haven\'t joined this encounter</div>';
+    return;
+  }
+  const myActiveIdx = battle.activeIndexByParticipant[state.playerId];
+  const myActive = myTeam[myActiveIdx];
+  const myTurn = battle.turnParticipantId === state.playerId;
+  const eliminated = (battle.eliminatedParticipantIds || []).includes(state.playerId);
+
+  const hpBar = (current, max) => {
+    const pct = Math.round((current / max) * 100);
+    return `<div style="background:var(--panel-raised); border:1px solid var(--line); border-radius:3px; height:10px; overflow:hidden; margin-top:2px;"><div style="width:${pct}%; height:100%; background:${pct > 40 ? 'var(--common)' : 'var(--danger)'};"></div></div>`;
+  };
+
+  const rosterHtml = battle.participantIds.map((pid) => {
+    const isMe = pid === state.playerId;
+    const isElim = (battle.eliminatedParticipantIds || []).includes(pid);
+    const isTurn = battle.turnParticipantId === pid;
+    return `<div style="font-size:9px; color:${isElim ? 'var(--danger)' : isTurn ? 'var(--common)' : 'var(--text-dim)'};">${isMe ? 'You' : 'Player ' + pid}${isElim ? ' — eliminated' : isTurn ? ' — acting now' : ''}</div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="panel-title" style="font-size:10px; margin-bottom:6px;">Participants</div>
+    ${rosterHtml}
+    ${battle.titan ? `
+      <div class="stat-row" style="margin-top:10px;"><span class="stat-label">${battle.titan.speciesName}</span><span class="stat-val">${battle.titan.currentHp}/${battle.titan.hp} HP</span></div>
+      ${hpBar(battle.titan.currentHp, battle.titan.hp)}
+    ` : '<div class="empty">Waiting for the creator to start the fight</div>'}
+    ${myActive ? `
+      <div class="stat-row" style="margin-top:10px;"><span class="stat-label">Your droid</span><span class="stat-val">${myActive.speciesName} — ${myActive.currentHp}/${myActive.hp} HP</span></div>
+      ${hpBar(myActive.currentHp, myActive.hp)}
+    ` : ''}
+    ${battle.status === 'finished'
+      ? `<div class="mb-title ${(battle.winnerParticipantIds || []).includes(state.playerId) ? 'success' : 'fail'}" style="margin-top:12px;">${(battle.winnerParticipantIds || []).includes(state.playerId) ? '🏆 Victory!' : 'The Titan won'}</div>`
+      : eliminated
+        ? '<div class="mb-detail" style="margin-top:12px; color:var(--danger);">Your team has fainted — you\'re out for this fight</div>'
+        : battle.status === 'active'
+          ? `<button class="primary" id="btnGroupTitanAttack" style="margin-top:12px;" ${myTurn ? '' : 'disabled'}>${myTurn ? 'Attack!' : 'Waiting for your turn'}</button>`
+          : ''}
+    <div style="margin-top:10px; max-height:150px; overflow-y:auto; font-size:9px; color:var(--text-dim);">
+      ${battle.log.slice().reverse().map((l) => `
+        <div>${l.attackerDroidName} hit ${l.defenderDroidName} for ${l.damage}${l.defenderFainted ? ' — fainted!' : ''}${l.counterDamage ? ` · Titan countered for ${l.counterDamage}${l.counterFainted ? ' — fainted!' : ''}` : ''}</div>
+        ${l.groupWin ? '<div style="color:var(--legendary); font-weight:700;">🏆 The group defeated the Titan! Everyone still standing got rewards.</div>' : ''}
+        ${l.groupLoss ? '<div style="color:var(--danger);">The Titan defeated everyone — consolation Tubes granted.</div>' : ''}
+      `).join('')}
+    </div>
+  `;
+
+  if (myTurn && battle.status === 'active') {
+    el.querySelector('#btnGroupTitanAttack').onclick = async () => {
+      try {
+        await api('POST', `/battles/${battle.id}/attack-group`, { playerId: state.playerId });
+        await refreshWorkshop();
+        await showActiveBattle(battle.id);
+        await refreshBattles();
+      } catch (e) {}
+    };
+  }
+}
+
+
 async function renderGuild() {
   const el = $('guildStatus');
   const membersEl = $('guildMembers');
@@ -1624,6 +2522,8 @@ async function renderGuild() {
   if (!state.guildId) {
     el.innerHTML = '<div class="empty">Not in a guild</div>';
     membersEl.innerHTML = '';
+    $('guildBadgeArea').innerHTML = '';
+    $('guildNoticeArea').innerHTML = '';
     createJoinEl.style.display = 'block';
     leaderboardPanel.style.display = 'none';
     chatPanel.style.display = 'none';
@@ -1645,6 +2545,51 @@ async function renderGuild() {
   try {
     const guild = await api('GET', `/guilds/${state.guildId}`);
     const isCreator = guild.creatorId === state.playerId;
+
+    const badgeLabels = { dark_side: '🌑 Dark Side', light_side: '☀ Light Side' };
+    const badgeArea = $('guildBadgeArea');
+    if (guild.badge) {
+      badgeArea.innerHTML = `<div class="stat-row" style="margin-top:8px;"><span class="stat-label">Badge</span><span class="stat-val">${badgeLabels[guild.badge]}</span></div>`;
+    } else if (isCreator) {
+      badgeArea.innerHTML = `
+        <div class="panel-title" style="margin-top:12px; margin-bottom:6px;">Guild Badge <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— 5000✦, leader only</span></div>
+        <div style="display:flex; gap:6px;">
+          <button class="buy-badge-btn" data-badge="dark_side" style="margin-top:0;">🌑 Dark Side</button>
+          <button class="buy-badge-btn" data-badge="light_side" style="margin-top:0;">☀ Light Side</button>
+        </div>
+      `;
+      badgeArea.querySelectorAll('.buy-badge-btn').forEach((btn) => {
+        btn.onclick = async () => {
+          try {
+            await api('POST', `/guilds/${state.guildId}/badge`, { playerId: state.playerId, badge: btn.dataset.badge });
+            await renderGuild();
+            await refreshWorkshop();
+          } catch (e) {}
+        };
+      });
+    } else {
+      badgeArea.innerHTML = '';
+    }
+
+    const noticeArea = $('guildNoticeArea');
+    if (isCreator) {
+      noticeArea.innerHTML = `
+        <div class="panel-title" style="margin-top:12px; margin-bottom:6px;">Guild Notice</div>
+        <textarea id="guildNoticeInput" rows="3" style="width:100%; resize:vertical; background:var(--panel-raised); color:var(--text); border:1px solid var(--line); border-radius:3px; padding:8px; font-family:inherit; font-size:11px;" maxlength="300">${guild.notice || ''}</textarea>
+        <button id="btnSaveGuildNotice" style="margin-top:6px;">Save Notice</button>
+      `;
+      $('btnSaveGuildNotice').onclick = async () => {
+        try {
+          await api('POST', `/guilds/${state.guildId}/notice`, { playerId: state.playerId, notice: $('guildNoticeInput').value });
+          log('SYS', 'Guild notice updated.');
+        } catch (e) {}
+      };
+    } else {
+      noticeArea.innerHTML = guild.notice
+        ? `<div class="panel-title" style="margin-top:12px; margin-bottom:6px;">Guild Notice</div><div class="stat-row" style="display:block; font-size:11px; color:var(--text-dim);">${guild.notice}</div>`
+        : '';
+    }
+
     membersEl.innerHTML = `
       <div class="panel-title" style="margin-top:12px; margin-bottom:6px;">${guild.name} — ${guild.members.length} member${guild.members.length === 1 ? '' : 's'}</div>
       ${guild.members.map((m) => `
@@ -1699,21 +2644,40 @@ $('btnSendGuildChat').onclick = async () => {
 
 $('btnCreateGuild').onclick = async () => {
   const name = $('guildName').value.trim();
-  if (!name) { log('SYS', 'Enter a guild name', true); return; }
+  if (!name) { showGuildResultPopup(false, 'Enter a guild name first.'); return; }
   try {
-    await api('POST', '/guilds', { playerId: state.playerId, name });
+    const result = await api('POST', '/guilds', { playerId: state.playerId, name });
     await refreshWorkshop();
-  } catch (e) {}
+    showGuildResultPopup(true, `"${result.guild.name}" created! You're the leader.`);
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not create the guild — try again.');
+  }
 };
 
 $('btnJoinGuild').onclick = async () => {
   const guildId = Number($('joinGuildId').value);
-  if (!guildId) { log('SYS', 'Enter a guild ID', true); return; }
+  if (!guildId) { showGuildResultPopup(false, 'Enter a guild ID first.'); return; }
   try {
-    await api('POST', `/guilds/${guildId}/join`, { playerId: state.playerId });
+    const result = await api('POST', `/guilds/${guildId}/join`, { playerId: state.playerId });
     await refreshWorkshop();
-  } catch (e) {}
+    showGuildResultPopup(true, `Joined ${result.guild ? '"' + result.guild.name + '"' : 'the guild'}!`);
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not join that guild — try again.');
+  }
 };
+
+function showGuildResultPopup(success, message) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">${success ? '✅' : '⚠️'}</div>
+    <div class="mb-title ${success ? 'success' : 'fail'}">${success ? 'Success' : 'Couldn\'t Complete'}</div>
+    <div class="mb-detail">${message}</div>
+    <button class="${success ? 'primary' : ''} mb-close">${success ? 'Nice' : 'OK'}</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
 
 // ---- Redeem code ----
 $('btnRedeemCode').onclick = async () => {
@@ -1721,10 +2685,29 @@ $('btnRedeemCode').onclick = async () => {
   if (!code) { log('SYS', 'Enter a code', true); return; }
   try {
     const result = await api('POST', '/redeem', { playerId: state.playerId, code });
-    log('SYS', `Redeemed! +${result.crystalsGranted} crystals${result.droid ? ' + ' + result.droid.speciesName : ''}`);
+    showRedeemResultPopup(result);
+    $('redeemCodeInput').value = '';
     await refreshWorkshop();
   } catch (e) {}
 };
+
+function showRedeemResultPopup(result) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const rewards = [];
+  if (result.crystalsGranted > 0) rewards.push(`<div class="mb-detail" style="color:var(--amber);">✦ +${result.crystalsGranted} crystals</div>`);
+  if (result.paintGranted > 0) rewards.push(`<div class="mb-detail" style="color:var(--amber);">🎨 +${result.paintGranted} Paint</div>`);
+  if (result.novaChipsGranted > 0) rewards.push(`<div class="mb-detail" style="color:var(--cyan);">🔷 +${result.novaChipsGranted} Nova Chip${result.novaChipsGranted > 1 ? 's' : ''}</div>`);
+  if (result.droid) rewards.push(`<div class="mb-detail">${result.droid.speciesName} added to Storage!</div>`);
+  box.innerHTML = `
+    <div class="mb-icon">🎁</div>
+    <div class="mb-title success">Code Redeemed!</div>
+    ${rewards.join('') || '<div class="mb-detail" style="color:var(--text-dim);">No rewards on this code.</div>'}
+    <button class="primary mb-close">Nice</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
 
 // ---- Droid icons (procedural placeholder art) ----
 // No custom character art yet — these are simple generated icons so
@@ -1761,6 +2744,19 @@ function droidIconSVG(species, size = 44) {
 // moment an image is added, no other code changes needed.
 const DROID_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
 
+function applyVariantTint(img, variant, color) {
+  // Cheaper alternative to needing a dedicated image per variant per
+  // species — only used when a real variant-specific file isn't found.
+  if (variant === 'platinum') {
+    img.style.filter = 'grayscale(0.4) brightness(1.3) contrast(1.1) saturate(0.3) drop-shadow(0 0 3px rgba(255,255,255,0.6))';
+  } else if (variant === 'rusty') {
+    img.style.filter = 'sepia(0.6) saturate(2) hue-rotate(-20deg) brightness(0.9)';
+  } else if (variant === 'funky') {
+    const hueMap = { red: '0deg', yellow: '50deg', blue: '210deg' };
+    img.style.filter = `sepia(1) saturate(3) hue-rotate(${hueMap[color] || '30deg'}) brightness(1.1)`;
+  }
+}
+
 function createDroidVisual(species, size = 44) {
   const displayName = species.name || species.speciesName; // dex entries use 'name'; spawns/owned droids use 'speciesName'
   const wrapper = document.createElement('span');
@@ -1773,8 +2769,10 @@ function createDroidVisual(species, size = 44) {
   const variant = species.variant && species.variant !== 'standard' ? species.variant : null;
 
   // Try variant-specific art first (e.g. puffkin-platinum.png), then the
-  // base species image, then finally the procedural SVG placeholder.
+  // base species image (tinted via CSS filter as a variant fallback if no
+  // dedicated file exists), then finally the procedural SVG placeholder.
   const candidates = [];
+  const variantCandidateCount = variant ? DROID_IMAGE_EXTENSIONS.length : 0;
   if (variant) {
     DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${baseSlug}-${variant}.${ext}`));
   }
@@ -1790,15 +2788,20 @@ function createDroidVisual(species, size = 44) {
   img.alt = displayName;
 
   let idx = 0;
+  let currentIsBaseFallback = false;
   const tryNext = () => {
     if (idx >= candidates.length) {
       wrapper.innerHTML = droidIconSVG({ ...species, name: displayName }, size); // no image found for any candidate
       return;
     }
+    currentIsBaseFallback = variant && idx >= variantCandidateCount;
     img.src = candidates[idx];
     idx++;
   };
   img.onerror = tryNext;
+  img.onload = () => {
+    if (currentIsBaseFallback) applyVariantTint(img, variant, species.color);
+  };
   tryNext();
 
   wrapper.appendChild(img);
@@ -1828,6 +2831,7 @@ function renderDex(entries) {
   entries.forEach((s) => {
     const card = document.createElement('div');
     card.className = 'dex-card ' + (s.caught ? 'caught' : 'uncaught');
+    card.style.cursor = 'pointer';
     const caughtVariants = s.variantsCaught || [];
     const rustyCaught = caughtVariants.includes('rusty');
     const platinumCaught = caughtVariants.includes('platinum');
@@ -1845,21 +2849,92 @@ function renderDex(entries) {
     `;
     card.style.position = 'relative';
     card.querySelector('.dc-icon').appendChild(createDroidVisual(s, 40));
+    card.onclick = () => showDexDetailModal(s);
     grid.appendChild(card);
   });
 }
 
+function showDexDetailModal(s) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  if (s.caught) {
+    box.innerHTML = `
+      <div id="dexModalIcon" style="margin-bottom:10px;"></div>
+      <div class="mb-title" style="color:#fff;">${s.name}</div>
+      <div class="mb-detail">${s.alignment === 'light' ? '☀ Light' : s.alignment === 'cosmic' ? '✦ Cosmic' : '🌑 Dark'} · ${s.rarity} · ${s.collection}</div>
+      <div class="stat-grid">
+        <div class="sg-item"><div class="sg-label">Base HP</div><div class="sg-val">${s.baseHP}</div></div>
+        <div class="sg-item"><div class="sg-label">Base Attack</div><div class="sg-val">${s.baseAttack}</div></div>
+        <div class="sg-item"><div class="sg-label">Capture Rate</div><div class="sg-val" style="font-size:12px;">${Math.round(s.baseCaptureRate * 100)}%</div></div>
+        <div class="sg-item"><div class="sg-label">Crystal Rate</div><div class="sg-val" style="font-size:12px;">${s.baseCrystalRate}/min</div></div>
+      </div>
+      <button class="primary mb-close" style="margin-top:16px;">Close</button>
+    `;
+    box.querySelector('#dexModalIcon').appendChild(createDroidVisual(s, 64));
+  } else {
+    box.innerHTML = `
+      <div class="mb-icon">❓</div>
+      <div class="mb-title" style="color:var(--text-dim);">Not Yet Caught</div>
+      <div class="mb-detail">${s.rarity} · ${s.collection}</div>
+      ${s.evolvesFromName ? `<div class="mb-detail" style="color:var(--cyan);">Evolves from ${s.evolvesFromName}</div>` : ''}
+      <button class="mb-close" style="margin-top:16px;">Close</button>
+    `;
+  }
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
+
+const EVENT_DECK_LABELS = { solar: '☀ Summer Dex' }; // maps collection -> display name; add more as new event collections launch
+
 function renderEventDex(entries) {
+  const buttonsEl = $('eventDeckButtons');
   const grid = $('eventDexGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
+  if (!grid || !buttonsEl) return;
+
   if (!entries.length) {
+    buttonsEl.innerHTML = '';
     grid.innerHTML = '<div class="empty">No event-exclusive species yet</div>';
     return;
   }
+
+  // Group entries by collection so each event collection gets its own
+  // selectable "deck" — scales to however many event collections exist
+  // over time without dumping every missed event's species in one wall.
+  const deckMap = {};
   entries.forEach((s) => {
+    if (!deckMap[s.collection]) deckMap[s.collection] = [];
+    deckMap[s.collection].push(s);
+  });
+  const deckKeys = Object.keys(deckMap);
+
+  if (state.activeEventDeck && !deckKeys.includes(state.activeEventDeck)) {
+    state.activeEventDeck = null; // previously selected deck no longer exists — reset rather than error
+  }
+
+  // Deliberately does NOT auto-select a deck on load — grid stays empty
+  // until the player clicks a specific deck button, so nothing shows
+  // "underneath" before they've chosen to reveal it.
+  buttonsEl.innerHTML = deckKeys.map((key) =>
+    `<button class="event-deck-btn" data-deck="${key}" style="margin-top:0; ${key === state.activeEventDeck ? 'background:var(--cyan); color:#04181a;' : ''}">${EVENT_DECK_LABELS[key] || key}</button>`
+  ).join('');
+  buttonsEl.querySelectorAll('.event-deck-btn').forEach((btn) => {
+    btn.onclick = () => {
+      state.activeEventDeck = state.activeEventDeck === btn.dataset.deck ? null : btn.dataset.deck; // click again to hide
+      renderEventDex(state.lastEventDexEntries || entries);
+    };
+  });
+  state.lastEventDexEntries = entries;
+
+  if (!state.activeEventDeck) {
+    grid.innerHTML = '<div class="empty">Tap a deck above to reveal it</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  deckMap[state.activeEventDeck].forEach((s) => {
     const card = document.createElement('div');
     card.className = 'dex-card ' + (s.caught ? 'caught' : 'uncaught');
+    card.style.cursor = 'pointer';
     const caughtVariants = s.variantsCaught || [];
     card.innerHTML = `
       <div class="dc-icon"></div>
@@ -1872,6 +2947,7 @@ function renderEventDex(entries) {
       </div>
     `;
     card.querySelector('.dc-icon').appendChild(createDroidVisual(s, 40));
+    card.onclick = () => showDexDetailModal(s);
     grid.appendChild(card);
   });
 }
@@ -2274,7 +3350,8 @@ function renderEggList() {
     const row = document.createElement('div');
     row.className = 'droid-row';
     row.innerHTML = `
-      <span style="flex:1;">🥚 Egg #${egg.id}</span>
+      <span class="egg-icon" style="flex-shrink:0; display:inline-block; width:20px; height:20px; vertical-align:middle;"><img src="/assets/misc/egg.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='🥚';"></span>
+      <span style="flex:1;">Egg #${egg.id}</span>
       <select style="margin-top:0;"><option value="">Assign to slot...</option>${options}</select>
       <button class="crush-egg-btn" style="margin-top:0; width:auto; padding:5px 10px; font-size:9px; color:var(--danger); border-color:var(--danger);">Crush</button>
     `;
