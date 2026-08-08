@@ -31,10 +31,38 @@ const RARITY_BASE_STATS = {
   rare: { hp: 150, attack: 22 },
   legendary: { hp: 260, attack: 35 },
   cosmic: { hp: 200, attack: 20 },
+  galactic: { hp: 400, attack: 50 }, // meaningfully above Legendary, matches the confirmed "substantially bigger" design intent
 };
 function statsFor(rarity) {
   return { baseHP: RARITY_BASE_STATS[rarity].hp, baseAttack: RARITY_BASE_STATS[rarity].attack };
 }
+
+// Football roster spawn window — Light 3-5pm, Dark 8-10pm, Saturday and
+// Sunday only (0=Sun, 6=Sat). Checked in spawns.js via isFootballWindowActive().
+const FOOTBALL_WINDOWS = {
+  light: { days: [0, 6], startHour: 15, endHour: 17 },
+  dark: { days: [0, 6], startHour: 20, endHour: 22 },
+};
+// Per-species footballWeight, active only during the window above: each
+// rarity tier's usual total (60/25/12/3) split across however many
+// football species share that tier (uneven counts, unlike every other
+// collection): Common 3 -> 20 each, Uncommon 6 -> ~4.17 each, Rare 6 -> 2
+// each, Legendary 5 -> 0.6 each.
+const FOOTBALL_TIER_WEIGHT = { common: 60 / 3, uncommon: 25 / 6, rare: 12 / 6, legendary: 3 / 5 };
+
+// Void Zombies (dark, 11pm-1am daily) and Lumen Sentinels (light,
+// 11am-1pm daily) — same additive, non-destructive spawn pattern as
+// Football, but no day-of-week gate, just a nightly/daily hour window
+// every day. Only Common/Uncommon spawn wild; Rare/Legendary are
+// evolution-only (see EVOLUTION_TABLE below).
+const DAILY_LINE_WINDOWS = {
+  void_zombie: { startHour: 23, endHour: 25 }, // 25 = wraps past midnight to 1am
+  lumen_sentinel: { startHour: 11, endHour: 13 },
+};
+// Each line has exactly one wild-spawnable species per tier (unlike every
+// other collection's 2-per-side split), so each gets the full tier
+// baseline weight rather than splitting it with a sibling.
+const DAILY_LINE_TIER_WEIGHT = { common: 60 }; // only Common spawns wild in these lines now — Uncommon/Rare/Legendary are all evolution-only, full 4-tier chain
 
 const droidSpecies = [
   // -- common (60 total / 8 species now = 7.5 each) --
@@ -81,8 +109,36 @@ const droidSpecies = [
   { id: id(), name: 'Bushy',      alignment: 'light', rarity: 'uncommon',  collection: 'nature',   baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('uncommon') },
 
   // -- companion (cosmic tier — rarer than legendary, doesn't farm, provides a % buff instead; see COMPANION_BUFF_PERCENT) --
-  { id: id(), name: 'StarSprite', alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'crystal', companionBuffPercent: 50, ...statsFor('cosmic') },
-  { id: id(), name: 'Nebulfox',   alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'capture_rate', companionBuffPercent: 100, ...statsFor('cosmic') },
+  { id: id(), name: 'StarSprite', alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'crystal', companionBuffPercent: 50, companionBuffDurationMs: 2 * 60 * 60 * 1000, ...statsFor('cosmic') },
+  { id: id(), name: 'Nebulfox',   alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'capture_rate', companionBuffPercent: 100, companionBuffDurationMs: 60 * 60 * 1000, ...statsFor('cosmic') },
+  { id: id(), name: 'The Enforcer', alignment: 'cosmic', rarity: 'cosmic', collection: 'cosmic', baseCaptureRate: 0.03, baseCrystalRate: 0, spawnWeight: 0.1, isCompanion: true, companionBuffType: 'damage', companionBuffPercent: 100, companionBuffDurationMs: 60 * 60 * 1000, ...statsFor('cosmic') },
+
+  // -- Football roster (20 species) — Light spawns 3-5pm, Dark spawns
+  // 8-10pm, Saturday/Sunday only (see FOOTBALL_WINDOWS above). Deliberately
+  // in the MAIN Dex (not a separate Event Dex like Solar) — a controlled
+  // long-tail difficulty mechanism, not a time-limited event. spawnWeight
+  // stays 0 always; footballWeight only applies inside the active window.
+  { id: id(), name: 'Cherrybyte',  alignment: 'dark',  rarity: 'common',    collection: 'football', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.common, ...statsFor('common') },
+  { id: id(), name: 'Ironfang',    alignment: 'dark',  rarity: 'uncommon',  collection: 'football', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.uncommon, ...statsFor('uncommon') },
+  { id: id(), name: 'Rootcore',    alignment: 'dark',  rarity: 'uncommon',  collection: 'football', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.uncommon, ...statsFor('uncommon') },
+  { id: id(), name: 'Emberhart',   alignment: 'dark',  rarity: 'uncommon',  collection: 'football', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.uncommon, ...statsFor('uncommon') },
+  { id: id(), name: 'Regalion',    alignment: 'dark',  rarity: 'rare',      collection: 'football', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.rare, ...statsFor('rare') },
+  { id: id(), name: 'Hammerclad',  alignment: 'dark',  rarity: 'rare',      collection: 'football', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.rare, ...statsFor('rare') },
+  { id: id(), name: 'Skytalon',    alignment: 'dark',  rarity: 'rare',      collection: 'football', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.rare, ...statsFor('rare') },
+  { id: id(), name: 'Cannix',      alignment: 'dark',  rarity: 'legendary', collection: 'football', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.legendary, ...statsFor('legendary') },
+  { id: id(), name: 'Redforge',    alignment: 'dark',  rarity: 'legendary', collection: 'football', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.legendary, ...statsFor('legendary') },
+  { id: id(), name: 'Liverflare',  alignment: 'dark',  rarity: 'legendary', collection: 'football', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.legendary, ...statsFor('legendary') },
+
+  { id: id(), name: 'Scarforge',   alignment: 'light', rarity: 'common',    collection: 'football', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.common, ...statsFor('common') },
+  { id: id(), name: 'Plumebolt',   alignment: 'light', rarity: 'common',    collection: 'football', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.common, ...statsFor('common') },
+  { id: id(), name: 'Gullstrike',  alignment: 'light', rarity: 'uncommon',  collection: 'football', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.uncommon, ...statsFor('uncommon') },
+  { id: id(), name: 'Rivershield', alignment: 'light', rarity: 'uncommon',  collection: 'football', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.uncommon, ...statsFor('uncommon') },
+  { id: id(), name: 'Hexasting',   alignment: 'light', rarity: 'uncommon',  collection: 'football', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.uncommon, ...statsFor('uncommon') },
+  { id: id(), name: 'Lionvolt',    alignment: 'light', rarity: 'rare',      collection: 'football', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.rare, ...statsFor('rare') },
+  { id: id(), name: 'Magpiex',     alignment: 'light', rarity: 'rare',      collection: 'football', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.rare, ...statsFor('rare') },
+  { id: id(), name: 'Towerguard',  alignment: 'light', rarity: 'rare',      collection: 'football', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.rare, ...statsFor('rare') },
+  { id: id(), name: 'Spurwing',    alignment: 'light', rarity: 'legendary', collection: 'football', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.legendary, ...statsFor('legendary') },
+  { id: id(), name: 'Skymane',     alignment: 'light', rarity: 'legendary', collection: 'football', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, footballWeight: FOOTBALL_TIER_WEIGHT.legendary, ...statsFor('legendary') },
 
   // -- Summer event-exclusive (Solar collection) — spawnWeight 0 outside the
   // event window. A normal "boost" event can't make these spawn (0 x any
@@ -100,15 +156,73 @@ const droidSpecies = [
   { id: id(), name: 'Heatfang',     alignment: 'dark',  rarity: 'uncommon',  collection: 'solar', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, eventOnly: true, ...statsFor('uncommon') },
   { id: id(), name: 'Dustwraith',   alignment: 'dark',  rarity: 'rare',      collection: 'solar', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
   { id: id(), name: 'Infernotitan', alignment: 'dark',  rarity: 'legendary', collection: 'solar', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, eventOnly: true, ...statsFor('legendary') },
+
+  // -- Void Zombies (dark, 11pm-1am daily). Common/Uncommon wild-spawn via
+  // dailyWeight; Rare/Legendary are evolution-only (see EVOLUTION_TABLE).
+  { id: id(), name: 'Shambler',  alignment: 'dark', rarity: 'common',    collection: 'void_zombie', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, dailyWeight: DAILY_LINE_TIER_WEIGHT.common, ...statsFor('common') },
+  { id: id(), name: 'Walker',    alignment: 'dark', rarity: 'uncommon',  collection: 'void_zombie', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Corruptor', alignment: 'dark', rarity: 'rare',      collection: 'void_zombie', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Voidlord',  alignment: 'dark', rarity: 'legendary', collection: 'void_zombie', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
+
+  // -- Lumen Sentinels (light, 11am-1pm daily). Same structure as above.
+  { id: id(), name: 'Illume',     alignment: 'light', rarity: 'common',    collection: 'lumen_sentinel', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, dailyWeight: DAILY_LINE_TIER_WEIGHT.common, ...statsFor('common') },
+  { id: id(), name: 'Lumenguard', alignment: 'light', rarity: 'uncommon',  collection: 'lumen_sentinel', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Luminor',    alignment: 'light', rarity: 'rare',      collection: 'lumen_sentinel', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Luxion',     alignment: 'light', rarity: 'legendary', collection: 'lumen_sentinel', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
+
+  // -- Scaffitan (the Titan). Never wild-spawnable — obtained only via
+  // a rare chance after winning a Titan battle. Masters through tiers
+  // by spending Energy Tubes (see SCAFFITAN_MASTERY_TABLE below), a
+  // separate progression axis from normal leveling, which it also does.
+  // Distinct names per tier so each of the 5 confirmed PNGs maps to a
+  // real, separate image slug.
+  { id: id(), name: 'Scaffitan',          alignment: 'cosmic', rarity: 'common',    collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 5,  spawnWeight: 0, ...statsFor('common') },
+  { id: id(), name: 'Scaffitan Prime',     alignment: 'cosmic', rarity: 'uncommon',  collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 10, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Scaffitan Ascendant', alignment: 'cosmic', rarity: 'rare',      collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 20, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Scaffitan Apex',      alignment: 'cosmic', rarity: 'legendary', collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 35, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Scaffitan Eternal',   alignment: 'cosmic', rarity: 'galactic',  collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 60, spawnWeight: 0, isEvolutionOnly: true, isGalactic: true, galacticBuffType: 'hp_boost', galacticBuffPercent: 20, ...statsFor('galactic') },
 ];
 
 // Leafkin -> Bushy is the first (and template) evolution pair. Keyed by
 // species id so adding more pairs later is pure data, not new code.
 const leafkinSpecies = droidSpecies.find((s) => s.name === 'Leafkin');
 const bushySpecies = droidSpecies.find((s) => s.name === 'Bushy');
+const shamblerSpecies = droidSpecies.find((s) => s.name === 'Shambler');
+const walkerSpecies = droidSpecies.find((s) => s.name === 'Walker');
+const corruptorSpecies = droidSpecies.find((s) => s.name === 'Corruptor');
+const illumeSpecies = droidSpecies.find((s) => s.name === 'Illume');
+const lumenguardSpecies = droidSpecies.find((s) => s.name === 'Lumenguard');
+const luminorSpecies = droidSpecies.find((s) => s.name === 'Luminor');
 const EVOLUTION_TABLE = {
   [leafkinSpecies.id]: { evolvesTo: bushySpecies.id, novaChipCost: 15 },
+  // Full 4-tier chains: only Common is wild-spawnable in these two
+  // lines — Uncommon/Rare/Legendary are ALL evolution-only now.
+  [shamblerSpecies.id]: { evolvesTo: walkerSpecies.id, novaChipCost: 15 },
+  // Deliberate cross-alignment design: the Dark line's final evolution
+  // needs a LIGHT material, and vice versa — not a typo.
+  [walkerSpecies.id]: { evolvesTo: corruptorSpecies.id, novaChipCost: 25, extraCrystalCost: 1000 },
+  [corruptorSpecies.id]: { evolvesTo: voidlordSpeciesId(), novaChipCost: 40, extraMaterial: 'lightStones', extraMaterialCost: 1 },
+  [illumeSpecies.id]: { evolvesTo: lumenguardSpecies.id, novaChipCost: 15 },
+  [lumenguardSpecies.id]: { evolvesTo: luminorSpecies.id, novaChipCost: 25, extraCrystalCost: 1000 },
+  [luminorSpecies.id]: { evolvesTo: luxionSpeciesId(), novaChipCost: 40, extraMaterial: 'darkCrystals', extraMaterialCost: 1 },
 };
+function voidlordSpeciesId() { return droidSpecies.find((s) => s.name === 'Voidlord').id; }
+
+// Scaffitan's mastery progression — spends Energy Tubes, not Nova
+// Chips, so it's a deliberately separate table from EVOLUTION_TABLE
+// rather than overloading that system with a second resource type.
+const scaffitanSpecies = droidSpecies.find((s) => s.name === 'Scaffitan');
+const scaffitanPrimeSpecies = droidSpecies.find((s) => s.name === 'Scaffitan Prime');
+const scaffitanAscendantSpecies = droidSpecies.find((s) => s.name === 'Scaffitan Ascendant');
+const scaffitanApexSpecies = droidSpecies.find((s) => s.name === 'Scaffitan Apex');
+const scaffitanEternalSpecies = droidSpecies.find((s) => s.name === 'Scaffitan Eternal');
+const SCAFFITAN_MASTERY_TABLE = {
+  [scaffitanSpecies.id]: { masterTo: scaffitanPrimeSpecies.id, tubeCost: 15 },
+  [scaffitanPrimeSpecies.id]: { masterTo: scaffitanAscendantSpecies.id, tubeCost: 40 },
+  [scaffitanAscendantSpecies.id]: { masterTo: scaffitanApexSpecies.id, tubeCost: 75 },
+  [scaffitanApexSpecies.id]: { masterTo: scaffitanEternalSpecies.id, tubeCost: 150 },
+};
+function luxionSpeciesId() { return droidSpecies.find((s) => s.name === 'Luxion').id; }
 
 const RARITY_TTL_MS = {
   common: 15 * 60 * 1000,
@@ -119,8 +233,8 @@ const RARITY_TTL_MS = {
 };
 
 const RARITY_MAX_PER_CELL = {
-  common: 3,
-  uncommon: 2,
+  common: 6, // raised from 3 — needed headroom for a dense nearby scan (see spawns.js generation)
+  uncommon: 3, // raised from 2
   rare: 1,
   legendary: 1,
   cosmic: 1,
@@ -133,6 +247,7 @@ const COSMIC_CITY_CAP = 1; // StarSprite — only one active anywhere at a time
 // The control pad literally needs crystals to function (per the original
 // pitch) — below this, an attempt is rejected outright rather than just
 // having low odds. Scales with rarity: tougher droids need more power.
+const RELEASE_REFUND_MULTIPLIER = 1.5; // shared between workshop.js (normal release) and capture.js (auto-release-duplicates)
 const MIN_CRYSTAL_COST = {
   common: 1,
   uncommon: 5,
@@ -140,6 +255,15 @@ const MIN_CRYSTAL_COST = {
   legendary: 40,
   cosmic: 80,
 };
+
+// +5% of base minimum capture cost per Pad Level — a deliberate crystal
+// sink so upgrading the pad doesn't just let crystals pile up unused.
+// Shared between capture.js (enforcement) and spawns.js (so the client
+// sees the real cost up front, not the stale unscaled base number).
+const PAD_LEVEL_COST_SCALING = 0.05;
+function scaledMinCrystalCost(rarity, padLevel) {
+  return Math.round(MIN_CRYSTAL_COST[rarity] * (1 + PAD_LEVEL_COST_SCALING * padLevel));
+}
 
 // ---- variants (shiny-equivalent) ----
 // Rolled independently of species/rarity — any droid, even a Common one, can
@@ -149,7 +273,7 @@ const MIN_CRYSTAL_COST = {
 // TESTING_HIGH_VARIANT_ODDS: flip to false before launch. True makes variants
 // common (80% combined) purely so you can visually confirm both render
 // correctly without grinding for a 1-in-1000 chance.
-const TESTING_HIGH_VARIANT_ODDS = true; // <-- REVERT TO false BEFORE LAUNCH
+const TESTING_HIGH_VARIANT_ODDS = false; // flipped off — confirmed with the team, live odds are now the intended 1/1000 production rate
 
 const VARIANT_ODDS_PRODUCTION = {
   platinum: 1 / 1000,
@@ -221,12 +345,23 @@ function levelUpCost(currentLevel, rarity = 'common') {
 // control pad itself, not any one droid. Two effects: a small chance per
 // attempt of a guaranteed "critical capture", and a slightly higher
 // ceiling on the accuracy-skill multiplier.
-const PAD_CRIT_BASE = 0.02;       // 2% crit chance at pad level 0
-const PAD_CRIT_PER_LEVEL = 0.01;  // +1% per level
-const PAD_CRIT_CAP = 0.50;        // never exceeds 50% — keep crystal power meaningful
+const PAD_CRIT_BASE = 0.02;        // 2% crit chance at pad level 0
+const PAD_CRIT_PER_LEVEL = 0.005;  // +0.5% per level — recalibrated down from 1%, applies live to all existing players (this is computed fresh each time, never stored)
+const PAD_CRIT_CAP = 0.50;         // never exceeds 50% — keep crystal power meaningful
 const PAD_SKILL_CEILING_PER_LEVEL = 0.01; // padSkillMultiplier ceiling nudges up slightly per level
+// Escalating tiers after level 10 and 20 — costs jump meaningfully at
+// each threshold, not just the smooth power-curve growth from before.
 function padUpgradeCost(currentPadLevel) {
-  return Math.round(100 * Math.pow(currentPadLevel + 1, 1.7));
+  const base = 100 * Math.pow(currentPadLevel + 1, 1.7);
+  let tierMultiplier = 1;
+  if (currentPadLevel >= 20) tierMultiplier = 3;
+  else if (currentPadLevel >= 10) tierMultiplier = 1.75;
+  return Math.round(base * tierMultiplier);
+}
+// Every 5th level (5, 10, 15...) also needs 1 Pad RAM, on top of the
+// crystal cost — a real wall against rapid-fire leveling.
+function padRequiresRam(nextPadLevel) {
+  return nextPadLevel % 5 === 0;
 }
 function critChanceForPadLevel(padLevel) {
   return Math.min(PAD_CRIT_CAP, PAD_CRIT_BASE + PAD_CRIT_PER_LEVEL * padLevel);
@@ -354,9 +489,12 @@ const TRADE_FEE_BY_RARITY = {
 // than always-on while equipped (like StarSprite's crystal buff), they
 // require an explicit activation, run for a limited window, then go on
 // cooldown — timed per DROID, not per player, so owning two Nebulfoxes
-// gives two independent timers you can stagger.
-const CAPTURE_RATE_BUFF_DURATION_MS = 60 * 60 * 1000; // 1 hour active
-const CAPTURE_RATE_BUFF_COOLDOWN_MS = 8 * 60 * 60 * 1000; // 8 hours after it ends, before that droid can reactivate
+// gives two independent timers you can stagger. StarSprite now needs
+// activation too (2hr active, vs Nebulfox/Enforcer's 1hr) — every
+// companion type requires activation now, none stay "always-on."
+const ACTIVATED_BUFF_DURATION_MS = 60 * 60 * 1000; // fallback default if a species doesn't specify its own
+const ACTIVATED_BUFF_COOLDOWN_MS = 8 * 60 * 60 * 1000; // uniform 8 hours after it ends, before that droid can reactivate
+const ACTIVATED_BUFF_TYPES = ['capture_rate', 'damage', 'crystal'];
 
 function activateCompanionBuff(playerId, droidId) {
   const player = players.get(playerId);
@@ -364,8 +502,8 @@ function activateCompanionBuff(playerId, droidId) {
   if (!player) throw new Error('Player not found');
   if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
   const species = droidSpecies.find((s) => s.id === droid.speciesId);
-  if (!species || !species.isCompanion || species.companionBuffType !== 'capture_rate') {
-    throw new Error('Only capture-rate companions (e.g. Nebulfox) need activating');
+  if (!species || !species.isCompanion || !ACTIVATED_BUFF_TYPES.includes(species.companionBuffType)) {
+    throw new Error('This companion type doesn\'t need activating');
   }
   if (player.companionDroidId !== droidId) throw new Error('Equip this companion before activating its buff');
 
@@ -378,8 +516,9 @@ function activateCompanionBuff(playerId, droidId) {
     throw new Error(`This droid's buff is on cooldown for another ~${minsLeft}m`);
   }
 
-  droid.buffActiveUntil = now + CAPTURE_RATE_BUFF_DURATION_MS;
-  droid.buffCooldownUntil = droid.buffActiveUntil + CAPTURE_RATE_BUFF_COOLDOWN_MS;
+  const durationMs = species.companionBuffDurationMs || ACTIVATED_BUFF_DURATION_MS;
+  droid.buffActiveUntil = now + durationMs;
+  droid.buffCooldownUntil = droid.buffActiveUntil + ACTIVATED_BUFF_COOLDOWN_MS;
   return { buffActiveUntil: droid.buffActiveUntil, buffCooldownUntil: droid.buffCooldownUntil };
 }
 
@@ -391,6 +530,112 @@ const COSMETICS_CATALOG = [
   { id: 'beta_crown', name: 'Beta Crown', cost: 1000, description: 'No effect - just shows you were here for the beta.' },
 ];
 
+// ---- Shop ----
+// Every material except crystals is buyable here, at a deliberately
+// heavy price — meant to reward players who can farm large crystal
+// amounts, not to be a cheap shortcut around Depot/Factory/capturing.
+// Extensible: new materials (e.g. from a future Battles system) just
+// need a new catalog entry, no structural change.
+const SHOP_CATALOG = [
+  { id: 'paint', name: 'Paint', cost: 150, type: 'material', grants: { paint: 1 } },
+  { id: 'nova_chip', name: 'Nova Chip', cost: 250, type: 'material', grants: { novaChips: 1 } },
+  { id: 'beacon', name: 'Beacon', cost: 300, type: 'material', grants: { beacons: 1 } },
+  { id: 'augment_core', name: 'Augment Core', cost: 400, type: 'material', grants: { augmentCores: 1 } },
+  { id: 'light_stone', name: 'Light Stone', cost: 500000, type: 'material', grants: { lightStones: 1 } },
+  { id: 'dark_crystal', name: 'Dark Crystal', cost: 500000, type: 'material', grants: { darkCrystals: 1 } },
+  // Pad RAM's real intended source is a PVE Battle drop (5% chance) —
+  // Battles don't exist yet, so Shop is the only way to get one for
+  // now. Keep this entry once Battles ship; don't remove it, just stop
+  // it being the *only* source.
+  { id: 'pad_ram', name: 'Pad RAM', cost: 5000, type: 'material', grants: { padRam: 1 } },
+  // Repair Kit's real intended source is Titan battle rewards — not
+  // built yet. Shop is a stopgap, same reasoning as Pad RAM above.
+  { id: 'repair_kit', name: 'Repair Kit', cost: 1500, type: 'material', grants: { repairKits: 1 } },
+  { id: 'time_warp', name: 'Time Warp', cost: 100, type: 'material', grants: { timeWarps: 1 } },
+  { id: 'growth', name: 'Growth', cost: 100, type: 'material', grants: { growths: 1 } },
+  { id: 'outfit_earthy', name: 'Earthy Outfit', cost: 5000, type: 'outfit', outfitId: 'earthy' },
+  { id: 'outfit_technology', name: 'Technology Outfit', cost: 5000, type: 'outfit', outfitId: 'technology' },
+  { id: 'outfit_wildlife', name: 'Wildlife Outfit', cost: 5000, type: 'outfit', outfitId: 'wildlife' },
+  { id: 'outfit_funky', name: 'Funky Outfit', cost: 5000, type: 'outfit', outfitId: 'funky' },
+];
+
+function buyShopItem(playerId, itemId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const item = SHOP_CATALOG.find((i) => i.id === itemId);
+  if (!item) throw new Error('Item not found');
+  if (item.type === 'outfit' && player.ownedOutfits.includes(item.outfitId)) {
+    throw new Error('You already own this outfit');
+  }
+  if (player.crystalBalance < item.cost) throw new Error(`Not enough crystals — ${item.name} costs ${item.cost}`);
+
+  player.crystalBalance -= item.cost;
+  crystalTransactions.push({ id: id(), playerId, amount: -item.cost, source: 'shop_purchase', createdAt: Date.now() });
+
+  if (item.type === 'material') {
+    if (item.grants.paint) player.paint += item.grants.paint;
+    if (item.grants.novaChips) player.novaChips += item.grants.novaChips;
+    if (item.grants.beacons) player.beacons += item.grants.beacons;
+    if (item.grants.augmentCores) player.augmentCores += item.grants.augmentCores;
+    if (item.grants.timeWarps) player.timeWarps += item.grants.timeWarps;
+    if (item.grants.growths) player.growths += item.grants.growths;
+    if (item.grants.lightStones) player.lightStones += item.grants.lightStones;
+    if (item.grants.darkCrystals) player.darkCrystals += item.grants.darkCrystals;
+    if (item.grants.padRam) player.padRam += item.grants.padRam;
+    if (item.grants.repairKits) player.repairKits += item.grants.repairKits;
+  } else if (item.type === 'outfit') {
+    player.ownedOutfits.push(item.outfitId);
+  }
+
+  return { item, crystalBalance: player.crystalBalance, paint: player.paint, novaChips: player.novaChips, beacons: player.beacons, augmentCores: player.augmentCores, timeWarps: player.timeWarps, growths: player.growths, lightStones: player.lightStones, darkCrystals: player.darkCrystals, ownedOutfits: player.ownedOutfits };
+}
+
+// Pad plug-ins (Time Warp, Growth) — single-use, consumed the moment
+// applied to a capture attempt, regardless of whether that attempt
+// succeeds or fails. The actual visual effect (slower sweep / wider
+// zone) is rendered client-side for that one attempt; these functions
+// just handle the consume-on-use inventory side.
+function useTimeWarp(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (player.timeWarps < 1) throw new Error('No Time Warps owned — buy one from the Shop');
+  player.timeWarps -= 1;
+  return { timeWarps: player.timeWarps };
+}
+
+function useGrowth(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (player.growths < 1) throw new Error('No Growths owned — buy one from the Shop');
+  player.growths -= 1;
+  return { growths: player.growths };
+}
+
+function equipOutfit(playerId, outfitId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!player.ownedOutfits.includes(outfitId)) throw new Error('You don\'t own this outfit yet');
+  player.outfit = outfitId;
+  return { outfit: player.outfit };
+}
+
+// ---- Anti-spam: scan rate limiting ----
+// Real gap found during review — nothing previously stopped rapid-fire
+// scanning (real or GPS-spoofed) from building an unbounded queue of
+// unclaimed spawns. A simple per-player minimum interval between scans.
+const SCAN_RATE_LIMIT_MS = 2000; // 2 seconds — generous enough for real play, blocks scripted spam
+
+function checkScanRateLimit(playerId) {
+  if (!playerId) return; // no playerId passed (older/anonymous calls) — nothing to rate-limit against
+  const player = players.get(playerId);
+  if (!player) return;
+  const now = Date.now();
+  if (player.lastScanAt && now - player.lastScanAt < SCAN_RATE_LIMIT_MS) {
+    throw new Error('Scanning too fast — slow down a moment');
+  }
+  player.lastScanAt = now;
+}
+
 // ---- Depot ----
 // The hourly counterpart to the Factory: no slots, no incubation — every
 // attempt succeeds in the sense that you always get SOME reward, but
@@ -400,8 +645,9 @@ const DEPOT_MINIGAME_COST = 100; // crystals per attempt
 const DEPOT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 const DEPOT_BASE_CRYSTAL_REWARD = 50;
 const DEPOT_BONUS_CRYSTAL_RANGE = 150; // total payout ranges 50-200 depending on closeness
-const DEPOT_PAINT_CHANCE = 0.15;
-const DEPOT_NOVA_CHIP_CHANCE = 0.15;
+const DEPOT_PAINT_CHANCE = 0.12; // was 0.15 — trimmed slightly to make room for Augment Core
+const DEPOT_NOVA_CHIP_CHANCE = 0.12; // was 0.15
+const DEPOT_AUGMENT_CORE_CHANCE = 0.10;
 
 function attemptDepot(playerId, closeness, attemptDurationMs) {
   const player = players.get(playerId);
@@ -427,6 +673,8 @@ function attemptDepot(playerId, closeness, attemptDurationMs) {
   if (gotPaint) player.paint += 1;
   const gotNovaChip = Math.random() < DEPOT_NOVA_CHIP_CHANCE;
   if (gotNovaChip) player.novaChips += 1;
+  const gotAugmentCore = Math.random() < DEPOT_AUGMENT_CORE_CHANCE;
+  if (gotAugmentCore) player.augmentCores += 1;
 
   player.depotCooldownUntil = now + DEPOT_COOLDOWN_MS;
 
@@ -434,9 +682,11 @@ function attemptDepot(playerId, closeness, attemptDurationMs) {
     crystalsEarned,
     gotPaint,
     gotNovaChip,
+    gotAugmentCore,
     crystalBalance: player.crystalBalance,
     paint: player.paint,
     novaChips: player.novaChips,
+    augmentCores: player.augmentCores,
     depotCooldownUntil: player.depotCooldownUntil,
   };
 }
@@ -475,6 +725,23 @@ function activateBeacon(playerId) {
 function isBeaconActive(playerId, now = Date.now()) {
   const player = players.get(playerId);
   return !!(player && player.beaconActiveUntil && now < player.beaconActiveUntil);
+}
+
+// Cell-level beacon visibility: when a player WITH an active beacon
+// scans a cell, that cell gets marked as beacon-boosted until their
+// beacon would naturally expire — so someone ELSE scanning the same
+// cell shortly after also sees the indicator, not just the beacon
+// holder themselves. A beacon is a visible signal, not a private effect.
+const beaconBoostedCells = new Map(); // cell -> expiresAt
+
+function markCellBeaconBoosted(cell, expiresAt) {
+  const existing = beaconBoostedCells.get(cell);
+  if (!existing || expiresAt > existing) beaconBoostedCells.set(cell, expiresAt);
+}
+
+function isCellBeaconBoosted(cell, now = Date.now()) {
+  const expiresAt = beaconBoostedCells.get(cell);
+  return !!(expiresAt && now < expiresAt);
 }
 
 // ---- Factory / Prototype (weekly-feel droid hatching) ----
@@ -537,6 +804,7 @@ function eligiblePrototypeSpecies(rarity, now = Date.now()) {
 // Minimal for now: a name and a member list, no gameplay effect yet -
 // foundation for a future PVP/guild system. Small friend-group cap.
 const guilds = new Map(); // id -> guild row
+const battles = new Map(); // id -> battle row (see battle.js)
 const GUILD_MAX_MEMBERS = 12;
 
 const GUILD_KICK_GLOBAL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 1 day before joining ANY guild
@@ -546,10 +814,48 @@ function createGuild(playerId, name) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
   if (player.guildId) throw new Error('Already in a guild - leave it first');
-  const guild = { id: id(), name, creatorId: playerId, memberIds: [playerId], createdAt: Date.now() };
+  const guild = { id: id(), name, creatorId: playerId, memberIds: [playerId], createdAt: Date.now(), badge: null, notice: '' };
   guilds.set(guild.id, guild);
   player.guildId = guild.id;
   return guild;
+}
+
+const GUILD_BADGES = ['dark_side', 'light_side']; // sold in the Shop, bought by any member, assigned by the leader
+
+function setGuildBadge(playerId, guildId, badge) {
+  const guild = guilds.get(guildId);
+  if (!guild) throw new Error('Guild not found');
+  if (guild.creatorId !== playerId) throw new Error('Only the guild creator can set the badge');
+  if (badge !== null && !GUILD_BADGES.includes(badge)) throw new Error('Invalid badge');
+  guild.badge = badge;
+  return guild;
+}
+
+const GUILD_NOTICE_MAX_LENGTH = 300;
+
+function setGuildNotice(playerId, guildId, notice) {
+  const guild = guilds.get(guildId);
+  if (!guild) throw new Error('Guild not found');
+  if (guild.creatorId !== playerId) throw new Error('Only the guild creator can edit the notice');
+  guild.notice = (notice || '').slice(0, GUILD_NOTICE_MAX_LENGTH);
+  return guild;
+}
+
+const GUILD_BADGE_COST = 5000;
+
+function buyGuildBadge(playerId, guildId, badge) {
+  const player = players.get(playerId);
+  const guild = guilds.get(guildId);
+  if (!player) throw new Error('Player not found');
+  if (!guild) throw new Error('Guild not found');
+  if (guild.creatorId !== playerId) throw new Error('Only the guild creator can buy a badge');
+  if (!GUILD_BADGES.includes(badge)) throw new Error('Invalid badge');
+  if (player.crystalBalance < GUILD_BADGE_COST) throw new Error(`Not enough crystals — a badge costs ${GUILD_BADGE_COST}`);
+
+  player.crystalBalance -= GUILD_BADGE_COST;
+  crystalTransactions.push({ id: id(), playerId, amount: -GUILD_BADGE_COST, source: 'guild_badge_purchase', createdAt: Date.now() });
+  guild.badge = badge;
+  return { guild, crystalBalance: player.crystalBalance };
 }
 
 function joinGuild(playerId, guildId) {
@@ -816,6 +1122,21 @@ function createPlayer(username, pin) {
     beacons: 0,
     beaconActiveUntil: null,
     depotCooldownUntil: null,
+    augmentCores: 0,
+    timeWarps: 0,
+    growths: 0,
+    lightStones: 0,
+    darkCrystals: 0,
+    padRam: 0,
+    repairKits: 0,
+    titanCooldownUntil: null,
+    energyTubes: 0,
+    outfit: 'basic',
+    ownedOutfits: ['basic'],
+    lastScanAt: null,
+    lastCaptureAttemptAt: null,
+    autoReleaseDuplicates: false,
+    autoReleaseIncludeVariants: false,
   };
   players.set(player.id, player);
 
@@ -865,6 +1186,33 @@ function loginOrCreatePlayer(username, pin) {
   return createPlayer(username.trim(), pin);
 }
 
+// Requires the CURRENT pin as proof, even though the player is already
+// logged in — same reasoning most apps use for password changes: if
+// someone's device is left unlocked, a PIN change shouldn't be a free
+// way to lock the real owner out permanently.
+function setAutoReleaseDuplicates(playerId, enabled) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  player.autoReleaseDuplicates = !!enabled;
+  return { autoReleaseDuplicates: player.autoReleaseDuplicates };
+}
+
+function setAutoReleaseIncludeVariants(playerId, enabled) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  player.autoReleaseIncludeVariants = !!enabled;
+  return { autoReleaseIncludeVariants: player.autoReleaseIncludeVariants };
+}
+
+function changePin(playerId, currentPin, newPin) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (player.pin !== currentPin) throw new Error('Current PIN is incorrect');
+  if (!newPin || !/^\d{4,8}$/.test(newPin)) throw new Error('New PIN must be 4-8 digits');
+  player.pin = newPin;
+  return { success: true };
+}
+
 // One-time free starter droid, common tier only, skips the capture step
 // entirely so a brand-new player (0 crystals) can start farming even though
 // real captures now require crystal power (see MIN_CRYSTAL_COST).
@@ -894,6 +1242,27 @@ function grantStarterDroid(playerId, speciesId) {
   return droid;
 }
 
+// Collections that award a free outfit once every species in them has
+// been caught — checked after every Dex update. Outfit isn't in the
+// Shop catalog since it can't be bought, only earned.
+const COLLECTION_COMPLETION_OUTFITS = {
+  void_zombie: 'void_warden',
+  lumen_sentinel: 'lumen_warden',
+};
+
+function checkCollectionCompletionRewards(playerId) {
+  const player = players.get(playerId);
+  if (!player) return;
+  Object.entries(COLLECTION_COMPLETION_OUTFITS).forEach(([collection, outfitId]) => {
+    if (player.ownedOutfits.includes(outfitId)) return; // already earned
+    const speciesInCollection = droidSpecies.filter((s) => s.collection === collection);
+    const allCaught = speciesInCollection.every((s) => player.dexSeen.includes(s.id));
+    if (allCaught && speciesInCollection.length > 0) {
+      player.ownedOutfits.push(outfitId);
+    }
+  });
+}
+
 function markDexSeen(playerId, speciesId, variant, color) {
   const player = players.get(playerId);
   if (!player) return;
@@ -906,6 +1275,7 @@ function markDexSeen(playerId, speciesId, variant, color) {
       if (!player.dexVariantsSeen.includes(colorKey)) player.dexVariantsSeen.push(colorKey);
     }
   }
+  checkCollectionCompletionRewards(playerId);
 }
 
 // Full species catalog annotated with whether this player has ever caught
@@ -925,13 +1295,28 @@ function getDex(playerId) {
   const mainSpeciesPool = droidSpecies.filter((s) => !s.eventOnly);
   const orderedSpecies = [];
   mainSpeciesPool.forEach((s) => {
-    if (evolvesToIds.has(s.id)) return; // placed inline below instead
+    if (evolvesToIds.has(s.id)) return; // not a chain origin — placed inline below instead
     orderedSpecies.push(s);
-    const evolution = EVOLUTION_TABLE[s.id];
-    if (evolution) {
-      const evolvedSpecies = mainSpeciesPool.find((e) => e.id === evolution.evolvesTo);
-      if (evolvedSpecies) orderedSpecies.push(evolvedSpecies);
+    // Walk the FULL chain from this origin, not just one hop — a 4-tier
+    // chain (e.g. Shambler->Walker->Corruptor->Voidlord) needs every
+    // link followed, not just the first, or later tiers silently vanish
+    // from the Dex entirely (confirmed real bug, found via testing).
+    let current = s;
+    while (EVOLUTION_TABLE[current.id]) {
+      const nextSpecies = mainSpeciesPool.find((e) => e.id === EVOLUTION_TABLE[current.id].evolvesTo);
+      if (!nextSpecies) break;
+      orderedSpecies.push(nextSpecies);
+      current = nextSpecies;
     }
+  });
+
+  // Reverse lookup: for an evolution-only species, which species does it
+  // evolve FROM? Lets the client show "evolves from X" without needing
+  // its own copy of the evolution table.
+  const evolvesFromMap = {};
+  Object.entries(EVOLUTION_TABLE).forEach(([fromId, evo]) => {
+    const fromSpecies = droidSpecies.find((s) => s.id === Number(fromId));
+    if (fromSpecies) evolvesFromMap[evo.evolvesTo] = fromSpecies.name;
   });
 
   const buildEntry = (s) => {
@@ -941,6 +1326,7 @@ function getDex(playerId) {
       caught: seen.includes(s.id),
       variantsCaught: ['platinum', 'rusty', 'funky'].filter((v) => variantsSeen.includes(`${s.id}:${v}`)),
       funkyColorsCaught,
+      evolvesFromName: evolvesFromMap[s.id] || null,
     };
   };
 
@@ -1064,6 +1450,21 @@ function importState(state) {
     beacons: 0,
     beaconActiveUntil: null,
     depotCooldownUntil: null,
+    augmentCores: 0,
+    timeWarps: 0,
+    growths: 0,
+    lightStones: 0,
+    darkCrystals: 0,
+    padRam: 0,
+    repairKits: 0,
+    titanCooldownUntil: null,
+    energyTubes: 0,
+    outfit: 'basic',
+    ownedOutfits: ['basic'],
+    lastScanAt: null,
+    lastCaptureAttemptAt: null,
+    autoReleaseDuplicates: false,
+    autoReleaseIncludeVariants: false,
   };
   (state.players || []).forEach((p) => players.set(p.id, { ...playerDefaults, ...p }));
 
@@ -1104,12 +1505,18 @@ function importState(state) {
 
 module.exports = {
   droidSpecies,
+  FOOTBALL_WINDOWS,
+  DAILY_LINE_WINDOWS,
   EVOLUTION_TABLE,
+  SCAFFITAN_MASTERY_TABLE,
   RARITY_TTL_MS,
   RARITY_MAX_PER_CELL,
   LEGENDARY_CITY_CAP,
   COSMIC_CITY_CAP,
   MIN_CRYSTAL_COST,
+  RELEASE_REFUND_MULTIPLIER,
+  PAD_LEVEL_COST_SCALING,
+  scaledMinCrystalCost,
   VARIANT_ODDS,
   VARIANT_CRYSTAL_MULTIPLIER,
   TESTING_HIGH_VARIANT_ODDS,
@@ -1121,6 +1528,7 @@ module.exports = {
   levelUpCost,
   PAD_SKILL_CEILING_PER_LEVEL,
   padUpgradeCost,
+  padRequiresRam,
   critChanceForPadLevel,
   events,
   createEvent,
@@ -1133,12 +1541,27 @@ module.exports = {
   TRADE_COOLDOWN_MS,
   TRADE_FEE_BY_RARITY,
   COSMETICS_CATALOG,
+  SHOP_CATALOG,
+  buyShopItem,
+  equipOutfit,
+  useTimeWarp,
+  useGrowth,
+  SCAN_RATE_LIMIT_MS,
+  checkScanRateLimit,
+  DEPOT_AUGMENT_CORE_CHANCE,
   guilds,
+  battles,
   GUILD_MAX_MEMBERS,
   createGuild,
   joinGuild,
   leaveGuild,
   kickFromGuild,
+  setGuildBadge,
+  setGuildNotice,
+  buyGuildBadge,
+  GUILD_BADGES,
+  GUILD_BADGE_COST,
+  GUILD_NOTICE_MAX_LENGTH,
   postGuildMessage,
   getGuildMessages,
   getGuildLeaderboard,
@@ -1166,6 +1589,8 @@ module.exports = {
   buyBeacon,
   activateBeacon,
   isBeaconActive,
+  markCellBeaconBoosted,
+  isCellBeaconBoosted,
   DEPOT_MINIGAME_COST,
   DEPOT_COOLDOWN_MS,
   attemptDepot,
@@ -1183,6 +1608,9 @@ module.exports = {
   createPlayer,
   findPlayerByUsername,
   loginOrCreatePlayer,
+  changePin,
+  setAutoReleaseDuplicates,
+  setAutoReleaseIncludeVariants,
   grantStarterDroid,
   markDexSeen,
   getDex,

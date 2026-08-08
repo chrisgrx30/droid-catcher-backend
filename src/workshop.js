@@ -33,6 +33,21 @@ function droidCrystalsPerMinute(droid) {
 
 // Enriches a raw owned_droids row with species/rate info for API responses.
 function enrichDroid(droid) {
+  if (droid.isTitan) {
+    return {
+      id: droid.id,
+      speciesName: droid.titanName,
+      rarity: 'galactic',
+      alignment: 'cosmic',
+      variant: 'standard',
+      level: 1,
+      hp: droid.titanHp,
+      attack: droid.titanAttack,
+      currentHp: Math.max(0, droid.titanHp - (droid.currentHpDamage || 0)),
+      fainted: (droid.currentHpDamage || 0) >= droid.titanHp,
+      isTitan: true,
+    };
+  }
   const species = speciesById(droid.speciesId);
   const lvlMult = levelMultiplier(droid.level);
   const evolution = db.EVOLUTION_TABLE[droid.speciesId];
@@ -53,10 +68,14 @@ function enrichDroid(droid) {
     crystalsPerMinute: Math.round(droidCrystalsPerMinute(droid) * 100) / 100,
     hp: species ? Math.round(species.baseHP * lvlMult) : null,
     attack: species ? Math.round(species.baseAttack * lvlMult) : null,
+    currentHp: species ? Math.max(0, Math.round(species.baseHP * lvlMult) - (droid.currentHpDamage || 0)) : null,
+    fainted: species ? (droid.currentHpDamage || 0) >= Math.round(species.baseHP * lvlMult) : false,
     nextLevelCost: droid.level >= db.DROID_LEVEL_CAP ? null : db.levelUpCost(droid.level, species?.rarity),
     evolvesToName: evolvesToSpecies?.name || null,
     evolveNovaChipCost: evolution?.novaChipCost || null,
     isEvolutionOnly: species?.isEvolutionOnly || false,
+    masteryNextTierName: db.SCAFFITAN_MASTERY_TABLE[droid.speciesId] ? speciesById(db.SCAFFITAN_MASTERY_TABLE[droid.speciesId].masterTo)?.name : null,
+    masteryTubeCost: db.SCAFFITAN_MASTERY_TABLE[droid.speciesId]?.tubeCost || null,
   };
 }
 
@@ -70,6 +89,7 @@ function companionBuffMultiplier(playerId) {
   if (!droid || droid.playerId !== playerId) return 1;
   const species = speciesById(droid.speciesId);
   if (!species || !species.isCompanion || species.companionBuffType !== 'crystal') return 1;
+  if (!droid.buffActiveUntil || Date.now() >= droid.buffActiveUntil) return 1; // must be actively activated, not just equipped
   return 1 + species.companionBuffPercent / 100;
 }
 
@@ -220,8 +240,14 @@ function upgradePad(playerId) {
   if (!player) throw new Error('Player not found');
 
   const cost = db.padUpgradeCost(player.padLevel);
+  const nextLevel = player.padLevel + 1;
+  const needsRam = db.padRequiresRam(nextLevel);
+
   if (player.crystalBalance < cost) {
     throw new Error(`Not enough crystals — upgrading the pad costs ${cost}`);
+  }
+  if (needsRam && player.padRam < 1) {
+    throw new Error(`Level ${nextLevel} also needs 1 Pad RAM — buy one from the Shop`);
   }
 
   player.crystalBalance -= cost;
@@ -232,6 +258,7 @@ function upgradePad(playerId) {
     source: 'pad_upgrade',
     createdAt: Date.now(),
   });
+  if (needsRam) player.padRam -= 1;
   player.padLevel += 1;
 
   return {
@@ -247,16 +274,48 @@ function upgradePad(playerId) {
 // for free/starter droids), with a 10% chance of also dropping a Nova
 // Chip (spent on species evolution — see evolveSpecies). Frees up its
 // workshop slot and clears it as the active companion if applicable.
-const RELEASE_REFUND_MULTIPLIER = 1.5;
+// RELEASE_REFUND_MULTIPLIER now lives in db.js (shared with capture.js)
 const NOVA_CHIP_DROP_CHANCE = 0.10;
+
+// Weighted so 1 is most likely, per confirmed design ("1 being a
+// higher probability") — exact weights aren't specified beyond that,
+// so this is my own reasonable curve, easy to retune.
+const SCAFFITAN_RELEASE_TUBE_WEIGHTS = [
+  { tubes: 1, weight: 40 },
+  { tubes: 2, weight: 25 },
+  { tubes: 3, weight: 18 },
+  { tubes: 4, weight: 10 },
+  { tubes: 5, weight: 7 },
+];
+function rollScaffitanReleaseTubes() {
+  const totalWeight = SCAFFITAN_RELEASE_TUBE_WEIGHTS.reduce((sum, w) => sum + w.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const entry of SCAFFITAN_RELEASE_TUBE_WEIGHTS) {
+    if (roll < entry.weight) return entry.tubes;
+    roll -= entry.weight;
+  }
+  return 1; // fallback, should never hit given the loop above sums to totalWeight
+}
 
 function releaseDroid(playerId, droidId) {
   const settled = settleEarnings(playerId);
   const player = db.players.get(playerId);
   const droid = db.ownedDroids.get(droidId);
   if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+  const species = db.droidSpecies.find((s) => s.id === droid.speciesId);
 
-  const refund = Math.floor((droid.captureCost || 0) * RELEASE_REFUND_MULTIPLIER);
+  if (species && species.collection === 'titan') {
+    // Scaffitan release: Tubes instead of a crystal refund, since
+    // captureCost is 0 for a battle-won Scaffitan — a normal refund
+    // would always be worthless.
+    const tubesGranted = rollScaffitanReleaseTubes();
+    player.energyTubes = (player.energyTubes || 0) + tubesGranted;
+    if (player.companionDroidId === droidId) player.companionDroidId = null;
+    db.ownedDroids.delete(droidId);
+    return { refund: 0, gotNovaChip: false, novaChips: player.novaChips, crystalBalance: player.crystalBalance, settledEarned: settled.earned, scaffitanTubesGranted: tubesGranted, energyTubes: player.energyTubes };
+  }
+
+  const refund = Math.floor((droid.captureCost || 0) * db.RELEASE_REFUND_MULTIPLIER);
   player.crystalBalance += refund;
   if (refund > 0) {
     db.crystalTransactions.push({ id: db.nextId(), playerId, amount: refund, source: 'droid_release', createdAt: Date.now() });
@@ -291,7 +350,7 @@ function releaseDroidsBulk(playerId, droidIds) {
       continue;
     }
     const species = speciesById(droid.speciesId);
-    const refund = Math.floor((droid.captureCost || 0) * RELEASE_REFUND_MULTIPLIER);
+    const refund = Math.floor((droid.captureCost || 0) * db.RELEASE_REFUND_MULTIPLIER);
     totalRefund += refund;
     if (Math.random() < NOVA_CHIP_DROP_CHANCE) novaChipsGained += 1;
     if (player.companionDroidId === droidId) player.companionDroidId = null;
@@ -320,6 +379,39 @@ function releaseDroidsBulk(playerId, droidIds) {
 // Species evolution (e.g. Leafkin -> Bushy): spends Nova Chips, swaps the
 // droid's speciesId in place — keeps its level/variant/slot, just becomes
 // a stronger species going forward.
+function masterScaffitan(playerId, droidId) {
+  const player = db.players.get(playerId);
+  const droid = db.ownedDroids.get(droidId);
+  if (!player) throw new Error('Player not found');
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+
+  const mastery = db.SCAFFITAN_MASTERY_TABLE[droid.speciesId];
+  if (!mastery) throw new Error('This Scaffitan is already fully mastered, or isn\'t a Scaffitan');
+  if ((player.energyTubes || 0) < mastery.tubeCost) {
+    throw new Error(`Not enough Energy Tubes — mastering this tier costs ${mastery.tubeCost}`);
+  }
+
+  player.energyTubes -= mastery.tubeCost;
+  droid.speciesId = mastery.masterTo;
+  db.markDexSeen(playerId, mastery.masterTo, droid.variant);
+
+  return { droid: enrichDroid(droid), energyTubes: player.energyTubes };
+}
+
+function healDroid(playerId, droidId) {
+  const player = db.players.get(playerId);
+  const droid = db.ownedDroids.get(droidId);
+  if (!player) throw new Error('Player not found');
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+  const enriched = enrichDroid(droid);
+  if (!enriched.fainted) throw new Error('This droid isn\'t fainted — nothing to heal');
+  if (player.repairKits < 1) throw new Error('No Repair Kits owned — buy one from the Shop');
+
+  player.repairKits -= 1;
+  droid.currentHpDamage = 0;
+  return { droid: enrichDroid(droid), repairKits: player.repairKits };
+}
+
 function evolveSpecies(playerId, droidId) {
   const player = db.players.get(playerId);
   const droid = db.ownedDroids.get(droidId);
@@ -331,12 +423,29 @@ function evolveSpecies(playerId, droidId) {
   if (player.novaChips < evolution.novaChipCost) {
     throw new Error(`Not enough Nova Chips — evolving costs ${evolution.novaChipCost}`);
   }
+  if (evolution.extraCrystalCost && player.crystalBalance < evolution.extraCrystalCost) {
+    throw new Error(`Not enough crystals — this evolution also needs ${evolution.extraCrystalCost}`);
+  }
+  if (evolution.extraMaterial) {
+    const owned = player[evolution.extraMaterial] || 0;
+    if (owned < evolution.extraMaterialCost) {
+      throw new Error(`Not enough ${evolution.extraMaterial} — this evolution needs ${evolution.extraMaterialCost}`);
+    }
+  }
 
+  // All validated — now actually deduct everything.
   player.novaChips -= evolution.novaChipCost;
+  if (evolution.extraCrystalCost) {
+    player.crystalBalance -= evolution.extraCrystalCost;
+    db.crystalTransactions.push({ id: db.nextId(), playerId, amount: -evolution.extraCrystalCost, source: 'species_evolution', createdAt: Date.now() });
+  }
+  if (evolution.extraMaterial) {
+    player[evolution.extraMaterial] -= evolution.extraMaterialCost;
+  }
   droid.speciesId = evolution.evolvesTo;
   db.markDexSeen(playerId, evolution.evolvesTo, droid.variant);
 
-  return { droid: enrichDroid(droid), novaChips: player.novaChips };
+  return { droid: enrichDroid(droid), novaChips: player.novaChips, crystalBalance: player.crystalBalance };
 }
 
 // Paint evolution (Rusty -> Funky): spends banked Paint, sets a cosmetic
@@ -427,6 +536,8 @@ module.exports = {
   releaseDroid,
   releaseDroidsBulk,
   evolveSpecies,
+  healDroid,
+  masterScaffitan,
   evolveFunky,
   assignCompanion,
   unassignCompanion,

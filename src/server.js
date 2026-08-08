@@ -14,6 +14,7 @@ const db = require('./db');
 const spawnsModule = require('./spawns');
 const captureModule = require('./capture');
 const workshopModule = require('./workshop');
+const battleModule = require('./battle');
 const factoryModule = require('./factory');
 const tradesModule = require('./trades');
 const persistence = require('./persistence');
@@ -25,13 +26,24 @@ const PORT = process.env.PORT || 3000;
 // (free crystals/droids). Deliberately basic (a shared code, not real
 // auth) for a closed friends beta; would need real admin auth before this
 // goes anywhere more public.
-const ADMIN_CODES = { events: '2026', redeemCodes: '3103' };
+// Read from environment variables in production (Render) so these
+// aren't sitting in plain text in a public GitHub repo. Falls back to
+// the existing defaults only if the env vars aren't set, so local dev
+// still works without extra setup.
+const ADMIN_CODES = {
+  events: process.env.ADMIN_CODE_EVENTS || '2026',
+  redeemCodes: process.env.ADMIN_CODE_REDEEM || '3103',
+};
 
 // Static image assets — drop droid art here (see assets/droids/README.md
 // for the exact filenames each species expects). Served directly, not read
 // into memory at startup, so images added later don't need a restart.
 const ASSETS_DROIDS_DIR = path.join(__dirname, '..', 'assets', 'droids');
 const ASSETS_COSMETICS_DIR = path.join(__dirname, '..', 'assets', 'cosmetics');
+const ASSETS_OUTFITS_DIR = path.join(__dirname, '..', 'assets', 'outfits');
+const ASSETS_MISC_DIR = path.join(__dirname, '..', 'assets', 'misc');
+const ASSETS_HOME_DIR = path.join(__dirname, '..', 'assets', 'home');
+const ASSETS_POSTERS_DIR = path.join(__dirname, '..', 'assets', 'home', 'posters');
 const IMAGE_MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -100,6 +112,18 @@ const server = http.createServer(async (req, res) => {
       return res.end(terminalHtml);
     }
 
+    // GET /guide -> serves the player guide directly, so the in-app link
+    // always works regardless of where else it's hosted.
+    if (req.method === 'GET' && pathname === '/guide') {
+      try {
+        const guideText = fs.readFileSync(path.join(__dirname, '..', 'player-guide.md'), 'utf8');
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        return res.end(guideText);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'player-guide.md not found on server' });
+      }
+    }
+
     // GET /assets/droids/<filename> -> serves droid artwork if present.
     // Filename is strictly whitelisted (letters/digits/-/_ + one extension)
     // before touching the filesystem — this is public-internet-facing, so
@@ -142,6 +166,103 @@ const server = http.createServer(async (req, res) => {
         return res.end(data);
       } catch (e) {
         return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
+    // GET /assets/outfits/<filename> -> same pattern, for outfit art
+    if (req.method === 'GET' && pathname.startsWith('/assets/outfits/')) {
+      const filename = pathname.slice('/assets/outfits/'.length);
+      if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+        return sendJson(res, 400, { error: 'invalid filename' });
+      }
+      const filePath = path.join(ASSETS_OUTFITS_DIR, filename);
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+        res.writeHead(200, {
+          'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return res.end(data);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
+    // GET /assets/misc/<filename> -> same pattern, for one-off generic art
+    // (egg icon, control pad background, alignment spawn-card backgrounds,
+    // the Farm "droid working" animation)
+    if (req.method === 'GET' && pathname.startsWith('/assets/misc/')) {
+      const filename = pathname.slice('/assets/misc/'.length);
+      if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+        return sendJson(res, 400, { error: 'invalid filename' });
+      }
+      const filePath = path.join(ASSETS_MISC_DIR, filename);
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+        res.writeHead(200, {
+          'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return res.end(data);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
+    // GET /assets/home/<filename> -> logo.png / icon.png
+    if (req.method === 'GET' && pathname.startsWith('/assets/home/') && !pathname.startsWith('/assets/home/posters/')) {
+      const filename = pathname.slice('/assets/home/'.length);
+      if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+        return sendJson(res, 400, { error: 'invalid filename' });
+      }
+      const filePath = path.join(ASSETS_HOME_DIR, filename);
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+        res.writeHead(200, {
+          'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return res.end(data);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
+    // GET /assets/home/posters/<filename> -> any poster, any filename
+    if (req.method === 'GET' && pathname.startsWith('/assets/home/posters/')) {
+      const filename = pathname.slice('/assets/home/posters/'.length);
+      if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+        return sendJson(res, 400, { error: 'invalid filename' });
+      }
+      const filePath = path.join(ASSETS_POSTERS_DIR, filename);
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+        res.writeHead(200, {
+          'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return res.end(data);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
+    // GET /home-posters -> lists whatever poster filenames currently exist,
+    // so new posters need zero code changes, just drop the file in
+    if (req.method === 'GET' && pathname === '/home-posters') {
+      try {
+        const files = fs.readdirSync(ASSETS_POSTERS_DIR).filter((f) => /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(f));
+        return sendJson(res, 200, { posters: files });
+      } catch (e) {
+        return sendJson(res, 200, { posters: [] }); // folder doesn't exist yet — not an error, just nothing to show
       }
     }
 
@@ -210,6 +331,11 @@ const server = http.createServer(async (req, res) => {
       if (Number.isNaN(lat) || Number.isNaN(lng)) {
         return sendJson(res, 400, { error: 'lat/lng required' });
       }
+      try {
+        db.checkScanRateLimit(playerId);
+      } catch (e) {
+        return sendJson(res, 429, { error: 'RATE_LIMITED', message: e.message });
+      }
       spawnsModule.purgeExpiredSpawns();
       const result = spawnsModule.getNearbySpawns(lat, lng, radius, playerId);
       return sendJson(res, 200, result);
@@ -265,6 +391,17 @@ const server = http.createServer(async (req, res) => {
         companionBuffPercent: companionDroid ? db.droidSpecies.find((s) => s.id === companionDroid.speciesId)?.companionBuffPercent : null,
         beacons: player.beacons,
         beaconActiveUntil: player.beaconActiveUntil,
+        augmentCores: player.augmentCores,
+        padRam: player.padRam,
+        repairKits: player.repairKits,
+        energyTubes: player.energyTubes,
+        padRamNeededNext: db.padRequiresRam(player.padLevel + 1),
+        timeWarps: player.timeWarps,
+        autoReleaseDuplicates: player.autoReleaseDuplicates,
+        autoReleaseIncludeVariants: player.autoReleaseIncludeVariants,
+        growths: player.growths,
+        outfit: player.outfit,
+        ownedOutfits: player.ownedOutfits,
       });
     }
 
@@ -349,6 +486,30 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, result);
       } catch (e) {
         return sendJson(res, 409, { error: 'EVOLVE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /droids/:id/master-scaffitan  { playerId } -> spend Energy Tubes to mastery-tier up
+    if (req.method === 'POST' && pathname.match(/^\/droids\/\d+\/master-scaffitan$/)) {
+      const droidId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = workshopModule.masterScaffitan(playerId, droidId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'MASTERY_ERROR', message: e.message });
+      }
+    }
+
+    // POST /droids/:id/heal  { playerId } -> spend 1 Repair Kit to fully heal a fainted droid
+    if (req.method === 'POST' && pathname.match(/^\/droids\/\d+\/heal$/)) {
+      const droidId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = workshopModule.healDroid(playerId, droidId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'HEAL_ERROR', message: e.message });
       }
     }
 
@@ -538,6 +699,209 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // GET /shop -> the full catalog (materials + outfits)
+    if (req.method === 'GET' && pathname === '/shop') {
+      return sendJson(res, 200, { items: db.SHOP_CATALOG });
+    }
+
+    // POST /shop/buy  { playerId, itemId }
+    if (req.method === 'POST' && pathname === '/shop/buy') {
+      const { playerId, itemId } = await readBody(req);
+      try {
+        const result = db.buyShopItem(playerId, itemId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'SHOP_ERROR', message: e.message });
+      }
+    }
+
+    // POST /player/use-time-warp  { playerId }
+    if (req.method === 'POST' && pathname === '/player/use-time-warp') {
+      const { playerId } = await readBody(req);
+      try {
+        const result = db.useTimeWarp(playerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'PLUGIN_ERROR', message: e.message });
+      }
+    }
+
+    // POST /player/use-growth  { playerId }
+    if (req.method === 'POST' && pathname === '/player/use-growth') {
+      const { playerId } = await readBody(req);
+      try {
+        const result = db.useGrowth(playerId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'PLUGIN_ERROR', message: e.message });
+      }
+    }
+
+    // POST /player/auto-release-duplicates  { playerId, enabled }
+    if (req.method === 'POST' && pathname === '/player/auto-release-duplicates') {
+      const { playerId, enabled } = await readBody(req);
+      try {
+        const result = db.setAutoReleaseDuplicates(playerId, enabled);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'SETTING_ERROR', message: e.message });
+      }
+    }
+
+    // POST /player/auto-release-include-variants  { playerId, enabled }
+    if (req.method === 'POST' && pathname === '/player/auto-release-include-variants') {
+      const { playerId, enabled } = await readBody(req);
+      try {
+        const result = db.setAutoReleaseIncludeVariants(playerId, enabled);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'SETTING_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/titan-group  { creatorId, invitedPlayerIds, teamDroidIds }
+    if (req.method === 'POST' && pathname === '/battles/titan-group') {
+      const { creatorId, invitedPlayerIds, teamDroidIds } = await readBody(req);
+      try {
+        const b = battleModule.createGroupTitanChallenge(creatorId, invitedPlayerIds, teamDroidIds);
+        return sendJson(res, 201, { battle: battleModule.getBattleView(b.id) });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/join  { playerId, teamDroidIds }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/join$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId, teamDroidIds } = await readBody(req);
+      try {
+        battleModule.joinGroupTitanBattle(battleId, playerId, teamDroidIds);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battleId) });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/start  { playerId } -> creator starts the fight
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/start$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        battleModule.startGroupTitanBattle(battleId, playerId);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battleId) });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/attack-group  { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/attack-group$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = battleModule.attackGroupTitan(battleId, playerId);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battleId), logEntry: result.logEntry });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/titan  { playerId, teamDroidIds } -> solo Titan encounter
+    if (req.method === 'POST' && pathname === '/battles/titan') {
+      const { playerId, teamDroidIds } = await readBody(req);
+      try {
+        const b = battleModule.createSoloTitanBattle(playerId, teamDroidIds);
+        return sendJson(res, 201, { battle: battleModule.getBattleView(b.id) });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/challenge  { challengerId, opponentId, teamDroidIds }
+    if (req.method === 'POST' && pathname === '/battles/challenge') {
+      const { challengerId, opponentId, teamDroidIds } = await readBody(req);
+      try {
+        const b = battleModule.createChallenge(challengerId, opponentId, teamDroidIds);
+        return sendJson(res, 201, { battle: battleModule.getBattleView(b.id) });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/accept  { playerId, teamDroidIds }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/accept$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId, teamDroidIds } = await readBody(req);
+      try {
+        battleModule.acceptChallenge(battleId, playerId, teamDroidIds);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battleId) });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/decline  { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/decline$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        battleModule.declineChallenge(battleId, playerId);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battleId) });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/attack  { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/attack$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = battleModule.attack(battleId, playerId);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battleId), logEntry: result.logEntry });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // GET /battles/:id
+    if (req.method === 'GET' && pathname.match(/^\/battles\/\d+$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      try {
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battleId) });
+      } catch (e) {
+        return sendJson(res, 404, { error: 'NOT_FOUND', message: e.message });
+      }
+    }
+
+    // GET /players/:id/battles -> everything involving this player, for polling
+    if (req.method === 'GET' && pathname.match(/^\/players\/\d+\/battles$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, { battles: battleModule.getBattlesForPlayer(playerId) });
+    }
+
+    // POST /player/change-pin  { playerId, currentPin, newPin }
+    if (req.method === 'POST' && pathname === '/player/change-pin') {
+      const { playerId, currentPin, newPin } = await readBody(req);
+      try {
+        const result = db.changePin(playerId, currentPin, newPin);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'PIN_ERROR', message: e.message });
+      }
+    }
+
+    // POST /player/equip-outfit  { playerId, outfitId }
+    if (req.method === 'POST' && pathname === '/player/equip-outfit') {
+      const { playerId, outfitId } = await readBody(req);
+      try {
+        const result = db.equipOutfit(playerId, outfitId);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'OUTFIT_ERROR', message: e.message });
+      }
+    }
+
     // GET /guilds -> list all (for browsing to join)
     if (req.method === 'GET' && pathname === '/guilds') {
       return sendJson(res, 200, { guilds: [...db.guilds.values()] });
@@ -606,6 +970,30 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 201, { message });
       } catch (e) {
         return sendJson(res, 409, { error: 'CHAT_ERROR', message: e.message });
+      }
+    }
+
+    // POST /guilds/:id/badge  { playerId, badge } -> leader buys+sets a badge for 5000✦
+    if (req.method === 'POST' && pathname.match(/^\/guilds\/\d+\/badge$/)) {
+      const guildId = Number(pathname.split('/')[2]);
+      const { playerId, badge } = await readBody(req);
+      try {
+        const result = db.buyGuildBadge(playerId, guildId, badge);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'GUILD_ERROR', message: e.message });
+      }
+    }
+
+    // POST /guilds/:id/notice  { playerId, notice }
+    if (req.method === 'POST' && pathname.match(/^\/guilds\/\d+\/notice$/)) {
+      const guildId = Number(pathname.split('/')[2]);
+      const { playerId, notice } = await readBody(req);
+      try {
+        const guild = db.setGuildNotice(playerId, guildId, notice);
+        return sendJson(res, 200, { guild });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'GUILD_ERROR', message: e.message });
       }
     }
 
@@ -788,7 +1176,7 @@ const server = http.createServer(async (req, res) => {
 persistence.load().then(() => {
   db.seedStarterRedeemCodes();
   server.listen(PORT, () => {
-    console.log(`Droid Catcher backend running on http://localhost:${PORT}`);
+    console.log(`Sparkfield backend running on http://localhost:${PORT}`);
     persistence.startAutoSave();
     persistence.registerShutdownHook();
   });

@@ -9,6 +9,7 @@ const geo = require('./geo');
 const workshop = require('./workshop');
 
 const MAX_PLAUSIBLE_RANGE_METERS = 75; // player must be roughly at the spawn
+const CAPTURE_ATTEMPT_COOLDOWN_MS = 3000; // 3 seconds — stops spam-clicking captures
 const MIN_PLAUSIBLE_ATTEMPT_MS = 250; // faster than this + high accuracy = bot signature
 const CRYSTAL_BONUS_CAP = 0.40; // spending max crystals gives up to +40% chance
 const CRYSTAL_COST_TO_MAX = 30; // crystals spent at which bonus caps out
@@ -40,6 +41,11 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   const player = db.players.get(playerId);
   if (!player) throw new CaptureError('NO_PLAYER', 'Player not found');
 
+  const now = Date.now();
+  if (player.lastCaptureAttemptAt && now - player.lastCaptureAttemptAt < CAPTURE_ATTEMPT_COOLDOWN_MS) {
+    throw new CaptureError('TOO_FAST', 'Slow down a moment before your next attempt');
+  }
+
   const spawn = db.spawns.get(spawnId);
   if (!spawn) throw new CaptureError('SPAWN_NOT_FOUND', 'Spawn no longer exists');
   if (spawn.claimedBy) throw new CaptureError('ALREADY_CLAIMED', 'Spawn already captured');
@@ -60,13 +66,22 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   }
 
   const species = db.droidSpecies.find((s) => s.id === spawn.speciesId);
-  const minCost = db.MIN_CRYSTAL_COST[species.rarity];
+  // Minimum cost scales with Pad Level — a deliberate crystal sink so
+  // upgrading the pad doesn't just let crystals pile up unused.
+  const minCost = db.scaledMinCrystalCost(species.rarity, player.padLevel);
   if (crystalsSpent < minCost) {
     throw new CaptureError(
       'NO_CRYSTAL_POWER',
       `The control pad needs at least ${minCost} crystals to attempt a ${species.rarity} droid`
     );
   }
+
+  // Only counts as a real "attempt" for cooldown purposes once it's past
+  // every validation check above — nothing was actually spent or risked
+  // by a request that fails here, so it shouldn't cost the player a
+  // 3-second lockout for a typo or an out-of-range tap.
+  player.lastCaptureAttemptAt = now;
+
   let successChance =
     species.baseCaptureRate * crystalBonus(crystalsSpent) * padSkillMultiplier(padAccuracy, player.padLevel);
   successChance *= workshop.companionCaptureRateMultiplier(playerId); // Nebulfox: +100% success chance, helps with tough Legendary attempts
@@ -91,6 +106,8 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
 
   let newDroid = null;
   let gotPaint = false;
+  let autoReleased = false;
+  let autoReleaseRefund = 0;
 
   if (success) {
     spawn.claimedBy = playerId;
@@ -103,12 +120,42 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
       captureCost: crystalsSpent, // remembered for the 1.5x refund if released later
       capturedAt: Date.now(),
       workshopSlotId: null,
+      currentHpDamage: 0, // damage taken in battle, persists until healed — null/0 means full HP
     };
     db.ownedDroids.set(newDroid.id, newDroid);
     db.markDexSeen(playerId, species.id, spawn.variant);
 
     gotPaint = Math.random() < PAINT_DROP_CHANCE;
     if (gotPaint) player.paint += 1;
+
+    // Auto-release-duplicates — opt-in, off by default. Base behavior:
+    // a newly-captured STANDARD-variant Common/Uncommon droid where the
+    // player already owns that species elsewhere in storage.
+    // Second toggle (autoReleaseIncludeVariants) extends this to
+    // Rusty/Platinum too — but variant-matched: a new Rusty only
+    // auto-releases if a Rusty of that species is already owned, never
+    // just because a standard one exists. Funky is never included,
+    // regardless of this toggle — too easy to lose a paint job by accident.
+    const includeVariants = player.autoReleaseIncludeVariants && ['rusty', 'platinum'].includes(spawn.variant);
+    const isEligibleForAutoRelease = spawn.variant === 'standard' || includeVariants;
+    if (
+      player.autoReleaseDuplicates &&
+      isEligibleForAutoRelease &&
+      ['common', 'uncommon'].includes(species.rarity)
+    ) {
+      const alreadyOwnsMatch = [...db.ownedDroids.values()].some(
+        (d) => d.playerId === playerId && d.speciesId === species.id && d.variant === spawn.variant && d.id !== newDroid.id
+      );
+      if (alreadyOwnsMatch) {
+        autoReleaseRefund = Math.floor(newDroid.captureCost * db.RELEASE_REFUND_MULTIPLIER);
+        player.crystalBalance += autoReleaseRefund;
+        if (autoReleaseRefund > 0) {
+          db.crystalTransactions.push({ id: db.nextId(), playerId, amount: autoReleaseRefund, source: 'auto_release_duplicate', createdAt: Date.now() });
+        }
+        db.ownedDroids.delete(newDroid.id);
+        autoReleased = true;
+      }
+    }
   } else {
     // failed attempt shortens remaining TTL, per design (no infinite spam-tapping)
     const remaining = spawn.expiresAt - Date.now();
@@ -137,6 +184,8 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     gotPaint,
     paint: player.paint,
     spawnExpiresAt: spawn.expiresAt,
+    autoReleased,
+    autoReleaseRefund,
   };
 }
 

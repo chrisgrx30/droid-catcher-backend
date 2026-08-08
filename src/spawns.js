@@ -22,9 +22,44 @@ function estimateLocalHour(lng, date = new Date()) {
   return localHour;
 }
 
+// Local day-of-week (0=Sun...6=Sat), correctly rolling into the adjacent
+// day near midnight rather than just reusing the UTC day — needed for
+// the football roster's "Saturday/Sunday only" spawn rule.
+function estimateLocalDay(lng, date = new Date()) {
+  const offsetMs = (lng / 15) * 60 * 60 * 1000;
+  const shifted = new Date(date.getTime() + offsetMs);
+  return shifted.getUTCDay();
+}
+
 function isDaytime(lng, date = new Date()) {
   const hour = estimateLocalHour(lng, date);
   return hour >= DAY_START_HOUR && hour < DAY_END_HOUR;
+}
+
+// Football roster spawn window: Light 3-5pm, Dark 8-10pm, Saturday and
+// Sunday only, computed from the same local-time estimation used
+// everywhere else — additive to the pool only while active, so it never
+// dilutes any other collection's odds outside its window (same
+// non-destructive property as the Solar grant mechanism).
+function isFootballWindowActive(alignment, lng, date = new Date()) {
+  const window = db.FOOTBALL_WINDOWS[alignment];
+  if (!window) return false;
+  const localDay = estimateLocalDay(lng, date);
+  const localHour = estimateLocalHour(lng, date);
+  return window.days.includes(localDay) && localHour >= window.startHour && localHour < window.endHour;
+}
+
+// Same additive, non-destructive pattern as Football, but daily (no
+// day-of-week gate) and handles the Zombie line's window wrapping past
+// midnight (23-25 means 23:00-24:00 OR 0:00-1:00).
+function isDailyLineWindowActive(collection, lng, date = new Date()) {
+  const window = db.DAILY_LINE_WINDOWS[collection];
+  if (!window) return false;
+  const localHour = estimateLocalHour(lng, date);
+  if (window.endHour > 24) {
+    return localHour >= window.startHour || localHour < (window.endHour - 24);
+  }
+  return localHour >= window.startHour && localHour < window.endHour;
 }
 
 function markCellActive(lat, lng) {
@@ -47,6 +82,12 @@ function weightedRandomSpecies(refLng, beaconActive = false) {
     }
     w *= db.getActiveEventMultiplier(sp, now); // time-exclusive boost event, if any (multiplicative)
     w += db.getActiveEventGrant(sp, now); // time-exclusive grant event, if any (additive — works even at 0 base weight)
+    if (sp.collection === 'football' && sp.footballWeight && isFootballWindowActive(sp.alignment, refLng)) {
+      w += sp.footballWeight; // additive, same non-destructive pattern as the grant mechanism above
+    }
+    if (sp.dailyWeight && isDailyLineWindowActive(sp.collection, refLng)) {
+      w += sp.dailyWeight;
+    }
     if (beaconActive && ['rare', 'legendary', 'cosmic'].includes(sp.rarity)) {
       w *= db.BEACON_BOOST_MULTIPLIER;
     }
@@ -99,6 +140,13 @@ function countActiveCosmicsCityWide() {
 // across all active cells. Here it's exposed as a function callable
 // on-demand (invoked lazily when a player queries an active cell).
 // refLng is used only to estimate local time-of-day for the light/dark bias.
+function getSpawnBoostSource(species, beaconActive) {
+  const now = Date.now();
+  if (db.getActiveEventMultiplier(species, now) > 1 || db.getActiveEventGrant(species, now) > 0) return 'event';
+  if (beaconActive && ['rare', 'legendary', 'cosmic'].includes(species.rarity)) return 'beacon';
+  return null;
+}
+
 function trySpawnInCell(cell, refLng = 0, beaconActive = false) {
   const species = weightedRandomSpecies(refLng, beaconActive);
   const maxForRarity = db.RARITY_MAX_PER_CELL[species.rarity];
@@ -125,6 +173,7 @@ function trySpawnInCell(cell, refLng = 0, beaconActive = false) {
     spawnedAt: Date.now(),
     expiresAt: Date.now() + ttl,
     claimedBy: null,
+    boostSource: getSpawnBoostSource(species, beaconActive), // 'event' | 'beacon' | null — shown as a marker on the spawn card
   };
   db.spawns.set(spawn.id, spawn);
   return spawn;
@@ -135,12 +184,22 @@ function trySpawnInCell(cell, refLng = 0, beaconActive = false) {
 function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
   const cell = markCellActive(lat, lng);
   const cellsToCheck = geo.neighboringCells(lat, lng);
-  const beaconActive = playerId ? db.isBeaconActive(playerId) : false;
+  const player = playerId ? db.players.get(playerId) : null;
+  const beaconActive = player ? db.isBeaconActive(playerId) : false;
+  if (beaconActive) {
+    db.markCellBeaconBoosted(cell, player.beaconActiveUntil); // visible to anyone scanning this cell, not just the beacon holder
+  }
+  const cellBeaconActive = db.isCellBeaconBoosted(cell); // is ANYONE's beacon currently boosting this cell, mine or not
 
-  // Lazily spawn in this cell if it's under its cap (stand-in for the
-  // periodic background job — fine for a demo, use a real cron/worker
-  // in production so spawns exist even before the first query).
-  trySpawnInCell(cell, lng, beaconActive);
+  // Concentrate generation in the player's OWN cell — neighboring cell
+  // centers are already 150-212m away, so almost nothing generated
+  // there can ever land within a typical tight scan radius (confirmed
+  // by direct testing: 18 generation attempts spread evenly across all
+  // 9 cells produced only 2 spawns within 100m). One lighter pass on
+  // neighbors still helps wider-radius queries without wasting most of
+  // the generation budget on points that can't be found nearby anyway.
+  for (let i = 0; i < 8; i++) trySpawnInCell(cell, lng, beaconActive);
+  cellsToCheck.filter((c) => c !== cell).forEach((c) => trySpawnInCell(c, lng, beaconActive));
 
   const results = [];
   for (const spawn of db.spawns.values()) {
@@ -160,11 +219,12 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
         collection: species.collection,
         variant: spawn.variant,
         isCompanion: species.isCompanion || false,
-        minCrystalCost: db.MIN_CRYSTAL_COST[species.rarity],
+        minCrystalCost: db.scaledMinCrystalCost(species.rarity, playerId ? (db.players.get(playerId)?.padLevel || 0) : 0),
         lat: spawn.lat,
         lng: spawn.lng,
         expiresAt: spawn.expiresAt,
         distanceMeters: Math.round(dist),
+        boostSource: spawn.boostSource,
       });
     }
   }
@@ -175,6 +235,7 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
     estimatedLocalHour: Math.round(estimateLocalHour(lng) * 10) / 10,
     activeEvents: db.listActiveEvents(),
     beaconActive,
+    cellBeaconActive,
   };
 }
 
