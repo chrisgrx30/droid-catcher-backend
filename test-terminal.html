@@ -21,6 +21,8 @@
     --uncommon: #4fbe7a;
     --rare: #4c9fe8;
     --legendary: #c98ce8;
+    --apex: #ff2d3f;        /* Apex red — the endgame tier */
+    --apex-glow: #ff6b76;
     --danger: #e8615f;
   }
 
@@ -268,7 +270,90 @@
   .spawn-card.uncommon { border-left-color: var(--uncommon); }
   .spawn-card.rare { border-left-color: var(--rare); }
   .spawn-card.legendary { border-left-color: var(--legendary); }
+  /* --- Manual coordinate override (admin) --- */
+  .coord-status {
+    padding: 8px 10px;
+    border-radius: 3px;
+    font-size: 10px;
+    text-align: center;
+    border: 1px solid var(--line);
+  }
+  .coord-status.inactive { color: var(--text-dim); background: var(--panel-raised); }
+  .coord-status.active {
+    color: #ffd8a8;
+    background: rgba(232,97,95,0.12);
+    border-color: var(--danger);
+    font-weight: 700;
+  }
+  .coord-preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .coord-preset-grid button { margin-top: 0; font-size: 9px; padding: 7px 4px; }
+
+  /* Persistent warning strip on the Capture tab so a forgotten override
+     never gets mistaken for real GPS results. */
+  .coord-override-banner {
+    background: rgba(232,97,95,0.15);
+    border: 1px solid var(--danger);
+    border-radius: 3px;
+    padding: 6px 10px;
+    margin: 8px 0;
+    font-size: 10px;
+    color: #ffb3b2;
+    text-align: center;
+  }
+
   .spawn-card.cosmic { border-left-color: #ff9df0; }
+
+  /* --- Apex tier --- */
+  /* Loud on purpose: an Apex appears at most once anywhere in the world,
+     during a 30-minute window, so the card should be unmistakable the
+     moment it lands in the list. */
+  .spawn-card.apex {
+    border-left-color: var(--apex);
+    border-left-width: 4px;
+    background: linear-gradient(90deg, rgba(255,45,63,0.14), rgba(255,45,63,0.02));
+    box-shadow: 0 0 12px rgba(255,45,63,0.35);
+    animation: apexPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes apexPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(255,45,63,0.30); }
+    50%      { box-shadow: 0 0 20px rgba(255,45,63,0.60); }
+  }
+  .apex-warning {
+    margin-top: 6px;
+    padding: 5px 8px;
+    border: 1px solid var(--apex);
+    border-radius: 3px;
+    background: rgba(255,45,63,0.12);
+    font-size: 9px;
+    color: var(--apex-glow);
+    text-align: center;
+  }
+
+  /* --- Out of capture range (radar band 2) --- */
+  /* Visible on the sweep but too far to lock on. Deliberately muted so
+     the in-range droids read as the actionable ones at a glance. */
+  .spawn-card.out-of-range { opacity: 0.62; }
+  .spawn-card.out-of-range .spawn-icon { filter: grayscale(0.7); }
+  .out-of-range-note {
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px dashed var(--line);
+    border-radius: 4px;
+    background: var(--panel-raised);
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .out-of-range-note .oor-sub {
+    margin-top: 3px;
+    font-size: 9px;
+    opacity: 0.75;
+  }
   .spawn-card.variant-platinum {
     border-color: #d9e6ea;
     box-shadow: 0 0 12px rgba(217,230,234,0.35), inset 0 0 12px rgba(217,230,234,0.08);
@@ -306,6 +391,7 @@
   .spawn-rarity.rare { color: var(--rare); }
   .spawn-rarity.legendary { color: var(--legendary); }
   .spawn-rarity.cosmic { color: #ff9df0; }
+  .spawn-rarity.apex { color: var(--apex); font-weight: 900; text-shadow: 0 0 6px rgba(255,45,63,0.7); }
   .spawn-meta { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
 
   /* ---- capture timing minigame ---- */
@@ -467,6 +553,7 @@
   .dex-card .dc-rarity.rare { color: var(--rare); }
   .dex-card .dc-rarity.legendary { color: var(--legendary); }
   .dex-card .dc-rarity.cosmic { color: #ff9df0; }
+  .dex-card .dc-rarity.apex { color: var(--apex); font-weight: 900; }
 
   .variant-dots { display: flex; justify-content: center; gap: 6px; margin-top: 5px; }
   .variant-dot {
@@ -630,6 +717,7 @@
 <div class="tab-page" id="tab-capture">
   <div class="panel" id="radarSweepPanel">
     <div class="panel-title">Radar Sweep <span id="todBadge" style="color: var(--text-dim);"></span></div>
+    <div id="coordOverrideBanner"></div>
     <div id="beaconCellBanner"></div>
     <div id="eventBanner"></div>
     <button class="primary" id="btnUseLocation">📍 Use My Location &amp; Scan</button>
@@ -677,6 +765,17 @@
 <!-- BATTLES TAB -->
 <div class="tab-page" id="tab-battles">
   <div class="panel" style="display:none;" id="selectedTeamPreview"></div>
+
+  <div class="panel" id="apexEncounterPanel" style="margin-top:16px; border:1px solid var(--apex);">
+    <div class="panel-title" style="color:var(--apex);">⬢ Apex Encounter <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— 2500✦ entry, 3hr cooldown</span></div>
+    <div class="apex-warning" style="margin-bottom:8px;">
+      20,000 HP · 1,100 attack — <strong>solo is not recommended</strong><br>
+      <span style="opacity:0.8;">Bring up to 6 players. Every survivor gets Apex Cubes.</span>
+    </div>
+    <label>Invite players (optional — leave blank to go solo)</label>
+    <input type="text" id="apexGroupInvites" placeholder="Player IDs, comma-separated e.g. 12,15,20">
+    <button id="btnCreateApex" style="margin-top:6px; background:linear-gradient(90deg,#ff2d3f,#ff6b76); color:#fff; font-weight:800;">Create Apex Encounter (2500✦)</button>
+  </div>
 
   <div class="panel" id="titanEncounterPanel" style="margin-top:16px;">
     <div class="panel-title">Titan Encounter <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— 1000✦ entry, 2hr cooldown, rare chance to catch it</span></div>
@@ -776,6 +875,10 @@
     <div class="stat-row"><span class="stat-label">⚙️ Augment Cores</span><span class="stat-val" id="statAugmentCores">0</span></div>
     <div class="stat-row"><span class="stat-label">🩹 Repair Kits</span><span class="stat-val" id="statRepairKits">0</span></div>
     <div class="stat-row"><span class="stat-label">🔋 Energy Tubes</span><span class="stat-val" id="statEnergyTubes">0</span></div>
+    <div class="stat-row"><span class="stat-label" style="color:var(--apex);">⬢ Apex Cubes</span><span class="stat-val" id="statApexCubes" style="color:var(--apex); font-weight:900;">0</span></div>
+    <div class="stat-row"><span class="stat-label">🏆 Titan Tokens</span><span class="stat-val" id="statTitanTokens">0</span></div>
+    <div class="stat-row"><span class="stat-label">🛡️ Guild Tokens</span><span class="stat-val" id="statGuildTokens">0</span></div>
+    <div class="stat-row"><span class="stat-label">🕹️ Joy Coins</span><span class="stat-val" id="statJoyCoins">0</span></div>
   </div>
 
   <div class="panel" id="shopMainPanel" style="margin-top:16px;">
@@ -915,7 +1018,34 @@
 
 <!-- ADMIN TAB -->
 <div class="tab-page" id="tab-admin">
-  <div class="panel">
+  <div class="panel" id="manualCoordsPanel">
+    <div class="panel-title">Manual Coordinates <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— region testing</span></div>
+    <div style="font-size:9px; color:var(--danger); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">🔒 Chris Admin Only — no access</div>
+
+    <div id="coordOverrideStatus" class="coord-status inactive">Override OFF — scans use real GPS</div>
+
+    <label style="margin-top:10px;">Latitude</label>
+    <input type="text" id="coordLatInput" placeholder="e.g. 51.5074" inputmode="decimal">
+    <label style="margin-top:6px;">Longitude</label>
+    <input type="text" id="coordLngInput" placeholder="e.g. -0.1278" inputmode="decimal">
+
+    <div style="display:flex; gap:6px; margin-top:8px;">
+      <button class="primary" id="btnSetCoordOverride" style="margin-top:0;">Set Override</button>
+      <button id="btnClearCoordOverride" style="margin-top:0;">Clear</button>
+    </div>
+
+    <label style="margin-top:12px;">Jump to a test region</label>
+    <div class="coord-preset-grid" id="coordPresets"></div>
+
+    <div style="font-size:9px; color:var(--text-dim); margin-top:10px; line-height:1.5;">
+      While an override is active, <strong>Use My Location &amp; Scan</strong> ignores your device GPS
+      and scans the coordinates above. Day/night, weekend windows and the
+      daily line windows all follow the override's longitude, so this is how
+      you test Football, Void Zombie and Lumen Sentinel spawns out of hours.
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
     <div class="panel-title">Time-Exclusive Events</div>
     <div style="font-size:9px; color:var(--danger); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">🔒 Chris Admin Only — no access</div>
     <div id="activeEventsList" style="margin-bottom: 10px;"><div class="empty">No active events</div></div>
@@ -927,6 +1057,10 @@
     <label style="margin-top:10px;">Solar collection (only spawns during this event)</label>
     <button id="btnEventSummer" style="margin-top:6px; background:linear-gradient(90deg,#ff9a3d,#ffcf5c); color:#3a1e00; font-weight:700;">☀ Start Summer Event (7 days)</button>
     <button id="btnEventSuperhero" style="margin-top:6px; background:#3d6bff; color:#fff; font-weight:700;">🦸 Start Superhero Event (2 hours)</button>
+    <label style="margin-top:10px;">Apex Hunt — the ONLY way Apex droids spawn</label>
+    <button id="btnEventApexHunt" style="margin-top:6px; background:linear-gradient(90deg,#ff2d3f,#ff6b76); color:#fff; font-weight:800; text-shadow:0 1px 2px rgba(0,0,0,0.4);">⬢ Start Apex Hunt (30 min)</button>
+    <div style="font-size:9px; color:var(--text-dim); margin-top:4px;">6h cooldown · max 1 Apex live worldwide at a time</div>
+
     <label style="margin-top:10px;">Short, high-intensity boosts</label>
     <div style="display:flex; gap:6px; margin-top:6px;">
       <button id="btnEventCompanionOverdrive" style="margin-top:0;">✦ Companion Overdrive (10min)</button>
@@ -957,7 +1091,40 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, guildId: null, processorSlots: [], unassignedEggs: [], beacons: 0, augmentCores: 0, outfit: 'basic', ownedOutfits: ['basic'], shopCatalog: [], activeEventDeck: null };
+let state = { playerId: null, spawns: [], slots: [], droids: [], species: [], crystalsPerSecond: 0, tradeTargetDroids: [], paint: 0, novaChips: 0, cosmetics: [], companionDroid: null, guildId: null, processorSlots: [], unassignedEggs: [], beacons: 0, augmentCores: 0, outfit: 'basic', ownedOutfits: ['basic'], shopCatalog: [], activeEventDeck: null, coordOverride: null };
+
+// ---- Manual coordinate override (admin / region testing) ----
+// When set, every scan uses these coordinates instead of the device's
+// real GPS. Persisted so it survives a page reload mid-test session.
+// This is an ADMIN-ONLY testing tool in this build — the eventual paid
+// player-facing version is a separate feature, not this.
+const COORD_OVERRIDE_STORAGE_KEY = 'sparkfield.coordOverride';
+
+function loadCoordOverride() {
+  try {
+    const raw = localStorage.getItem(COORD_OVERRIDE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.lat !== 'number' || typeof parsed.lng !== 'number') return null;
+    return parsed;
+  } catch (e) { return null; }
+}
+
+function saveCoordOverride(override) {
+  try {
+    if (override) localStorage.setItem(COORD_OVERRIDE_STORAGE_KEY, JSON.stringify(override));
+    else localStorage.removeItem(COORD_OVERRIDE_STORAGE_KEY);
+  } catch (e) {}
+}
+// Apex droids level on Cubes, everything else on Crystals. One helper so
+// every place that renders a level-up cost shows the right symbol.
+function levelCostLabel(droid) {
+  if (droid.nextLevelCost === null || droid.nextLevelCost === undefined) return 'MAX';
+  return droid.nextLevelCurrency === 'apexCubes'
+    ? `${droid.nextLevelCost}⬢`
+    : `${droid.nextLevelCost}✦`;
+}
+
 const FUNKY_PAINT_COST = 10; // matches db.FUNKY_EVOLVE_PAINT_COST default on the backend
 
 // ---- Tab navigation ----
@@ -1029,27 +1196,56 @@ function updateLocationMap(lat, lng) {
   } catch (e) {} // don't let a map failure break the rest of the scan flow
 }
 
+// Visible ring showing the capture zone — droids inside it can be caught,
+// droids outside are map-only. Redrawn on every scan so it follows the
+// player and picks up any change to the server's radius.
+let captureRadiusCircle = null;
+
+function drawCaptureRadiusRing(lat, lng) {
+  if (typeof L === 'undefined' || !locationMap) return;
+  try {
+    const radius = state.captureRadiusMeters || 15;
+    if (captureRadiusCircle) locationMap.removeLayer(captureRadiusCircle);
+    captureRadiusCircle = L.circle([lat, lng], {
+      radius,
+      color: '#5fd8e0',
+      weight: 1,
+      fillColor: '#5fd8e0',
+      fillOpacity: 0.10,
+      interactive: false,
+    }).addTo(locationMap);
+  } catch (e) {}
+}
+
 const SPAWN_MARKER_COLOR = { light: '#f5c451', dark: '#8b6de0', cosmic: '#ff9df0' };
+const APEX_MARKER_COLOR = '#ff2d3f'; // Apex overrides alignment colour entirely — you should spot one instantly
 
 function renderSpawnMarkers() {
   if (typeof L === 'undefined' || !locationMap) return;
   try {
     spawnMarkers.forEach((m) => locationMap.removeLayer(m));
     spawnMarkers = [];
-    const RARITY_SIZE = { common: 14, uncommon: 16, rare: 19, legendary: 23, cosmic: 23, galactic: 26 };
+    const RARITY_SIZE = { common: 14, uncommon: 16, rare: 19, legendary: 23, cosmic: 23, galactic: 26, apex: 30 };
     const VARIANT_BORDER_COLOR = { standard: '#fff', rusty: '#d97b3f', platinum: '#d8dee8', funky: '#ff5cf0' };
     state.spawns.forEach((spawn) => {
-      const color = SPAWN_MARKER_COLOR[spawn.alignment] || '#5fd8e0';
+      const isApex = spawn.rarity === 'apex';
+      const color = isApex ? APEX_MARKER_COLOR : (SPAWN_MARKER_COLOR[spawn.alignment] || '#5fd8e0');
       const size = RARITY_SIZE[spawn.rarity] || 16;
       const borderColor = VARIANT_BORDER_COLOR[spawn.variant] || VARIANT_BORDER_COLOR.standard;
       const borderWidth = spawn.variant !== 'standard' ? 3 : 2;
+      // Out-of-range droids are drawn hollow and faded — still findable on
+      // the map, but visibly not catchable from here.
+      const inRange = spawn.withinCaptureRadius !== false;
+      const markerStyle = inRange
+        ? `background:${color}; border:${borderWidth}px solid ${borderColor}; opacity:1;`
+        : `background:transparent; border:2px dashed ${color}; opacity:0.55;`;
       const icon = L.divIcon({
         className: 'spawn-map-marker',
-        html: `<div style="width:${size}px; height:${size}px; border-radius:50%; background:${color}; border:${borderWidth}px solid ${borderColor}; box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>`,
+        html: `<div style="width:${size}px; height:${size}px; border-radius:50%; ${markerStyle} box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>`,
         iconSize: [size, size],
       });
       const marker = L.marker([spawn.lat, spawn.lng], { icon }).addTo(locationMap);
-      marker.bindPopup(`<strong>${spawn.speciesName}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}`);
+      marker.bindPopup(`<strong>${spawn.speciesName}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a;">In capture range</span>' : `${spawn.distanceMeters}m away — move closer`}`);
       marker.on('click', () => highlightSpawnCard(spawn.id));
       spawnMarkers.push(marker);
     });
@@ -1072,13 +1268,14 @@ function highlightSpawnCard(spawnId) {
 // Written each build round — a short, plain-language summary of what
 // just shipped. Update this string when packaging a new release.
 const HOME_CHANGELOG = `
-  <p><strong>Latest update:</strong></p>
+  <p><strong>Latest update — v0.2.0:</strong></p>
   <ul style="margin:6px 0 0; padding-left:18px;">
-    <li>Two brand-new droid lines: Void Zombies (11pm-1am) and Lumen Sentinels (11am-1pm), both spawning daily</li>
-    <li>Warehouse got a cleanup — droids now group by rarity, and a search bar helps find a specific one fast</li>
-    <li>New Shop: buy materials, outfits, and pad plug-ins (Time Warp, Growth) directly with crystals</li>
-    <li>Guild badges, guild notices, and a Dex leaderboard for your guild</li>
-    <li>Capture minigame got trickier at high Pad Levels — and Rusty/Platinum odds are now at their real intended rarity</li>
+    <li><strong style="color:var(--apex);">The Apex set</strong> — 30 new droids in a brand-new tier above Galactic. The rarest, toughest catch in the game.</li>
+    <li><strong>Apex Hunt</strong> — Apex droids only spawn during this 30-minute event. Nowhere else, ever.</li>
+    <li><strong>Apex Encounters</strong> — a new 20,000 HP raid boss. Bring friends; solo will not work.</li>
+    <li><strong>Apex Cubes</strong> — a new currency that only levels Apex droids. Always drops, win or lose.</li>
+    <li><strong>Radar rework</strong> — you now need to be within 15m to catch a droid. Anything further shows on the map but can't be locked on.</li>
+    <li>Titan Tokens, Guild Tokens and Joy Coins added to the shop (spend routes coming with the joystick update)</li>
   </ul>
 `;
 
@@ -1395,6 +1592,16 @@ const DEFAULT_SCAN_RADIUS = 1000; // meters — no manual field anymore, geoloca
 
 $('btnUseLocation').onclick = () => {
   const status = $('locationStatus');
+
+  // An active override short-circuits GPS entirely — this is the whole
+  // point of the feature: test a region you aren't standing in.
+  if (state.coordOverride) {
+    const { lat, lng, label } = state.coordOverride;
+    status.textContent = `📍 Manual override active${label ? ' — ' + label : ''} (${lat.toFixed(4)}, ${lng.toFixed(4)}). Scanning…`;
+    scanAt(lat, lng);
+    return;
+  }
+
   if (!navigator.geolocation) {
     status.textContent = 'Geolocation not supported by this browser.';
     return;
@@ -1419,6 +1626,10 @@ async function scanAt(lat, lng) {
   try {
     const data = await api('GET', `/spawns?lat=${lat}&lng=${lng}&radius=${DEFAULT_SCAN_RADIUS}&playerId=${state.playerId}`);
     state.spawns = data.spawns;
+    // Server decides the capture radius; we only mirror it. Falls back to
+    // 15 if an older server build doesn't send the field yet.
+    state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 15;
+    drawCaptureRadiusRing(lat, lng);
     const badge = $('todBadge');
     badge.textContent = data.timeOfDay === 'day' ? '☀ Daytime here' : '🌑 Nighttime here';
     badge.style.color = data.timeOfDay === 'day' ? 'var(--amber)' : 'var(--legendary)';
@@ -1432,7 +1643,10 @@ async function scanAt(lat, lng) {
   } catch (e) {}
 }
 
-const RARITY_ZONE_WIDTH = { common: 28, uncommon: 20, rare: 20, legendary: 12, cosmic: 8 }; // % of track width — narrower = harder. Common/Uncommon tightened twice per playtest feedback (44/32 → 34/24 → 28/20).
+const RARITY_ZONE_WIDTH = { common: 28, uncommon: 20, rare: 20, legendary: 12, cosmic: 8, galactic: 6, apex: 4 };
+// Apex sits at 4% — half the Cosmic zone and the narrowest target in
+// the game, matching the "super hard minigame" brief. Paired with a 2%
+// base capture rate server-side, most Apex attempts are meant to fail. // % of track width — narrower = harder. Common/Uncommon tightened twice per playtest feedback (44/32 → 34/24 → 28/20).
 
 // Once Pad Level passes 10, Rare+ tiers get progressively harder —
 // directly targets "a maxed-out pad trivializes everything." Floored so
@@ -1466,8 +1680,16 @@ function renderSpawns() {
   }
   list.innerHTML = '';
   state.spawns.forEach((spawn) => {
+    // Two-band radar: only droids inside the capture radius get the
+    // minigame. The server enforces this too (capture.js), so this is
+    // presentation, not the actual gate.
+    const inCaptureRange = spawn.withinCaptureRadius !== false;
+    const captureRadius = state.captureRadiusMeters || 15;
+
     const card = document.createElement('div');
-    card.className = `spawn-card ${spawn.rarity} align-${spawn.alignment}` + (spawn.variant !== 'standard' ? ` variant-${spawn.variant}` : '');
+    card.className = `spawn-card ${spawn.rarity} align-${spawn.alignment}`
+      + (spawn.variant !== 'standard' ? ` variant-${spawn.variant}` : '')
+      + (inCaptureRange ? '' : ' out-of-range');
     card.id = 'spawn-card-' + spawn.id;
     const variantTag = spawn.variant !== 'standard'
       ? `<span class="variant-tag ${spawn.variant}">${spawn.variant}</span>`
@@ -1499,7 +1721,9 @@ function renderSpawns() {
         <span class="spawn-rarity ${spawn.rarity}">${spawn.rarity}</span>
       </div>
       <div class="spawn-meta">${spawn.distanceMeters}m away · expires ${new Date(spawn.expiresAt).toLocaleTimeString()} · needs ${minCost}+ crystals</div>
+      ${spawn.rarity === 'apex' ? '<div class="apex-warning">⬢ APEX — cubes drop win or lose, but the lock-on window is tiny</div>' : ''}
       ${pluginRow}
+      ${inCaptureRange ? `
       <div class="capture-track" id="captureTrack${spawn.id}">
         <div class="zone" style="left:${zoneCenter - zoneWidth / 2}%; width:${zoneWidth}%;"></div>
         <div class="marker" style="left:0%;"></div>
@@ -1508,8 +1732,24 @@ function renderSpawns() {
       <input type="range" min="${minCost}" max="${sliderMax}" value="${minCost}" class="cr-slider">
       <button class="stop-btn">LOCK-ON</button>
       <button class="run-btn ghost" style="margin-top:4px; font-size:9px; padding:6px;">Run</button>
+      ` : `
+      <div class="out-of-range-note" id="oorNote${spawn.id}">
+        📍 Out of capture range — move within ${captureRadius}m to lock on
+        <div class="oor-sub">${spawn.distanceMeters}m away · ${Math.max(0, spawn.distanceMeters - captureRadius)}m closer needed</div>
+      </div>
+      `}
     `;
     card.querySelector('.spawn-icon').appendChild(createDroidVisual(spawn, 28));
+
+    // Out-of-range cards have no minigame controls to wire up, and no
+    // animation to start — render and move on. Everything below this
+    // point assumes the capture track exists.
+    if (!inCaptureRange) {
+      list.appendChild(card);
+      // Drop assets/misc/outofrange.png (or .gif) in to skin this box.
+      applyPanelBackground('oorNote' + spawn.id, 'outofrange');
+      return;
+    }
 
     const crSlider = card.querySelector('.cr-slider');
     const crVal = card.querySelector('.cr-val');
@@ -1600,8 +1840,11 @@ async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
       crystalsSpent,
       padAccuracy,
       attemptDurationMs: 800 + Math.random() * 800,
-      playerLat: spawn.lat,
-      playerLng: spawn.lng,
+      // Send the player's OWN scanned position, not the spawn's. Sending
+      // spawn.lat/lng made the server-side distance always 0, which
+      // silently disabled the OUT_OF_RANGE check entirely.
+      playerLat: state.lastLat,
+      playerLng: state.lastLng,
     });
     if (result.success) {
       log('CAPTURE', `${spawn.speciesName} secured! (${Math.round(result.successChance * 100)}% chance)${result.gotPaint ? ' 🎨 +1 Paint!' : ''}`);
@@ -1622,10 +1865,15 @@ async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
 function showCaptureResultPopup(spawn, result, crystalsSpent) {
   const overlay = $('captureResultOverlay');
   const box = $('captureResultBox');
+  // Apex Cubes are awarded win OR lose, so this line has to render on
+  // every branch of the popup below — not just the success ones.
+  const apexCubeHtml = result.apexCubesDropped
+    ? `<div class="mb-detail" style="color:var(--apex); font-weight:700;">⬢ +${result.apexCubesDropped} Apex Cube${result.apexCubesDropped === 1 ? '' : 's'} (total ${result.apexCubes})</div>`
+    : '';
   const buffsHtml = (result.buffsApplied && result.buffsApplied.length)
     ? `<div class="mb-detail" style="color:var(--cyan); font-size:9px;">${result.buffsApplied.map((b) => `⚡ ${b.name}: ${b.effect}`).join('<br>')}</div>`
     : '';
-  const rarityBorderColor = { common: 'var(--common)', uncommon: 'var(--uncommon)', rare: 'var(--rare)', legendary: 'var(--legendary)', cosmic: '#ff9df0' }[spawn.rarity] || 'var(--line)';
+  const rarityBorderColor = { common: 'var(--common)', uncommon: 'var(--uncommon)', rare: 'var(--rare)', legendary: 'var(--legendary)', cosmic: '#ff9df0', galactic: '#ffd76b', apex: 'var(--apex)' }[spawn.rarity] || 'var(--line)';
   const droidIconHtml = result.success
     ? `<div id="captureResultIcon" style="width:64px; height:64px; margin:0 auto 8px; border-radius:8px; border:3px solid ${rarityBorderColor}; box-shadow:0 0 10px ${rarityBorderColor}; display:flex; align-items:center; justify-content:center; overflow:hidden;"></div>`
     : '';
@@ -1637,6 +1885,7 @@ function showCaptureResultPopup(spawn, result, crystalsSpent) {
       <div class="mb-detail">${spawn.speciesName} was a duplicate — released automatically</div>
       <div class="mb-detail" style="color:var(--amber);">✦ +${result.autoReleaseRefund} crystals</div>
       ${result.gotPaint ? '<div class="mb-detail" style="color:var(--amber);">🎨 +1 Paint dropped!</div>' : ''}
+      ${apexCubeHtml}
       ${buffsHtml}
       <button class="primary mb-close">Nice!</button>
     `;
@@ -1648,6 +1897,7 @@ function showCaptureResultPopup(spawn, result, crystalsSpent) {
       <div class="mb-detail">${spawn.speciesName} is yours${result.critical ? ' — Critical Capture!' : ''}</div>
       <div class="mb-detail">Chance was ${Math.round(result.successChance * 100)}%</div>
       ${result.gotPaint ? '<div class="mb-detail" style="color:var(--amber);">🎨 +1 Paint dropped!</div>' : ''}
+      ${apexCubeHtml}
       ${buffsHtml}
       <button class="primary mb-close">Nice!</button>
     `;
@@ -1657,6 +1907,7 @@ function showCaptureResultPopup(spawn, result, crystalsSpent) {
       <div class="mb-title fail">Broke Free</div>
       <div class="mb-detail">${spawn.speciesName} escaped. Chance was ${Math.round(result.successChance * 100)}%</div>
       <div class="mb-detail" style="color:var(--danger);">${crystalsSpent} crystals lost — gone for good.</div>
+      ${apexCubeHtml}
       ${buffsHtml}
       <button class="mb-close">Try Again</button>
     `;
@@ -1718,6 +1969,16 @@ async function refreshWorkshop() {
     $('statDroidCount').textContent = data.droids.length; // bug fix: this never updated before
     state.paint = data.paint;
     state.novaChips = data.novaChips;
+    // v0.2 currencies — Apex Cubes drive the Apex level-up UI, so state
+    // has to carry them, not just the inventory readout.
+    state.apexCubes = data.apexCubes || 0;
+    state.titanTokens = data.titanTokens || 0;
+    state.guildTokens = data.guildTokens || 0;
+    state.joyCoins = data.joyCoins || 0;
+    $('statApexCubes').textContent = state.apexCubes;
+    $('statTitanTokens').textContent = state.titanTokens;
+    $('statGuildTokens').textContent = state.guildTokens;
+    $('statJoyCoins').textContent = state.joyCoins;
     $('statPaint').textContent = data.paint;
     $('statInvCrystals').textContent = Math.floor(data.crystalBalance);
     $('statNovaChips').textContent = data.novaChips;
@@ -1809,7 +2070,7 @@ function renderSlots() {
       <div class="sc-meta"><span class="spawn-rarity ${droid.rarity}" style="font-size:8px;">${droid.rarity}</span></div>
       ${isExpanded ? `
         <div class="sc-expand">
-          <button class="slot-levelup-btn" ${droid.nextLevelCost === null ? 'disabled' : ''}>${droid.nextLevelCost === null ? 'MAX Level' : `Level Up (${droid.nextLevelCost}✦)`}</button>
+          <button class="slot-levelup-btn" ${droid.nextLevelCost === null ? 'disabled' : ''}>${droid.nextLevelCost === null ? 'MAX Level' : `Level Up (${levelCostLabel(droid)})`}</button>
           <button class="slot-unassign-btn">Unassign</button>
         </div>
       ` : ''}
@@ -1931,7 +2192,7 @@ function buildDroidRow(droid) {
       ? `<span class="variant-tag ${droid.variant}">${droid.variant}${droid.color ? ' ' + droid.color : ''}</span>`
       : '';
 
-    const levelBtnLabel = droid.nextLevelCost === null ? 'MAX' : `Lv Up (${droid.nextLevelCost}✦)`;
+    const levelBtnLabel = droid.nextLevelCost === null ? 'MAX' : `Lv Up (${levelCostLabel(droid)})`;
     const repairBtn = droid.fainted
       ? `<button class="repair-row-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px; color:#3a2e00; background:#ffcf5c; border-color:#ffcf5c; font-weight:600;"><img src="/assets/battle/repairkit.png" style="width:12px; height:12px; vertical-align:middle; margin-right:3px;" onerror="this.remove();">Repair</button>`
       : '';
@@ -2153,7 +2414,7 @@ function showStatsModal(droid) {
       <div class="sg-item"><div class="sg-label">HP</div><div class="sg-val">${droid.currentHp}/${droid.hp}</div></div>
       <div class="sg-item"><div class="sg-label">Attack</div><div class="sg-val">${droid.attack}</div></div>
       <div class="sg-item"><div class="sg-label">${droid.workshopSlotId ? 'Crystals/min' : 'Crystals/min if farming'}</div><div class="sg-val">${droid.workshopSlotId ? droid.crystalsPerMinute : droid.potentialCrystalsPerMinute}</div></div>
-      <div class="sg-item"><div class="sg-label">Next Level Cost</div><div class="sg-val" style="font-size:11px;">${droid.nextLevelCost === null ? 'MAX' : droid.nextLevelCost + '✦'}</div></div>
+      <div class="sg-item"><div class="sg-label">Next Level Cost</div><div class="sg-val" style="font-size:11px;">${levelCostLabel(droid)}</div></div>
     </div>
     ${healBtn}
     ${masterBtn}
@@ -2834,6 +3095,29 @@ $('btnStartTitan').onclick = async () => {
   }
 };
 
+$('btnCreateApex').onclick = async () => {
+  if (!selectedBattleTeam.size) {
+    showGuildResultPopup(false, 'Pick a battle team first (tap droids in the team picker above).');
+    return;
+  }
+  const raw = $('apexGroupInvites').value.trim();
+  const invitedPlayerIds = raw ? raw.split(',').map((x) => Number(x.trim())).filter((x) => x) : [];
+  if (!invitedPlayerIds.length && !confirm('No one invited — you\'ll face an 20,000 HP Apex alone. Solo is not recommended and you will very likely lose the 2500 crystal entry fee. Continue anyway?')) {
+    return;
+  }
+  try {
+    await api('POST', '/battles/apex', { creatorId: state.playerId, invitedPlayerIds, teamDroidIds: [...selectedBattleTeam] });
+    $('apexGroupInvites').value = '';
+    await refreshBattles();
+    await refreshWorkshop();
+    showGuildResultPopup(true, invitedPlayerIds.length
+      ? `Apex encounter created — ${invitedPlayerIds.length} player(s) invited. Start it once they've joined.`
+      : 'Apex encounter created (solo). Good luck.');
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not create the Apex encounter.');
+  }
+};
+
 $('btnCreateGroupTitan').onclick = async () => {
   const raw = $('titanGroupInvites').value.trim();
   const invitedPlayerIds = raw.split(',').map((s) => Number(s.trim())).filter((n) => n && !isNaN(n));
@@ -2882,7 +3166,35 @@ function renderBattleList(battles) {
   el.innerHTML = battles.map((b) => {
     let label, statusLabel, actionHtml = '';
 
-    if (b.isGroupTitanBattle) {
+    if (b.isApexBattle) {
+      label = `⬢ APEX${b.apexName ? ' — ' + b.apexName : ''} (${b.participantIds.length} joined)`;
+      const isCreator = b.creatorId === state.playerId;
+      const hasJoined = b.participantIds.includes(state.playerId);
+      if (b.status === 'forming') {
+        if (!hasJoined) {
+          statusLabel = 'You\'re invited to an Apex encounter!';
+          actionHtml = `<button class="apex-join-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">Join (2500✦)</button>`;
+        } else if (isCreator) {
+          statusLabel = b.participantIds.length === 1
+            ? 'Forming — solo is not recommended against an Apex'
+            : 'Forming — you can start whenever ready';
+          actionHtml = `<button class="apex-start-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">Start Fight</button>`;
+        } else {
+          statusLabel = 'Joined — waiting for the creator to start';
+        }
+      } else if (b.status === 'active') {
+        const hp = b.titan ? Math.max(0, (b.titan.hp || 0) - (b.titan.hp - b.titan.currentHp)) : null;
+        statusLabel = (b.turnParticipantId === state.playerId ? 'Your turn!' : 'Waiting on another participant')
+          + (b.titan ? ` · Apex ${b.titan.currentHp}/${b.titan.hp} HP` : '');
+        actionHtml = `<button class="battle-view-btn" data-id="${b.id}" style="margin-top:4px; width:auto; padding:5px 10px; font-size:9px;">View Battle</button>`;
+      } else if (b.status === 'finished') {
+        const won = (b.winnerParticipantIds || []).includes(state.playerId);
+        const cubes = b.cubeRewards && b.cubeRewards[state.playerId];
+        statusLabel = won
+          ? `🏆 Apex defeated!${cubes ? ` ⬢ +${cubes} Apex Cubes` : ''}`
+          : 'The Apex won';
+      }
+    } else if (b.isGroupTitanBattle) {
       label = `Group Titan (${b.participantIds.length} joined)`;
       const isCreator = b.creatorId === state.playerId;
       const hasJoined = b.participantIds.includes(state.playerId);
@@ -2964,6 +3276,34 @@ function renderBattleList(battles) {
         showActiveBattle(Number(btn.dataset.id));
       } catch (e) {
         showGuildResultPopup(false, (e && e.message) || 'Could not start the fight.');
+      }
+    };
+  });
+  el.querySelectorAll('.apex-join-btn').forEach((btn) => {
+    btn.onclick = async () => {
+      // Reuses the currently-selected battle team, same as the Titan
+      // flow's picker does once a team is chosen.
+      if (!selectedBattleTeam.size) {
+        showGuildResultPopup(false, 'Pick a battle team first (tap droids in the team picker above).');
+        return;
+      }
+      try {
+        await api('POST', `/battles/${btn.dataset.id}/apex-join`, { playerId: state.playerId, teamDroidIds: [...selectedBattleTeam] });
+        await refreshBattles();
+        await refreshWorkshop();
+      } catch (e) {
+        showGuildResultPopup(false, (e && e.message) || 'Could not join that Apex encounter.');
+      }
+    };
+  });
+  el.querySelectorAll('.apex-start-btn').forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        await api('POST', `/battles/${btn.dataset.id}/apex-start`, { creatorId: state.playerId });
+        await refreshBattles();
+        showActiveBattle(Number(btn.dataset.id));
+      } catch (e) {
+        showGuildResultPopup(false, (e && e.message) || 'Could not start the Apex fight.');
       }
     };
   });
@@ -3065,7 +3405,7 @@ async function showActiveBattle(battleId) {
 }
 
 function renderActiveBattle(battle) {
-  if (battle.isGroupTitanBattle) return renderGroupTitanBattle(battle);
+  if (battle.isGroupTitanBattle || battle.isApexBattle) return renderGroupTitanBattle(battle);
   const el = $('activeBattleView');
   const isP1 = battle.player1Id === state.playerId;
   const myTeam = isP1 ? battle.team1 : battle.team2;
@@ -3203,7 +3543,10 @@ function renderGroupTitanBattle(battle) {
   if (myTurn && battle.status === 'active') {
     el.querySelector('#btnGroupTitanAttack').onclick = async () => {
       try {
-        await api('POST', `/battles/${battle.id}/attack-group`, { playerId: state.playerId });
+        // Apex encounters share this view but have their own endpoint —
+        // the two systems are deliberately separate server-side.
+        const endpoint = battle.isApexBattle ? 'apex-attack' : 'attack-group';
+        await api('POST', `/battles/${battle.id}/${endpoint}`, { playerId: state.playerId });
         await refreshWorkshop();
         await showActiveBattle(battle.id);
         await refreshBattles();
@@ -3441,6 +3784,10 @@ function applyPanelBackground(elementId, name, folder = 'misc') {
 }
 
 function applyAllPanelBackgrounds() {
+  // Drop assets/apex/apexbattle.png in to skin the Apex encounter box.
+  applyPanelBackground('apexEncounterPanel', 'apexbattle', 'apex');
+  // Drop assets/misc/manualcoords.png (or .gif) in to skin this panel.
+  applyPanelBackground('manualCoordsPanel', 'manualcoords');
   applyPanelBackground('themePickerPanel', 'themepicker');
   applyPanelBackground('wardrobeMainPanel', 'wardrobe');
   applyPanelBackground('offlineProjectionPanel', 'offlineprojection');
@@ -3532,17 +3879,27 @@ function createDroidVisual(species, size = 44) {
   wrapper.style.verticalAlign = 'middle';
 
   const baseSlug = displayName.toLowerCase().replace(/\s+/g, '');
+  // Some art is saved without the hyphen the species name carries
+  // (Corsair-X -> corsairx.png), while older files keep it
+  // (Quasar-X -> quasar-x.png). Try the hyphenated form first so nothing
+  // that works today changes, then fall back to the stripped form.
+  const strippedSlug = baseSlug.replace(/-/g, '');
+  const slugCandidates = strippedSlug !== baseSlug ? [baseSlug, strippedSlug] : [baseSlug];
   const variant = species.variant && species.variant !== 'standard' ? species.variant : null;
 
   // Try variant-specific art first (e.g. puffkin-platinum.png), then the
   // base species image (tinted via CSS filter as a variant fallback if no
   // dedicated file exists), then finally the procedural SVG placeholder.
   const candidates = [];
-  const variantCandidateCount = variant ? DROID_IMAGE_EXTENSIONS.length : 0;
+  const variantCandidateCount = variant ? DROID_IMAGE_EXTENSIONS.length * slugCandidates.length : 0;
   if (variant) {
-    DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${baseSlug}-${variant}.${ext}`));
+    slugCandidates.forEach((slug) => {
+      DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${slug}-${variant}.${ext}`));
+    });
   }
-  DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${baseSlug}.${ext}`));
+  slugCandidates.forEach((slug) => {
+    DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${slug}.${ext}`));
+  });
 
   const img = document.createElement('img');
   img.width = size;
@@ -3598,10 +3955,11 @@ const DEX_GROUP_LABELS = {
   cosmic: 'Cosmic',
   football: 'Football',
   void_zombie: 'Void Zombie',
+  apex: '⬢ APEX',
   lumen_sentinel: 'Lumen Sentinel',
   titan: 'Titan',
 };
-const DEX_GROUP_ORDER = ['mythical', 'nature', 'wildcard', 'football', 'void_zombie', 'lumen_sentinel', 'cosmic', 'titan'];
+const DEX_GROUP_ORDER = ['mythical', 'nature', 'wildcard', 'football', 'void_zombie', 'lumen_sentinel', 'cosmic', 'titan', 'apex'];
 
 function buildDexCard(s) {
   const card = document.createElement('div');
@@ -3811,6 +4169,102 @@ function renderEvents(events) {
   if (listEl) listEl.innerHTML = chips;
 }
 
+// ---- Manual coordinate override wiring ----
+// Presets chosen to exercise the longitude-derived time logic in
+// spawns.js: each sits in a different part of the day, so you can reach
+// any time-gated window (Football weekends, Void Zombies 11pm-1am,
+// Lumen Sentinels 11am-1pm) without waiting for the clock.
+const COORD_PRESETS = [
+  { label: 'London', lat: 51.5074, lng: -0.1278 },
+  { label: 'New York', lat: 40.7128, lng: -74.0060 },
+  { label: 'Tokyo', lat: 35.6762, lng: 139.6503 },
+  { label: 'Sydney', lat: -33.8688, lng: 151.2093 },
+  { label: 'Los Angeles', lat: 34.0522, lng: -118.2437 },
+  { label: 'Dubai', lat: 25.2048, lng: 55.2708 },
+];
+
+function renderCoordOverrideUI() {
+  const statusEl = $('coordOverrideStatus');
+  const banner = $('coordOverrideBanner');
+  if (state.coordOverride) {
+    const { lat, lng, label } = state.coordOverride;
+    if (statusEl) {
+      statusEl.className = 'coord-status active';
+      statusEl.textContent = `Override ON${label ? ' — ' + label : ''} · ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+    if (banner) {
+      banner.innerHTML = `<div class="coord-override-banner">📍 Manual coordinates active${label ? ' — ' + label : ''} — these are NOT your real GPS results</div>`;
+    }
+  } else {
+    if (statusEl) {
+      statusEl.className = 'coord-status inactive';
+      statusEl.textContent = 'Override OFF — scans use real GPS';
+    }
+    if (banner) banner.innerHTML = '';
+  }
+}
+
+function applyCoordOverride(lat, lng, label) {
+  // Reject anything off the globe — a typo'd longitude would otherwise
+  // produce a nonsense local-hour estimate and confusing spawn results.
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    showGuildResultPopup(false, 'Invalid coordinates — latitude must be -90 to 90, longitude -180 to 180.');
+    return false;
+  }
+  state.coordOverride = { lat, lng, label: label || null };
+  saveCoordOverride(state.coordOverride);
+  renderCoordOverrideUI();
+  const latIn = $('coordLatInput');
+  const lngIn = $('coordLngInput');
+  if (latIn) latIn.value = lat;
+  if (lngIn) lngIn.value = lng;
+  return true;
+}
+
+function initCoordOverrideControls() {
+  const presetWrap = $('coordPresets');
+  if (presetWrap) {
+    presetWrap.innerHTML = '';
+    COORD_PRESETS.forEach((p) => {
+      const btn = document.createElement('button');
+      btn.textContent = p.label;
+      btn.onclick = () => {
+        if (applyCoordOverride(p.lat, p.lng, p.label)) {
+          showGuildResultPopup(true, `Override set to ${p.label}. Run a scan from the Capture tab.`);
+        }
+      };
+      presetWrap.appendChild(btn);
+    });
+  }
+
+  const setBtn = $('btnSetCoordOverride');
+  if (setBtn) {
+    setBtn.onclick = () => {
+      const lat = parseFloat($('coordLatInput').value.trim());
+      const lng = parseFloat($('coordLngInput').value.trim());
+      if (applyCoordOverride(lat, lng, null)) {
+        showGuildResultPopup(true, 'Override set. Run a scan from the Capture tab.');
+      }
+    };
+  }
+
+  const clearBtn = $('btnClearCoordOverride');
+  if (clearBtn) {
+    clearBtn.onclick = () => {
+      state.coordOverride = null;
+      saveCoordOverride(null);
+      renderCoordOverrideUI();
+      showGuildResultPopup(true, 'Override cleared — scans use real GPS again.');
+    };
+  }
+
+  // Restore whatever was active before the last reload.
+  state.coordOverride = loadCoordOverride();
+  renderCoordOverrideUI();
+}
+
+initCoordOverrideControls();
+
 function promptAdminCode(purpose) {
   if (state.verifiedAdminCode) return state.verifiedAdminCode;
   const code = prompt(`Admin code required (${purpose}):`);
@@ -3862,6 +4316,23 @@ $('btnEventSummer').onclick = async () => {
     showGuildResultPopup(true, '☀ Summer Event started — Solar-collection droids now spawning for 7 days!');
   } catch (e) {
     showGuildResultPopup(false, (e && e.message) || 'Could not start the Summer Event.');
+  }
+};
+
+// Apex Hunt uses its own endpoint rather than a generic /events call —
+// the server builds the species list and grant weights itself, so the
+// client can't accidentally launch a hunt with the wrong odds.
+$('btnEventApexHunt').onclick = async () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
+  try {
+    const res = await api('POST', '/events/apex-hunt', { adminCode });
+    const data = await api('GET', '/events');
+    renderEvents(data.events);
+    showGuildResultPopup(true, `⬢ Apex Hunt started — ${res.apexSpeciesCount} Apex droids can now spawn for the next 30 minutes. Only one exists worldwide at a time.`);
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not start the Apex Hunt.');
   }
 };
 

@@ -246,3 +246,108 @@ Add a matching button in the HTML near the existing
 | Limited-time event buttons | `test-terminal.html` → copy `btnEventSummer` handler |
 | Titan HP/Attack | `src/battle.js` → `TITAN_ROSTER` |
 | Capture minigame sweet-spot width | `test-terminal.html` → `RARITY_ZONE_WIDTH` |
+
+---
+
+# v0.2.0 additions
+
+Everything below is new in this release. Same rules as above: edit the
+file, save, restart the server.
+
+## Capture radius — how close you must be to catch
+
+**File:** `src/capture.js`
+**Find:** `const CAPTURE_RADIUS_METERS = 15;`
+
+This is now the *only* place this number lives. The server enforces it,
+the map ring is drawn from it, and the "move within Xm" text reads from
+it. Change this one value and everything else follows.
+
+The separate "how far can I see" number is:
+
+**File:** `test-terminal.html`
+**Find:** `const DEFAULT_SCAN_RADIUS = 1000;`
+
+Droids between the capture radius and the scan radius appear on the map
+but can't be caught — that's the two-band radar.
+
+## Apex droids
+
+**File:** `src/db.js`
+
+| Find | Current | Controls |
+|---|---|---|
+| `apex: { hp: 2200, attack: 140 }` in `RARITY_BASE_STATS` | 2200 / 140 | Base stats before level scaling |
+| `apex: 25` in `MIN_CRYSTAL_COST` | 25 | Crystals needed per capture attempt |
+| `apex: 3 * 60 * 1000` in `RARITY_TTL_MS` | 3 min | How long an Apex stays on the map |
+| `const APEX_CITY_CAP = 3` | 3 | Max Apex live worldwide at once |
+| `const APEX_HUNT_DURATION_MS` | 30 min | Length of one Apex Hunt |
+| `const APEX_HUNT_COOLDOWN_MS` | 6 hours | Gap between Hunts |
+| `const APEX_HUNT_GRANT_WEIGHT` | 0.35 | Spawn weight per species during a Hunt — raise for more sightings |
+| `baseCaptureRate: 0.02` on each Apex species line | 0.02 | Catch chance before crystal/skill bonuses |
+
+**Minigame difficulty** is client-side:
+
+**File:** `test-terminal.html`
+**Find:** `const RARITY_ZONE_WIDTH`
+`apex: 4` — the target zone as a percentage of the track. Lower is
+harder. Cosmic is 8, so Apex is currently twice as hard as anything else
+in the game.
+
+## Apex Cubes
+
+**File:** `src/db.js`
+
+| Find | Current | Controls |
+|---|---|---|
+| `APEX_CUBE_MIN_DROP` / `APEX_CUBE_MAX_DROP` | 1 / 5 | Cubes per drop |
+| `APEX_CUBE_LEVEL_MULTIPLIER` | 1 | Scales the whole level cost curve |
+
+Cost to level an Apex is `10 x level^1.6`: 10 cubes for level 2, 30 for
+level 3, 131 for level 5, 398 for level 10.
+
+Cubes drop from three routes, and **always** drop — never zero:
+capturing (win *or* lose the attempt), defeating one in battle, and
+releasing one.
+
+## Apex battles
+
+**File:** `src/battle.js`
+
+| Find | Current | Controls |
+|---|---|---|
+| `APEX_BATTLE_HP` | 20000 | Boss health |
+| `APEX_BATTLE_ATTACK` | 1100 | Boss damage per counter |
+| `APEX_ENTRY_FEE` | 2500 | Crystals to create or join |
+| `APEX_COOLDOWN_MS` | 3 hours | Per-player cooldown |
+| `APEX_MAX_PARTICIPANTS` | 6 | Party size cap |
+| `APEX_BATTLE_REWARDS` | 2 kits, 2 beacons, 10 paint, 10 chips | Per-survivor reward, plus a cube roll |
+
+**Important if you retune these:** turns rotate, so only one player
+attacks per turn no matter how big the party is. Extra players do *not*
+increase damage output — they add team HP, which buys more turns. That
+means **ATTACK is the lever that makes it a group fight, not HP.**
+Raising HP alone just makes the fight longer for everyone equally.
+
+Measured at the current numbers against the strongest possible team
+(4x level-20 Apex):
+
+| Party | Result |
+|---|---|
+| 1 player | Loses on turn ~33 |
+| 2 players | Wins, narrowly |
+| 4 players | Comfortable win |
+| 6 players | Comfortable win |
+
+## Token currencies
+
+**File:** `src/db.js`
+**Find:** `titan_token` in `SHOP_CATALOG`
+
+Titan Tokens, Guild Tokens and Joy Coins are all 1,000,000 crystals.
+Change `cost:` on each line.
+
+Note: the shop is meant to be the *expensive fallback*. Titan Tokens
+should eventually drop from Titan encounters and Guild Tokens from guild
+activity — those earn routes are **not built yet**, so right now the
+shop is the only source.

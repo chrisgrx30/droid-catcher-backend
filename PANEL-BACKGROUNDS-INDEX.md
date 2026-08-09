@@ -29,6 +29,8 @@ All of these go in the **same folder**: `assets/misc/`
 | `challenger` | Battles tab — Challenge a Player box |
 | `battles` | Battles tab — Your Battles box |
 | `warehouse` | Warehouse tab — Owned Droids box |
+| `manualcoords` | Admin tab — Manual Coordinates box **(new in v0.2.0)** |
+| `outofrange` | Capture tab — the "out of capture range" note on distant droid cards **(new in v0.2.0)** |
 
 **Home tab logo** works differently — it's not part of this system,
 still its own dedicated file: `assets/home/logo.png`. It's now the
@@ -38,6 +40,20 @@ legibility), rather than a separate image above it.
 **Battle stat icons** are also separate, in their own folder:
 `assets/battle/hp.png`, `attack.png`, `special.png` (documented
 previously, unchanged this round).
+
+## New in v0.2.0 — the `assets/apex/` folder
+
+The Apex set has its **own folder**, not `assets/misc/`. Same rules
+(`.png` tried first, then `.gif`, silent fallback if absent), different
+directory:
+
+| File | Panel |
+|---|---|
+| `assets/apex/apexbattle.png` | Battles tab — Apex Encounter box |
+| `assets/apex/apexhunt.png` | Reserved for the Apex Hunt admin panel (slot ready, not yet wired) |
+
+Apex **droid** art does not go here — those 30 images live in
+`assets/droids/` with every other species and are already in place.
 
 ---
 
@@ -63,9 +79,11 @@ assets/misc/titanencounter.png
 assets/misc/challenger.png
 assets/misc/battles.png
 assets/misc/warehouse.png
+assets/misc/manualcoords.png
+assets/misc/outofrange.png
 ```
 
-You don't need all 19 at once — add whichever you have ready, the
+You don't need all 21 at once — add whichever you have ready, the
 rest keep showing their normal solid background until you get to
 them, exactly like every other optional image slot in the game.
 
