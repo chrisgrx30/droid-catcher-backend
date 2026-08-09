@@ -449,6 +449,8 @@ const server = http.createServer(async (req, res) => {
         novaChips: player.novaChips,
         cosmetics: player.cosmetics,
         equippedCosmetics: player.equippedCosmetics || { head: null, body: null, arms: null, legs: null },
+        buffs: workshopModule.getPlayerBuffsSummary(playerId).buffs,
+        offlineProjection: workshopModule.calculateOfflineProjection(playerId),
         guildId: player.guildId,
         companionDroid,
         companionBuffType: companionDroid ? db.droidSpecies.find((s) => s.id === companionDroid.speciesId)?.companionBuffType : null,
@@ -800,9 +802,25 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // GET /materials -> canonical tradeable materials list
+    if (req.method === 'GET' && pathname === '/materials') {
+      return sendJson(res, 200, { materials: db.TRADEABLE_MATERIALS });
+    }
+
     // GET /shop -> the full catalog (materials + outfits)
     if (req.method === 'GET' && pathname === '/shop') {
       return sendJson(res, 200, { items: db.SHOP_CATALOG });
+    }
+
+    // POST /shop/buy-basket  { playerId, items: [{itemId, quantity}] }
+    if (req.method === 'POST' && pathname === '/shop/buy-basket') {
+      const { playerId, items } = await readBody(req);
+      try {
+        const result = db.buyShopBasket(playerId, items);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'SHOP_ERROR', message: e.message });
+      }
     }
 
     // POST /shop/buy  { playerId, itemId, quantity }
@@ -1169,6 +1187,12 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // POST /admin/validate-code  { adminCode } -> validation only, no side effects
+    if (req.method === 'POST' && pathname === '/admin/validate-code') {
+      const { adminCode } = await readBody(req);
+      return sendJson(res, 200, { valid: adminCode === ADMIN_CODES.events });
+    }
+
     // POST /admin/players  { adminCode } -> lists every player with last-online, for account cleanup
     if (req.method === 'POST' && pathname === '/admin/players') {
       const { adminCode } = await readBody(req);
@@ -1271,7 +1295,7 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // POST /trades  { fromPlayerId, toPlayerId, offeredDroidIds, offeredCrystals, requestedDroidIds, requestedCrystals }
+    // POST /trades  { fromPlayerId, toPlayerId, offeredDroidIds, offeredCrystals, offeredMaterials, requestedDroidIds, requestedCrystals, requestedMaterials }
     if (req.method === 'POST' && pathname === '/trades') {
       const body = await readBody(req);
       try {

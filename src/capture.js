@@ -14,6 +14,7 @@ const MIN_PLAUSIBLE_ATTEMPT_MS = 250; // faster than this + high accuracy = bot 
 const CRYSTAL_BONUS_CAP = 0.40; // spending max crystals gives up to +40% chance
 const CRYSTAL_COST_TO_MAX = 30; // crystals spent at which bonus caps out
 const PAINT_DROP_CHANCE = 0.05; // 5% chance any successful capture also drops 1 Paint
+const CHAIN_MATERIAL_DROP_CHANCE = 0.03; // rarer than Paint — only from capturing/releasing Shambler or Illume specifically
 
 function crystalBonus(crystalsSpent) {
   const ratio = Math.min(crystalsSpent / CRYSTAL_COST_TO_MAX, 1);
@@ -111,6 +112,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
 
   let newDroid = null;
   let gotPaint = false;
+  let gotChainMaterial = null;
   let autoReleased = false;
   let autoReleaseRefund = 0;
 
@@ -133,6 +135,14 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
 
     gotPaint = Math.random() < PAINT_DROP_CHANCE;
     if (gotPaint) player.paint += 1;
+
+    if (species.name === 'Shambler' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
+      player.zombieJuice = (player.zombieJuice || 0) + 1;
+      gotChainMaterial = 'zombieJuice';
+    } else if (species.name === 'Illume' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
+      player.lumeCells = (player.lumeCells || 0) + 1;
+      gotChainMaterial = 'lumeCells';
+    }
 
     // Auto-release-duplicates — opt-in, off by default. Base behavior:
     // a newly-captured STANDARD-variant Common/Uncommon droid where the
@@ -188,6 +198,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     crystalBalance: player.crystalBalance,
     droid: newDroid ? { id: newDroid.id, speciesName: species.name, rarity: species.rarity, variant: newDroid.variant, isCompanion: species.isCompanion || false } : null,
     gotPaint,
+    gotChainMaterial,
     paint: player.paint,
     spawnExpiresAt: spawn.expiresAt,
     autoReleased,

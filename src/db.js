@@ -111,7 +111,7 @@ const droidSpecies = [
   // -- companion (cosmic tier — rarer than legendary, doesn't farm, provides a % buff instead; see COMPANION_BUFF_PERCENT) --
   { id: id(), name: 'StarSprite', alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'crystal', companionBuffPercent: 50, companionBuffDurationMs: 2 * 60 * 60 * 1000, ...statsFor('cosmic') },
   { id: id(), name: 'Nebulfox',   alignment: 'cosmic', rarity: 'cosmic',   collection: 'cosmic',   baseCaptureRate: 0.03, baseCrystalRate: 0,  spawnWeight: 0.1, isCompanion: true, companionBuffType: 'capture_rate', companionBuffPercent: 100, companionBuffDurationMs: 60 * 60 * 1000, ...statsFor('cosmic') },
-  { id: id(), name: 'The Enforcer', alignment: 'cosmic', rarity: 'cosmic', collection: 'cosmic', baseCaptureRate: 0.03, baseCrystalRate: 0, spawnWeight: 0.1, isCompanion: true, companionBuffType: 'damage', companionBuffPercent: 100, companionBuffDurationMs: 60 * 60 * 1000, ...statsFor('cosmic') },
+  { id: id(), name: 'The Enforcer', alignment: 'cosmic', rarity: 'cosmic', collection: 'cosmic', baseCaptureRate: 0.015, baseCrystalRate: 0, spawnWeight: 0.05, isCompanion: true, companionBuffType: 'damage', companionBuffPercent: 100, companionBuffDurationMs: 60 * 60 * 1000, ...statsFor('cosmic') },
 
   // -- Football roster (20 species) — Light spawns 3-5pm, Dark spawns
   // 8-10pm, Saturday/Sunday only (see FOOTBALL_WINDOWS above). Deliberately
@@ -163,12 +163,111 @@ const droidSpecies = [
   { id: id(), name: 'Walker',    alignment: 'dark', rarity: 'uncommon',  collection: 'void_zombie', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('uncommon') },
   { id: id(), name: 'Corruptor', alignment: 'dark', rarity: 'rare',      collection: 'void_zombie', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('rare') },
   { id: id(), name: 'Voidlord',  alignment: 'dark', rarity: 'legendary', collection: 'void_zombie', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
+  // Confirmed name — 5th tier of the Zombie line, new Cosmic-rarity cap
+  { id: id(), name: 'Voidsovereign', alignment: 'dark', rarity: 'cosmic', collection: 'void_zombie', baseCaptureRate: 0.02, baseCrystalRate: 35, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('cosmic') },
 
   // -- Lumen Sentinels (light, 11am-1pm daily). Same structure as above.
   { id: id(), name: 'Illume',     alignment: 'light', rarity: 'common',    collection: 'lumen_sentinel', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, dailyWeight: DAILY_LINE_TIER_WEIGHT.common, ...statsFor('common') },
   { id: id(), name: 'Lumenguard', alignment: 'light', rarity: 'uncommon',  collection: 'lumen_sentinel', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('uncommon') },
   { id: id(), name: 'Luminor',    alignment: 'light', rarity: 'rare',      collection: 'lumen_sentinel', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, isEvolutionOnly: true, ...statsFor('rare') },
   { id: id(), name: 'Luxion',     alignment: 'light', rarity: 'legendary', collection: 'lumen_sentinel', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
+  // Confirmed name — 5th tier of the Lumen line, new Cosmic-rarity cap
+  { id: id(), name: 'Luminarch', alignment: 'light', rarity: 'cosmic', collection: 'lumen_sentinel', baseCaptureRate: 0.02, baseCrystalRate: 35, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('cosmic') },
+
+  // -- Bulk import: Sproutix/Nebulyx/Aurora-X sets (64 droids) --
+  { id: id(), name: 'Sproutix', alignment: 'light', rarity: 'common', collection: 'nature', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Buzzi', alignment: 'dark', rarity: 'common', collection: 'nature', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Orbi', alignment: 'light', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Mewlite', alignment: 'dark', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Zappi', alignment: 'light', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Glimmerpaw', alignment: 'dark', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Wisp', alignment: 'light', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Spikee', alignment: 'dark', rarity: 'rare', collection: 'wildcard', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Shadelet', alignment: 'light', rarity: 'rare', collection: 'wildcard', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Treadix', alignment: 'dark', rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.1, ...statsFor('legendary') },
+  { id: id(), name: 'Venomite', alignment: 'light', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Pixelbob', alignment: 'dark', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Aquajewel', alignment: 'light', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Crystolith', alignment: 'dark', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Lampkin', alignment: 'light', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Hootron', alignment: 'dark', rarity: 'uncommon', collection: 'nature', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Diggy', alignment: 'light', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Stellaris', alignment: 'cosmic', rarity: 'rare', collection: 'cosmic', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Shroombo', alignment: 'light', rarity: 'rare', collection: 'nature', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Nightscythe', alignment: 'dark', rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.1, ...statsFor('legendary') },
+  { id: id(), name: 'Recycl-8', alignment: 'light', rarity: 'common', collection: 'nature', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Batti', alignment: 'dark', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Grimblot', alignment: 'light', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Lumifly', alignment: 'dark', rarity: 'common', collection: 'nature', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Nebulyx', alignment: 'cosmic', rarity: 'uncommon', collection: 'cosmic', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Quasar-X', alignment: 'cosmic', rarity: 'uncommon', collection: 'cosmic', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Pulsarowl', alignment: 'cosmic', rarity: 'uncommon', collection: 'cosmic', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Supernova Pup', alignment: 'cosmic', rarity: 'rare', collection: 'cosmic', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Orbitclaw', alignment: 'cosmic', rarity: 'rare', collection: 'cosmic', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Voidkit', alignment: 'cosmic', rarity: 'legendary', collection: 'cosmic', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.1, ...statsFor('legendary') },
+  { id: id(), name: 'Cometbee', alignment: 'cosmic', rarity: 'common', collection: 'cosmic', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Singularity Bit', alignment: 'cosmic', rarity: 'common', collection: 'cosmic', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Galaxy Fern', alignment: 'cosmic', rarity: 'common', collection: 'cosmic', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Wormhole Walker', alignment: 'cosmic', rarity: 'common', collection: 'cosmic', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Stellar Wing', alignment: 'cosmic', rarity: 'uncommon', collection: 'cosmic', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Meteor Toad', alignment: 'cosmic', rarity: 'uncommon', collection: 'cosmic', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Astral Cat', alignment: 'cosmic', rarity: 'uncommon', collection: 'cosmic', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Solar Flare Bun', alignment: 'cosmic', rarity: 'rare', collection: 'cosmic', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Nebula Spinner', alignment: 'cosmic', rarity: 'rare', collection: 'cosmic', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Ice Comet Wolf', alignment: 'cosmic', rarity: 'legendary', collection: 'cosmic', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.1, ...statsFor('legendary') },
+  { id: id(), name: 'Radio Core', alignment: 'cosmic', rarity: 'common', collection: 'cosmic', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Draconic Nova', alignment: 'cosmic', rarity: 'common', collection: 'cosmic', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Pixel Star', alignment: 'cosmic', rarity: 'common', collection: 'cosmic', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Cestial Moth', alignment: 'cosmic', rarity: 'common', collection: 'cosmic', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Aurora-X', alignment: 'light', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Voltfox', alignment: 'dark', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Crystalune', alignment: 'light', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Blazepup', alignment: 'dark', rarity: 'rare', collection: 'wildcard', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Tideclaw', alignment: 'light', rarity: 'rare', collection: 'wildcard', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Shadowkit', alignment: 'dark', rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.1, ...statsFor('legendary') },
+  { id: id(), name: 'Gearbee', alignment: 'light', rarity: 'common', collection: 'nature', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Nullbit', alignment: 'dark', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Lumifern', alignment: 'light', rarity: 'common', collection: 'nature', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Riftwalker', alignment: 'dark', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Stormwing', alignment: 'light', rarity: 'uncommon', collection: 'nature', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Irontoad', alignment: 'dark', rarity: 'uncommon', collection: 'nature', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Phantomcat', alignment: 'light', rarity: 'uncommon', collection: 'wildcard', baseCaptureRate: 0.45, baseCrystalRate: 3, spawnWeight: 1.0, ...statsFor('uncommon') },
+  { id: id(), name: 'Solarbolt', alignment: 'dark', rarity: 'rare', collection: 'wildcard', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Venomspinner', alignment: 'light', rarity: 'rare', collection: 'wildcard', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 0.375, ...statsFor('rare') },
+  { id: id(), name: 'Frostbyte-X', alignment: 'dark', rarity: 'legendary', collection: 'wildcard', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0.1, ...statsFor('legendary') },
+  { id: id(), name: 'Echocore', alignment: 'light', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Dragonscale', alignment: 'dark', rarity: 'common', collection: 'mythical', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Pixelshade', alignment: 'light', rarity: 'common', collection: 'wildcard', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+  { id: id(), name: 'Celestia', alignment: 'dark', rarity: 'common', collection: 'nature', baseCaptureRate: 0.7, baseCrystalRate: 1, spawnWeight: 2.0, ...statsFor('common') },
+
+  // -- Superhero Event collection. Event-only (spawnWeight: 0 baseline,
+  // only appears via the 2-hour grant-mode event). 15 usable designs
+  // from the uploaded sheet, rarity/alignment assigned by us based on
+  // each design's look — open to adjusting once you've seen them live.
+  { id: id(), name: 'Mightron',      alignment: 'dark',  rarity: 'common',    collection: 'superhero', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, eventOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Velocity',      alignment: 'light', rarity: 'common',    collection: 'superhero', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, eventOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Stingray',      alignment: 'light', rarity: 'common',    collection: 'superhero', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, eventOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Terrabolt',     alignment: 'dark',  rarity: 'common',    collection: 'superhero', baseCaptureRate: 0.70, baseCrystalRate: 1,  spawnWeight: 0, eventOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Pixielight',    alignment: 'light', rarity: 'uncommon',  collection: 'superhero', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, eventOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Night Sentinel',alignment: 'dark',  rarity: 'uncommon',  collection: 'superhero', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, eventOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Frostblaze',    alignment: 'light', rarity: 'uncommon',  collection: 'superhero', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, eventOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Skylite',       alignment: 'light', rarity: 'uncommon',  collection: 'superhero', baseCaptureRate: 0.45, baseCrystalRate: 3,  spawnWeight: 0, eventOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Orbital Mage',  alignment: 'light', rarity: 'rare',      collection: 'superhero', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Luminova',      alignment: 'light', rarity: 'rare',      collection: 'superhero', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Crimson Edge',  alignment: 'dark',  rarity: 'rare',      collection: 'superhero', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Solaris Guard', alignment: 'light', rarity: 'rare',      collection: 'superhero', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Cyberwraith',   alignment: 'dark',  rarity: 'rare',      collection: 'superhero', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Cosmion',       alignment: 'cosmic',rarity: 'legendary', collection: 'superhero', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, eventOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Aquawave',      alignment: 'light', rarity: 'legendary', collection: 'superhero', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, eventOnly: true, ...statsFor('legendary') },
+
+  // -- The 5 flagged designs — species entries only, no usable art yet.
+  // Names kept exactly as given; will use the standard image fallback
+  // (procedural icon) until real artwork replaces the current designs.
+  { id: id(), name: 'Patriotix',   alignment: 'light', rarity: 'legendary', collection: 'superhero', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, eventOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Webstriker',  alignment: 'dark',  rarity: 'rare',      collection: 'superhero', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Thunderion',  alignment: 'light', rarity: 'legendary', collection: 'superhero', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, eventOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Shadowclaw',  alignment: 'dark',  rarity: 'legendary', collection: 'superhero', baseCaptureRate: 0.05, baseCrystalRate: 20, spawnWeight: 0, eventOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Iron Ascent', alignment: 'light', rarity: 'rare',      collection: 'superhero', baseCaptureRate: 0.20, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, ...statsFor('rare') },
 
   // -- Scaffitan (the Titan). Never wild-spawnable — obtained only via
   // a rare chance after winning a Titan battle. Masters through tiers
@@ -190,9 +289,11 @@ const bushySpecies = droidSpecies.find((s) => s.name === 'Bushy');
 const shamblerSpecies = droidSpecies.find((s) => s.name === 'Shambler');
 const walkerSpecies = droidSpecies.find((s) => s.name === 'Walker');
 const corruptorSpecies = droidSpecies.find((s) => s.name === 'Corruptor');
+const voidsovereignSpecies = droidSpecies.find((s) => s.name === 'Voidsovereign');
 const illumeSpecies = droidSpecies.find((s) => s.name === 'Illume');
 const lumenguardSpecies = droidSpecies.find((s) => s.name === 'Lumenguard');
 const luminorSpecies = droidSpecies.find((s) => s.name === 'Luminor');
+const luminarchSpecies = droidSpecies.find((s) => s.name === 'Luminarch');
 const EVOLUTION_TABLE = {
   [leafkinSpecies.id]: { evolvesTo: bushySpecies.id, novaChipCost: 15 },
   // Full 4-tier chains: only Common is wild-spawnable in these two
@@ -200,11 +301,16 @@ const EVOLUTION_TABLE = {
   [shamblerSpecies.id]: { evolvesTo: walkerSpecies.id, novaChipCost: 15 },
   // Deliberate cross-alignment design: the Dark line's final evolution
   // needs a LIGHT material, and vice versa — not a typo.
-  [walkerSpecies.id]: { evolvesTo: corruptorSpecies.id, novaChipCost: 25, extraCrystalCost: 1000 },
-  [corruptorSpecies.id]: { evolvesTo: voidlordSpeciesId(), novaChipCost: 40, extraMaterial: 'lightStones', extraMaterialCost: 1 },
+  [walkerSpecies.id]: { evolvesTo: corruptorSpecies.id, novaChipCost: 25, extraCrystalCost: 1000, extraMaterials: [{ key: 'zombieJuice', cost: 5 }] },
+  [corruptorSpecies.id]: { evolvesTo: voidlordSpeciesId(), novaChipCost: 40, extraMaterials: [{ key: 'lightStones', cost: 1 }, { key: 'zombieJuice', cost: 15 }] },
+  // New 5th tier — Cosmic cap. Numbers are our own placeholder escalation
+  // (60 Nova Chips, 2000 crystals) until you confirm real figures.
+  [voidlordSpeciesId()]: { evolvesTo: voidsovereignSpecies.id, novaChipCost: 60, extraCrystalCost: 2000, extraMaterials: [{ key: 'zombieJuice', cost: 25 }] },
   [illumeSpecies.id]: { evolvesTo: lumenguardSpecies.id, novaChipCost: 15 },
-  [lumenguardSpecies.id]: { evolvesTo: luminorSpecies.id, novaChipCost: 25, extraCrystalCost: 1000 },
-  [luminorSpecies.id]: { evolvesTo: luxionSpeciesId(), novaChipCost: 40, extraMaterial: 'darkCrystals', extraMaterialCost: 1 },
+  [lumenguardSpecies.id]: { evolvesTo: luminorSpecies.id, novaChipCost: 25, extraCrystalCost: 1000, extraMaterials: [{ key: 'lumeCells', cost: 5 }] },
+  [luminorSpecies.id]: { evolvesTo: luxionSpeciesId(), novaChipCost: 40, extraMaterials: [{ key: 'darkCrystals', cost: 1 }, { key: 'lumeCells', cost: 15 }] },
+  // New 5th tier — Cosmic cap, mirrors the Zombie line's placeholder numbers.
+  [luxionSpeciesId()]: { evolvesTo: luminarchSpecies.id, novaChipCost: 60, extraCrystalCost: 2000, extraMaterials: [{ key: 'lumeCells', cost: 25 }] },
 };
 function voidlordSpeciesId() { return droidSpecies.find((s) => s.name === 'Voidlord').id; }
 
@@ -312,7 +418,7 @@ function rollVariant(rarity = null) {
 // a generic banked currency (not per-color), so any color is available at
 // the moment of evolving regardless of which capture(s) dropped the paint.
 const FUNKY_EVOLVE_PAINT_COST = 10; // default — tune freely, not specified in the original design ask
-const PRIMARY_COLORS = ['red', 'yellow', 'blue'];
+const PRIMARY_COLORS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink'];
 
 // ---- workshop slot unlock cost ----
 // Slot 0 is free (granted at signup, holds the starter droid). Every
@@ -559,7 +665,7 @@ function activateCompanionBuff(playerId, droidId) {
 // maxed out the practical stuff. Extensible catalog; just one item for
 // this beta round.
 const COSMETICS_CATALOG = [
-  { id: 'beta_crown', name: 'Beta Crown', cost: 1000, description: 'No effect - just shows you were here for the beta.', slot: 'head' },
+  { id: 'beta_crown', name: 'Beta Crown', cost: 1000, description: 'No effect - just shows you were here for the beta.', slot: 'head', rarity: 'legendary' },
 ];
 
 // ---- Shop ----
@@ -568,6 +674,25 @@ const COSMETICS_CATALOG = [
 // amounts, not to be a cheap shortcut around Depot/Factory/capturing.
 // Extensible: new materials (e.g. from a future Battles system) just
 // need a new catalog entry, no structural change.
+// Single source of truth for every material that can be traded. Add a
+// new material here once and it automatically appears in the Trade
+// dropdown and becomes tradeable — no other file needs to change.
+const TRADEABLE_MATERIALS = [
+  { key: 'paint', name: 'Paint' },
+  { key: 'novaChips', name: 'Nova Chips' },
+  { key: 'beacons', name: 'Beacons' },
+  { key: 'augmentCores', name: 'Augment Cores' },
+  { key: 'lightStones', name: 'Light Stones' },
+  { key: 'darkCrystals', name: 'Dark Crystals' },
+  { key: 'padRam', name: 'Pad RAM' },
+  { key: 'repairKits', name: 'Repair Kits' },
+  { key: 'timeWarps', name: 'Time Warps' },
+  { key: 'growths', name: 'Growths' },
+  { key: 'energyTubes', name: 'Energy Tubes' },
+  { key: 'zombieJuice', name: 'Zombie Juice' },
+  { key: 'lumeCells', name: 'Lume Cells' },
+];
+
 const SHOP_CATALOG = [
   { id: 'paint', name: 'Paint', cost: 150, type: 'material', grants: { paint: 1 } },
   { id: 'nova_chip', name: 'Nova Chip', cost: 250, type: 'material', grants: { novaChips: 1 } },
@@ -590,6 +715,56 @@ const SHOP_CATALOG = [
   { id: 'outfit_wildlife', name: 'Wildlife Outfit', cost: 5000, type: 'outfit', outfitId: 'wildlife' },
   { id: 'outfit_funky', name: 'Funky Outfit', cost: 5000, type: 'outfit', outfitId: 'funky' },
 ];
+
+// All-or-nothing: validates every item and the combined total cost
+// BEFORE deducting anything, so a basket never partially completes —
+// either the whole thing goes through, or nothing does.
+function buyShopBasket(playerId, items) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!Array.isArray(items) || !items.length) throw new Error('Basket is empty');
+
+  const resolved = items.map(({ itemId, quantity }) => {
+    const item = SHOP_CATALOG.find((i) => i.id === itemId);
+    if (!item) throw new Error(`Unknown item: ${itemId}`);
+    if (item.type === 'outfit' && player.ownedOutfits.includes(item.outfitId)) {
+      throw new Error(`Already own ${item.name}`);
+    }
+    const qty = item.type === 'outfit' ? 1 : Math.max(1, Math.floor(quantity || 1));
+    return { item, qty, lineCost: item.cost * qty };
+  });
+
+  const totalCost = resolved.reduce((sum, r) => sum + r.lineCost, 0);
+  if (player.crystalBalance < totalCost) {
+    throw new Error(`Not enough crystals — basket costs ${totalCost}, you have ${Math.floor(player.crystalBalance)}`);
+  }
+
+  player.crystalBalance -= totalCost;
+  crystalTransactions.push({ id: id(), playerId, amount: -totalCost, source: 'shop_basket_purchase', createdAt: Date.now() });
+
+  resolved.forEach(({ item, qty }) => {
+    if (item.type === 'material') {
+      if (item.grants.paint) player.paint += item.grants.paint * qty;
+      if (item.grants.novaChips) player.novaChips += item.grants.novaChips * qty;
+      if (item.grants.beacons) player.beacons += item.grants.beacons * qty;
+      if (item.grants.augmentCores) player.augmentCores += item.grants.augmentCores * qty;
+      if (item.grants.timeWarps) player.timeWarps += item.grants.timeWarps * qty;
+      if (item.grants.growths) player.growths += item.grants.growths * qty;
+      if (item.grants.lightStones) player.lightStones += item.grants.lightStones * qty;
+      if (item.grants.darkCrystals) player.darkCrystals += item.grants.darkCrystals * qty;
+      if (item.grants.padRam) player.padRam += item.grants.padRam * qty;
+      if (item.grants.repairKits) player.repairKits += item.grants.repairKits * qty;
+    } else if (item.type === 'outfit') {
+      player.ownedOutfits.push(item.outfitId);
+    }
+  });
+
+  return {
+    itemsBought: resolved.map((r) => ({ name: r.item.name, quantity: r.qty, cost: r.lineCost })),
+    totalCost,
+    crystalBalance: player.crystalBalance,
+  };
+}
 
 function buyShopItem(playerId, itemId, quantity = 1) {
   const player = players.get(playerId);
@@ -1236,6 +1411,8 @@ function createPlayer(username, pin) {
     friends: [],
     friendRequestsSent: [],
     friendRequestsReceived: [],
+    zombieJuice: 0,
+    lumeCells: 0,
     outfit: 'basic',
     ownedOutfits: ['basic'],
     lastScanAt: null,
@@ -1472,6 +1649,7 @@ function listPlayersAdmin() {
       lastOnline: p.lastOnline,
       createdAt: p.createdAt,
       guildId: p.guildId,
+      guildName: p.guildId ? (guilds.get(p.guildId)?.name || null) : null,
     }))
     .sort((a, b) => (b.lastOnline || 0) - (a.lastOnline || 0));
 }
@@ -1581,6 +1759,8 @@ function importState(state) {
     friends: [],
     friendRequestsSent: [],
     friendRequestsReceived: [],
+    zombieJuice: 0,
+    lumeCells: 0,
     outfit: 'basic',
     ownedOutfits: ['basic'],
     lastScanAt: null,
@@ -1664,7 +1844,9 @@ module.exports = {
   TRADE_FEE_BY_RARITY,
   COSMETICS_CATALOG,
   SHOP_CATALOG,
+  TRADEABLE_MATERIALS,
   buyShopItem,
+  buyShopBasket,
   equipOutfit,
   useTimeWarp,
   useGrowth,

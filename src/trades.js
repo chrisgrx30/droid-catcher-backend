@@ -27,12 +27,29 @@ function tradeFeeFor(droidIds) {
   }, 0);
 }
 
-function createTradeOffer({ fromPlayerId, toPlayerId, offeredDroidIds = [], offeredCrystals = 0, requestedDroidIds = [], requestedCrystals = 0, wishId = null }) {
+function validateMaterials(materials, playerId, label) {
+  const player = db.players.get(playerId);
+  Object.entries(materials || {}).forEach(([key, qty]) => {
+    if (!db.TRADEABLE_MATERIALS.some((m) => m.key === key)) {
+      throw new TradeError('INVALID_MATERIAL', `${key} is not a tradeable material`);
+    }
+    if (qty <= 0) throw new TradeError('INVALID_QUANTITY', `Quantity for ${key} must be positive`);
+    if ((player[key] || 0) < qty) {
+      const verb = label === 'You' ? "don't" : "doesn't";
+      throw new TradeError('INSUFFICIENT_MATERIAL', `${label} ${verb} have enough ${key} — has ${player[key] || 0}, needs ${qty}`);
+    }
+  });
+}
+
+function createTradeOffer({ fromPlayerId, toPlayerId, offeredDroidIds = [], offeredCrystals = 0, offeredMaterials = {}, requestedDroidIds = [], requestedCrystals = 0, requestedMaterials = {}, wishId = null }) {
   if (fromPlayerId === toPlayerId) throw new TradeError('INVALID_TARGET', 'Cannot trade with yourself');
 
   const fromPlayer = db.players.get(fromPlayerId);
   const toPlayer = db.players.get(toPlayerId);
   if (!fromPlayer || !toPlayer) throw new TradeError('PLAYER_NOT_FOUND', 'Player not found');
+
+  validateMaterials(offeredMaterials, fromPlayerId, 'You');
+  validateMaterials(requestedMaterials, toPlayerId, 'The recipient');
 
   // Ownership + cooldown check at creation time (re-checked again at accept,
   // since time passes and ownership can change while an offer is pending).
@@ -58,8 +75,10 @@ function createTradeOffer({ fromPlayerId, toPlayerId, offeredDroidIds = [], offe
     toPlayerId,
     offeredDroidIds,
     offeredCrystals,
+    offeredMaterials,
     requestedDroidIds,
     requestedCrystals,
+    requestedMaterials,
     wishId,
     status: 'pending',
     createdAt: Date.now(),
@@ -117,6 +136,9 @@ function acceptTradeOffer(tradeId, playerId) {
     throw new TradeError('INSUFFICIENT_CRYSTALS', 'Recipient lacks crystals to cover this trade + fee');
   }
 
+  validateMaterials(offer.offeredMaterials, offer.fromPlayerId, 'The offering player');
+  validateMaterials(offer.requestedMaterials, offer.toPlayerId, 'The recipient');
+
   // --- execute the swap ---
   // Droids are unassigned from workshop slots (new owner's slot layout may
   // differ) and their capturedAt is reset (restarts the trade cooldown,
@@ -131,6 +153,15 @@ function acceptTradeOffer(tradeId, playerId) {
     droid.workshopSlotId = null;
     droid.capturedAt = Date.now();
   }
+
+  Object.entries(offer.offeredMaterials || {}).forEach(([key, qty]) => {
+    fromPlayer[key] -= qty;
+    toPlayer[key] = (toPlayer[key] || 0) + qty;
+  });
+  Object.entries(offer.requestedMaterials || {}).forEach(([key, qty]) => {
+    toPlayer[key] -= qty;
+    fromPlayer[key] = (fromPlayer[key] || 0) + qty;
+  });
 
   const fromNet = offer.requestedCrystals - offer.offeredCrystals - feeForFromPlayer;
   const toNet = offer.offeredCrystals - offer.requestedCrystals - feeForToPlayer;

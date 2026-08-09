@@ -6,7 +6,8 @@
 
 const db = require('./db');
 
-const MAX_OFFLINE_HOURS = 10;
+const MAX_OFFLINE_HOURS = 4; // confirmed cap — was 10 hours at full rate, now 4 hours at OFFLINE_RATE_MULTIPLIER
+const OFFLINE_RATE_MULTIPLIER = 0.30; // confirmed — crystals accrue at 30% of the normal rate once offline
 
 function levelMultiplier(level) {
   return 1 + (level - 1) * 0.15;
@@ -31,7 +32,60 @@ function droidCrystalsPerMinute(droid) {
   return species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier;
 }
 
+// Same formula, but assuming a base (1.0) slot multiplier — used to show
+// "what this droid would earn if assigned" for droids sitting unassigned
+// in the Warehouse, where the real crystalsPerMinute is always 0 and
+// therefore uninformative for comparing droids.
+function droidPotentialCrystalsPerMinute(droid) {
+  const species = speciesById(droid.speciesId);
+  if (!species) return 0;
+  const variantMultiplier = db.VARIANT_CRYSTAL_MULTIPLIER[droid.variant] ?? 1.0;
+  return species.baseCrystalRate * levelMultiplier(droid.level) * variantMultiplier;
+}
+
 // Enriches a raw owned_droids row with species/rate info for API responses.
+// Every buff currently affecting a player, for the Player tab summary
+// box. Deliberately honest about what's real vs. not built yet —
+// Cosmetics/Attachments buffs don't exist in the economy yet even
+// though the Wardrobe UI does, so they show as inactive placeholders
+// rather than being left out entirely (so the box is ready the moment
+// those systems ship, without needing to rebuild this function).
+function getPlayerBuffsSummary(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+
+  const buffs = [
+    { label: 'Crystal Gain', value: null, active: false },
+    { label: 'Capture Rate', value: null, active: false },
+    { label: 'Attack (Battle)', value: null, active: false },
+    { label: 'HP', value: null, active: false, note: 'No HP buff exists yet' },
+    { label: 'Cosmetics', value: null, active: false, note: 'Wardrobe items have no effect yet' },
+    { label: 'Attachments', value: null, active: false, note: 'Not built yet' },
+  ];
+
+  if (player.companionDroidId) {
+    const companion = db.ownedDroids.get(player.companionDroidId);
+    if (companion) {
+      const enriched = enrichDroid(companion);
+      if (enriched.buffIsActive) {
+        const percent = enriched.companionBuffPercent;
+        if (enriched.companionBuffType === 'crystal') {
+          buffs[0].value = `+${percent}%`;
+          buffs[0].active = true;
+        } else if (enriched.companionBuffType === 'capture_rate') {
+          buffs[1].value = `+${percent}%`;
+          buffs[1].active = true;
+        } else if (enriched.companionBuffType === 'damage') {
+          buffs[2].value = `+${percent}%`;
+          buffs[2].active = true;
+        }
+      }
+    }
+  }
+
+  return { buffs };
+}
+
 function enrichDroid(droid) {
   if (droid.isTitan) {
     return {
@@ -66,6 +120,7 @@ function enrichDroid(droid) {
     buffIsActive,
     buffIsOnCooldown,
     crystalsPerMinute: Math.round(droidCrystalsPerMinute(droid) * 100) / 100,
+    potentialCrystalsPerMinute: Math.round(droidPotentialCrystalsPerMinute(droid) * 100) / 100,
     hp: species ? Math.round(species.baseHP * lvlMult) : null,
     attack: species ? Math.round(species.baseAttack * lvlMult) : null,
     currentHp: species ? Math.max(0, Math.round(species.baseHP * lvlMult) - (droid.currentHpDamage || 0)) : null,
@@ -95,10 +150,42 @@ function companionBuffMultiplier(playerId) {
 }
 
 // Core accrual calc — pure function, no side effects, so it's easy to test.
+// For the Player tab display: "if you went offline right now, here's
+// what you'd earn." Computed the same way real offline earnings are
+// (same rate, same 4-hour cap), just projected forward instead of
+// backward from an actual elapsed gap.
+function calculateOfflineProjection(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+
+  let ratePerMinute = 0;
+  for (const droid of db.ownedDroids.values()) {
+    if (droid.playerId !== playerId || !droid.workshopSlotId) continue;
+    const slot = db.workshopSlots.get(droid.workshopSlotId);
+    const species = speciesById(droid.speciesId);
+    if (!slot || !species) continue;
+    const variantMultiplier = db.VARIANT_CRYSTAL_MULTIPLIER[droid.variant] ?? 1.0;
+    ratePerMinute += species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier;
+  }
+  ratePerMinute *= companionBuffMultiplier(playerId);
+  ratePerMinute *= OFFLINE_RATE_MULTIPLIER;
+
+  const hourlyRate = Math.floor(ratePerMinute * 60);
+  const maxTotal = Math.floor(ratePerMinute * 60 * MAX_OFFLINE_HOURS);
+  return { hourlyRate, maxOfflineHours: MAX_OFFLINE_HOURS, maxTotal, offlineRatePercent: Math.round(OFFLINE_RATE_MULTIPLIER * 100) };
+}
+
 function calculateEarnings(playerId, now = Date.now()) {
   const player = db.players.get(playerId);
   if (!player) throw new Error('Player not found');
 
+  // NOTE: the game has no true "player is actively looking at the app
+  // right now" signal — only "time since we last settled their
+  // earnings." So this multiplier applies to the whole elapsed gap,
+  // not just genuinely-offline time. In practice this barely matters
+  // for someone actively playing (gaps between settles stay short),
+  // but it's worth being explicit that this isn't a precise
+  // foreground/background distinction.
   const elapsedMs = now - player.lastCrystalCollection;
   const cappedMs = Math.min(elapsedMs, MAX_OFFLINE_HOURS * 60 * 60 * 1000);
   const elapsedMinutes = cappedMs / (60 * 1000);
@@ -114,6 +201,7 @@ function calculateEarnings(playerId, now = Date.now()) {
     earned += species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier * elapsedMinutes;
   }
   earned *= companionBuffMultiplier(playerId);
+  earned *= OFFLINE_RATE_MULTIPLIER;
 
   return { earned: Math.floor(earned), elapsedMinutes };
 }
@@ -210,6 +298,7 @@ function levelUpDroid(playerId, droidId) {
   const player = db.players.get(playerId);
   const droid = db.ownedDroids.get(droidId);
   if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+  if (enrichDroid(droid).fainted) throw new Error('This droid is fainted — heal it with a Repair Kit first');
   if (droid.level >= db.DROID_LEVEL_CAP) throw new Error(`Droid is already at the level cap (${db.DROID_LEVEL_CAP})`);
 
   const species = speciesById(droid.speciesId);
@@ -277,6 +366,7 @@ function upgradePad(playerId) {
 // workshop slot and clears it as the active companion if applicable.
 // RELEASE_REFUND_MULTIPLIER now lives in db.js (shared with capture.js)
 const NOVA_CHIP_DROP_CHANCE = 0.10;
+const CHAIN_MATERIAL_DROP_CHANCE = 0.03; // matches capture.js — rarer than Nova Chip drop, only Zombie/Lumen line droids
 
 // Weighted so 1 is most likely, per confirmed design ("1 being a
 // higher probability") — exact weights aren't specified beyond that,
@@ -355,6 +445,7 @@ function releaseDroid(playerId, droidId) {
   const player = db.players.get(playerId);
   const droid = db.ownedDroids.get(droidId);
   if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+  if (enrichDroid(droid).fainted) throw new Error('This droid is fainted — heal it with a Repair Kit first');
   const species = db.droidSpecies.find((s) => s.id === droid.speciesId);
 
   if (species && species.collection === 'titan') {
@@ -377,10 +468,19 @@ function releaseDroid(playerId, droidId) {
   const gotNovaChip = Math.random() < NOVA_CHIP_DROP_CHANCE;
   if (gotNovaChip) player.novaChips += 1;
 
+  let gotChainMaterial = null;
+  if (species && species.collection === 'void_zombie' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
+    player.zombieJuice = (player.zombieJuice || 0) + 1;
+    gotChainMaterial = 'zombieJuice';
+  } else if (species && species.collection === 'lumen_sentinel' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
+    player.lumeCells = (player.lumeCells || 0) + 1;
+    gotChainMaterial = 'lumeCells';
+  }
+
   if (player.companionDroidId === droidId) player.companionDroidId = null;
   db.ownedDroids.delete(droidId);
 
-  return { refund, gotNovaChip, novaChips: player.novaChips, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
+  return { refund, gotNovaChip, gotChainMaterial, novaChips: player.novaChips, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
 }
 
 // Bulk release: settles earnings ONCE for the whole batch (not once per
@@ -486,12 +586,10 @@ function evolveSpecies(playerId, droidId) {
   if (evolution.extraCrystalCost && player.crystalBalance < evolution.extraCrystalCost) {
     throw new Error(`Not enough crystals — this evolution also needs ${evolution.extraCrystalCost}`);
   }
-  if (evolution.extraMaterial) {
-    const owned = player[evolution.extraMaterial] || 0;
-    if (owned < evolution.extraMaterialCost) {
-      throw new Error(`Not enough ${evolution.extraMaterial} — this evolution needs ${evolution.extraMaterialCost}`);
-    }
-  }
+  (evolution.extraMaterials || []).forEach(({ key, cost }) => {
+    const owned = player[key] || 0;
+    if (owned < cost) throw new Error(`Not enough ${key} — this evolution needs ${cost}`);
+  });
 
   // All validated — now actually deduct everything.
   player.novaChips -= evolution.novaChipCost;
@@ -499,9 +597,9 @@ function evolveSpecies(playerId, droidId) {
     player.crystalBalance -= evolution.extraCrystalCost;
     db.crystalTransactions.push({ id: db.nextId(), playerId, amount: -evolution.extraCrystalCost, source: 'species_evolution', createdAt: Date.now() });
   }
-  if (evolution.extraMaterial) {
-    player[evolution.extraMaterial] -= evolution.extraMaterialCost;
-  }
+  (evolution.extraMaterials || []).forEach(({ key, cost }) => {
+    player[key] -= cost;
+  });
   droid.speciesId = evolution.evolvesTo;
   db.markDexSeen(playerId, evolution.evolvesTo, droid.variant);
 
@@ -605,6 +703,7 @@ function unequipCosmetic(playerId, slot) {
 
 module.exports = {
   calculateEarnings,
+  calculateOfflineProjection,
   settleEarnings,
   assignDroidToSlot,
   unassignDroid,
@@ -615,6 +714,7 @@ module.exports = {
   companionBuffMultiplier,
   companionCaptureRateMultiplier,
   enrichDroid,
+  getPlayerBuffsSummary,
   releaseDroid,
   cleanupExistingDuplicates,
   releaseDroidsBulk,

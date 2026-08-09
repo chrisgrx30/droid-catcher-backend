@@ -33,7 +33,7 @@ const captureModule = require('./capture.js');
 // post-win capture roll grants the actual capturable Common-tier
 // Scaffitan species instead.
 const TITAN_ROSTER = [
-  { name: 'Scaffitan', hp: 1200, attack: 35 },
+  { name: 'Scaffitan', hp: 2400, attack: 35 },
 ];
 // "Rare" per confirmed design, exact rate not specified — flagged as my
 // own placeholder number, easy to retune once you've seen it in play.
@@ -71,6 +71,10 @@ function validateTeam(playerId, droidIds) {
   const faintedOnEntry = droids.filter(isFainted);
   if (faintedOnEntry.length === droids.length) {
     throw new Error('Every droid on this team is fainted — heal at least one with a Repair Kit first');
+  }
+  const speciesIds = droids.map((d) => d.speciesId);
+  if (new Set(speciesIds).size !== speciesIds.length) {
+    throw new Error('All 4 droids must be different species — variants of the same species don\'t count as different');
   }
   return droids;
 }
@@ -363,7 +367,7 @@ function attackGroupTitan(battleId, playerId) {
       p.novaChips = (p.novaChips || 0) + TITAN_REWARDS.novaChips;
       p.repairKits = (p.repairKits || 0) + TITAN_REWARDS.repairKits;
       p.beacons = (p.beacons || 0) + TITAN_REWARDS.beacons;
-      const tubesWon = randInt(4, 7);
+      const tubesWon = randInt(2, 4);
       p.energyTubes = (p.energyTubes || 0) + tubesWon;
     });
     battle.scaffitanCaptureAvailable = true;
@@ -391,14 +395,9 @@ function attackGroupTitan(battleId, playerId) {
 
   const next = nextParticipantId(battle, playerId);
   if (!next) {
-    // every participant's whole team has fainted — Titan wins, everyone gets a consolation reward
+    // every participant's whole team has fainted — Titan wins, no reward on a loss (confirmed)
     battle.status = 'finished';
     battle.winnerParticipantIds = [];
-    battle.participantIds.forEach((pid) => {
-      const p = db.players.get(pid);
-      const tubes = randInt(1, 2);
-      p.energyTubes = (p.energyTubes || 0) + tubes;
-    });
     logEntry.groupLoss = true;
   } else {
     battle.turnParticipantId = next;
@@ -533,7 +532,7 @@ function attack(battleId, playerId) {
         winner.novaChips = (winner.novaChips || 0) + TITAN_REWARDS.novaChips;
         winner.repairKits = (winner.repairKits || 0) + TITAN_REWARDS.repairKits;
         winner.beacons = (winner.beacons || 0) + TITAN_REWARDS.beacons;
-        const tubesWon = randInt(4, 7);
+        const tubesWon = randInt(2, 4);
         winner.energyTubes = (winner.energyTubes || 0) + tubesWon;
         logEntry.titanRewards = { ...TITAN_REWARDS, energyTubes: tubesWon };
 
@@ -586,11 +585,7 @@ function resolveTitanCounterAttack(battle) {
     const nextIdx = firstNonFaintedIndex(playerTeam);
     if (nextIdx === -1) {
       battle.status = 'finished';
-      battle.winnerId = null; // Titan won — no other reward, but Tubes are still granted per confirmed spec
-      const loser = db.players.get(battle.player1Id);
-      const tubesLost = randInt(1, 2);
-      loser.energyTubes = (loser.energyTubes || 0) + tubesLost;
-      battle.log[battle.log.length - 1].tubesAwarded = tubesLost;
+      battle.winnerId = null; // Titan won — no reward on a loss (confirmed, supersedes the earlier consolation-tubes spec)
       battle.updatedAt = Date.now();
       return;
     }
