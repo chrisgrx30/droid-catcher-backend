@@ -32,6 +32,11 @@ const RARITY_BASE_STATS = {
   legendary: { hp: 260, attack: 35 },
   cosmic: { hp: 200, attack: 20 },
   galactic: { hp: 400, attack: 50 }, // meaningfully above Legendary, matches the confirmed "substantially bigger" design intent
+  // Apex — the endgame tier. Sits clearly above Galactic (400/50) so the
+  // set reads as a genuine step up rather than a sidegrade. The huge HP
+  // pool is deliberate: Apex battles are balanced around a group, and a
+  // solo player should visibly fail to out-damage one.
+  apex: { hp: 2200, attack: 140 },
 };
 function statsFor(rarity) {
   return { baseHP: RARITY_BASE_STATS[rarity].hp, baseAttack: RARITY_BASE_STATS[rarity].attack };
@@ -280,6 +285,53 @@ const droidSpecies = [
   { id: id(), name: 'Scaffitan Ascendant', alignment: 'cosmic', rarity: 'rare',      collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 20, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('rare') },
   { id: id(), name: 'Scaffitan Apex',      alignment: 'cosmic', rarity: 'legendary', collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 35, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
   { id: id(), name: 'Scaffitan Eternal',   alignment: 'cosmic', rarity: 'galactic',  collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 60, spawnWeight: 0, isEvolutionOnly: true, isGalactic: true, galacticBuffType: 'hp_boost', galacticBuffPercent: 20, ...statsFor('galactic') },
+
+  // ---- APEX (30) ----
+  // The endgame set. Every one of these has spawnWeight 0, exactly like
+  // the Solar/Summer collection: they NEVER appear on a normal sweep. The
+  // only way one exists in the world is an active grant-mode Apex Hunt
+  // event (see createApexHuntEvent below), which is why there's no
+  // day/night, weekday or collection window logic here — the event IS the
+  // window.
+  //
+  // baseCaptureRate 0.02 is the lowest in the game by a wide margin
+  // (Scaffitan, the previous floor, is 0.03). Combined with the narrowest
+  // minigame zone and the fastest marker, an Apex should feel like
+  // something you mostly fail to catch.
+  //
+  // Alignments are split evenly light/dark so Apex works with the
+  // existing alignment-based buffs, art tinting and marker colours
+  // without any special-casing.
+  { id: id(), name: 'Voltrix',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Chronobot',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Gravitus',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Mutatron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Forgeback',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Orbitron',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Magnetor',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Mirrord',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Synaptix',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Mythron',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Verdant-01',   alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Specter-7',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Jestrix',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Corsair-X',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Frostbyte',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Heliarch',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Scrapjack',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Nurturon',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Assembler-X',  alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Evolux',       alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Reflector',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Null',         alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Lunaris',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Cometron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Omen',         alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Sonatron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Polaris',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Furnace',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Tidal-X',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Regent',       alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
 ];
 
 // Leafkin -> Bushy is the first (and template) evolution pair. Keyed by
@@ -336,6 +388,8 @@ const RARITY_TTL_MS = {
   rare: 8 * 60 * 1000,
   legendary: 5 * 60 * 1000,
   cosmic: 4 * 60 * 1000,
+  galactic: 4 * 60 * 1000, // was missing entirely — never hit in practice because Scaffitan Eternal is evolution-only, but it made this table lie about its coverage
+  apex: 3 * 60 * 1000,     // shortest window of any tier: find it fast or lose it
 };
 
 const RARITY_MAX_PER_CELL = {
@@ -344,10 +398,13 @@ const RARITY_MAX_PER_CELL = {
   rare: 1,
   legendary: 1,
   cosmic: 1,
+  galactic: 1,
+  apex: 1,
 };
 
 const LEGENDARY_CITY_CAP = 3;
 const COSMIC_CITY_CAP = 1; // StarSprite — only one active anywhere at a time
+const APEX_CITY_CAP = 3;   // up to three Apex live worldwide at once during a Hunt — raised from 1 so a small beta group actually encounters them
 
 // ---- crystal power requirement ----
 // The control pad literally needs crystals to function (per the original
@@ -360,6 +417,11 @@ const MIN_CRYSTAL_COST = {
   rare: 15,
   legendary: 40,
   cosmic: 80,
+  galactic: 120,
+  // Apex sits deliberately BETWEEN rare (15) and legendary (40) — the
+  // difficulty is meant to come from the minigame and the capture rate,
+  // not from pricing players out of attempting one at all.
+  apex: 25,
 };
 
 // +5% of base minimum capture cost per Pad Level — a deliberate crystal
@@ -440,10 +502,36 @@ const RARITY_LEVEL_COST_MULTIPLIER = {
   rare: 2.5,
   legendary: 4,
   cosmic: 5,
+  galactic: 6,
+  apex: 8,
 };
 function levelUpCost(currentLevel, rarity = 'common') {
   const multiplier = RARITY_LEVEL_COST_MULTIPLIER[rarity] ?? 1;
   return Math.round(10 * Math.pow(currentLevel, 1.6) * multiplier);
+}
+
+// ---- Apex Cubes ----
+// Apex droids level on Cubes, not crystals — a completely separate
+// currency, so crystal wealth alone can't fast-track the endgame set.
+// Same curve shape as levelUpCost above (10 * level^1.6) but with its own
+// multiplier, tuned so level 1 -> 2 costs exactly the confirmed 10 cubes.
+const APEX_CUBE_LEVEL_MULTIPLIER = 1;
+const APEX_CUBE_MIN_DROP = 1;
+const APEX_CUBE_MAX_DROP = 5;
+
+function apexCubeLevelUpCost(currentLevel) {
+  return Math.round(10 * Math.pow(currentLevel, 1.6) * APEX_CUBE_LEVEL_MULTIPLIER);
+}
+
+// Every Apex interaction drops cubes — capture, defeat in battle, or
+// release. Never zero: an Apex encounter is rare enough that walking away
+// empty-handed would feel punishing rather than exciting.
+function rollApexCubeDrop() {
+  return APEX_CUBE_MIN_DROP + Math.floor(Math.random() * (APEX_CUBE_MAX_DROP - APEX_CUBE_MIN_DROP + 1));
+}
+
+function isApexSpecies(species) {
+  return Boolean(species && species.rarity === 'apex');
 }
 
 // ---- pad upgrades (crystals -> account-wide capture power) ----
@@ -571,6 +659,45 @@ function listActiveEvents(now = Date.now()) {
   return [...events.values()].filter((e) => now >= e.startTime && now <= e.endTime);
 }
 
+// ---- Apex Hunt ----
+// The one and only way Apex droids enter the world. Uses the existing
+// grant-mode machinery: Apex species carry spawnWeight 0 permanently, and
+// this event adds a real (tiny) weight for its duration only. When it
+// ends they drop back to 0 automatically — no cleanup pass needed.
+//
+// APEX_HUNT_GRANT_WEIGHT is per-species. With 30 species at 0.35 each the
+// combined Apex weight is ~10.5 against a normal-tier total of ~100, and
+// the RARITY_MAX_PER_CELL / APEX_CITY_CAP limits of 1 keep the actual
+// number that materialise far lower than that ratio suggests.
+const APEX_HUNT_DURATION_MS = 30 * 60 * 1000; // 30 minutes, as specified
+const APEX_HUNT_GRANT_WEIGHT = 0.35;
+const APEX_HUNT_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6h between hunts
+
+function apexSpeciesList() {
+  return droidSpecies.filter((s) => s.rarity === 'apex');
+}
+
+function createApexHuntEvent({ durationMs = APEX_HUNT_DURATION_MS } = {}) {
+  const apex = apexSpeciesList();
+  if (!apex.length) throw new Error('No Apex species defined');
+  const grantWeights = {};
+  apex.forEach((s) => { grantWeights[s.id] = APEX_HUNT_GRANT_WEIGHT; });
+  const now = Date.now();
+  return createEvent({
+    name: 'Apex Hunt',
+    mode: 'grant',
+    speciesIds: apex.map((s) => s.id),
+    grantWeights,
+    startTime: now,
+    endTime: now + durationMs,
+    cooldownMs: APEX_HUNT_COOLDOWN_MS,
+  });
+}
+
+function isApexHuntActive(now = Date.now()) {
+  return listActiveEvents(now).some((e) => e.name === 'Apex Hunt');
+}
+
 // Extra spawn weight granted to a species by any active grant-mode event
 // targeting it — additive, not multiplicative, so it works even when the
 // species' own base weight is 0.
@@ -691,6 +818,10 @@ const TRADEABLE_MATERIALS = [
   { key: 'energyTubes', name: 'Energy Tubes' },
   { key: 'zombieJuice', name: 'Zombie Juice' },
   { key: 'lumeCells', name: 'Lume Cells' },
+  { key: 'apexCubes', name: 'Apex Cubes' },
+  { key: 'titanTokens', name: 'Titan Tokens' },
+  { key: 'guildTokens', name: 'Guild Tokens' },
+  { key: 'joyCoins', name: 'Joy Coins' },
 ];
 
 const SHOP_CATALOG = [
@@ -714,6 +845,20 @@ const SHOP_CATALOG = [
   { id: 'outfit_technology', name: 'Technology Outfit', cost: 5000, type: 'outfit', outfitId: 'technology' },
   { id: 'outfit_wildlife', name: 'Wildlife Outfit', cost: 5000, type: 'outfit', outfitId: 'wildlife' },
   { id: 'outfit_funky', name: 'Funky Outfit', cost: 5000, type: 'outfit', outfitId: 'funky' },
+
+  // ---- Tokens (1,000,000 crystals each) ----
+  // Deliberately the most expensive things in the game — a hard crystal
+  // sink aimed at players sitting on huge unspent balances.
+  //
+  // The shop is the EXPENSIVE fallback, not the intended source: Titan
+  // Tokens are meant to drop from Titan encounters and Guild Tokens from
+  // guild activity. Those earn routes aren't wired up yet, so right now
+  // the shop is the only way to get one — same stopgap situation as Pad
+  // RAM and Repair Kits above. Keep these entries when the drops ship;
+  // just stop them being the only source.
+  { id: 'titan_token', name: 'Titan Token', cost: 1000000, type: 'material', grants: { titanTokens: 1 } },
+  { id: 'guild_token', name: 'Guild Token', cost: 1000000, type: 'material', grants: { guildTokens: 1 } },
+  { id: 'joy_coin', name: 'Joy Coin', cost: 1000000, type: 'material', grants: { joyCoins: 1 } },
 ];
 
 // All-or-nothing: validates every item and the combined total cost
@@ -1419,6 +1564,11 @@ function createPlayer(username, pin) {
     lastCaptureAttemptAt: null,
     autoReleaseDuplicates: false,
     autoReleaseIncludeVariants: false,
+    apexCubes: 0,
+    titanTokens: 0,
+    guildTokens: 0,
+    joyCoins: 0,
+    apexCooldownUntil: null,
   };
   players.set(player.id, player);
 
@@ -1767,6 +1917,14 @@ function importState(state) {
     lastCaptureAttemptAt: null,
     autoReleaseDuplicates: false,
     autoReleaseIncludeVariants: false,
+    // v0.2 additions — players saved before Apex/tokens existed get these
+    // filled in on load rather than coming back undefined (which would
+    // render as NaN the moment anything did arithmetic on them).
+    apexCubes: 0,
+    titanTokens: 0,
+    guildTokens: 0,
+    joyCoins: 0,
+    apexCooldownUntil: null,
   };
   (state.players || []).forEach((p) => players.set(p.id, { ...playerDefaults, ...p }));
 
@@ -1828,6 +1986,19 @@ module.exports = {
   slotUnlockCost,
   DROID_LEVEL_CAP,
   levelUpCost,
+  // ---- Apex ----
+  APEX_CITY_CAP,
+  APEX_CUBE_MIN_DROP,
+  APEX_CUBE_MAX_DROP,
+  apexCubeLevelUpCost,
+  rollApexCubeDrop,
+  isApexSpecies,
+  apexSpeciesList,
+  createApexHuntEvent,
+  isApexHuntActive,
+  APEX_HUNT_DURATION_MS,
+  APEX_HUNT_GRANT_WEIGHT,
+  APEX_HUNT_COOLDOWN_MS,
   PAD_SKILL_CEILING_PER_LEVEL,
   padUpgradeCost,
   padRequiresRam,

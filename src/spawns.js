@@ -1,6 +1,10 @@
 // spawns.js
 const db = require('./db');
 const geo = require('./geo');
+// Read the capture radius from the module that enforces it, rather than
+// repeating the number here — otherwise the map and the server could
+// disagree about which droids are reachable.
+const { CAPTURE_RADIUS_METERS } = require('./capture');
 
 // Tracks cells with recent player activity so we only spawn where players
 // actually are (mirrors "active cell" logic from the design).
@@ -125,6 +129,20 @@ function countActiveLegendariesCityWide() {
   return count;
 }
 
+// Same city-wide idea as the cosmic cap: an Apex Hunt grants weight to
+// all 30 Apex species at once, so without this a single busy cell could
+// surface several at the same moment and undercut how rare they feel.
+function countActiveApexCityWide() {
+  let count = 0;
+  for (const spawn of db.spawns.values()) {
+    if (!spawn.claimedBy && spawn.expiresAt > Date.now()) {
+      const species = db.droidSpecies.find((s) => s.id === spawn.speciesId);
+      if (species && species.rarity === 'apex') count++;
+    }
+  }
+  return count;
+}
+
 function countActiveCosmicsCityWide() {
   let count = 0;
   for (const spawn of db.spawns.values()) {
@@ -159,6 +177,9 @@ function trySpawnInCell(cell, refLng = 0, beaconActive = false) {
   }
   if (species.rarity === 'cosmic' && countActiveCosmicsCityWide() >= db.COSMIC_CITY_CAP) {
     return null; // city-wide companion cap hit — only one StarSprite active anywhere at a time
+  }
+  if (species.rarity === 'apex' && countActiveApexCityWide() >= db.APEX_CITY_CAP) {
+    return null; // only one Apex anywhere at a time, even during a Hunt
   }
 
   const point = geo.randomPointInCell(cell);
@@ -224,6 +245,12 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
         lng: spawn.lng,
         expiresAt: spawn.expiresAt,
         distanceMeters: Math.round(dist),
+        // Two-band radar: inside CAPTURE_RADIUS_METERS the player can run
+        // the minigame; between that and the sweep radius the droid is
+        // visible on the map only. Compared against the raw distance, not
+        // the rounded one, so a droid at 15.4m doesn't display as "15m
+        // away" while refusing to open.
+        withinCaptureRadius: dist <= CAPTURE_RADIUS_METERS,
         boostSource: spawn.boostSource,
       });
     }
@@ -231,6 +258,9 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
 
   return {
     spawns: results,
+    // Sent to the client so the map ring and the "move closer" copy stay
+    // in sync with the server automatically when this value is tuned.
+    captureRadiusMeters: CAPTURE_RADIUS_METERS,
     timeOfDay: isDaytime(lng) ? 'day' : 'night',
     estimatedLocalHour: Math.round(estimateLocalHour(lng) * 10) / 10,
     activeEvents: db.listActiveEvents(),

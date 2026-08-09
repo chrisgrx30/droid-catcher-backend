@@ -8,7 +8,20 @@ const db = require('./db');
 const geo = require('./geo');
 const workshop = require('./workshop');
 
-const MAX_PLAUSIBLE_RANGE_METERS = 75; // player must be roughly at the spawn
+// ---- CAPTURE RADIUS — the one number to change ----
+// A droid can only be taken into the minigame when the player is within
+// this many meters of it. Droids further out than this still appear on
+// the map (see spawns.js `withinCaptureRadius`), but the client hides
+// their capture controls and the server rejects any attempt anyway —
+// this check is the authoritative one, the client greying-out is only a
+// convenience so players aren't offered a button that can't work.
+//
+// Raise or lower this single value to widen/tighten the capture zone.
+// The wider "how far can I see" number is separate: DEFAULT_SCAN_RADIUS
+// in test-terminal.html.
+const CAPTURE_RADIUS_METERS = 15;
+
+const MAX_PLAUSIBLE_RANGE_METERS = CAPTURE_RADIUS_METERS; // kept as an alias so existing references still read naturally
 const CAPTURE_ATTEMPT_COOLDOWN_MS = 3000; // 3 seconds — stops spam-clicking captures
 const MIN_PLAUSIBLE_ATTEMPT_MS = 250; // faster than this + high accuracy = bot signature
 const CRYSTAL_BONUS_CAP = 0.40; // spending max crystals gives up to +40% chance
@@ -57,7 +70,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   // --- anti-cheat validation ---
   const dist = geo.distanceMeters(playerLat, playerLng, spawn.lat, spawn.lng);
   if (dist > MAX_PLAUSIBLE_RANGE_METERS) {
-    throw new CaptureError('OUT_OF_RANGE', `Player too far from spawn (${Math.round(dist)}m)`);
+    throw new CaptureError('OUT_OF_RANGE', `Too far away — you're ${Math.round(dist)}m from this droid, and you need to be within ${CAPTURE_RADIUS_METERS}m to capture it`);
   }
 
   if (padAccuracy > 0.97 && attemptDurationMs < MIN_PLAUSIBLE_ATTEMPT_MS) {
@@ -115,6 +128,17 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   let gotChainMaterial = null;
   let autoReleased = false;
   let autoReleaseRefund = 0;
+
+  // --- Apex Cubes ---
+  // Awarded for ANY resolved attempt on an Apex droid, win or lose. With
+  // a 2% base capture rate, paying out only on success would mean a
+  // player could burn an entire 30-minute Apex Hunt and end with nothing
+  // at all — so the encounter itself is what pays, not the catch.
+  let apexCubesDropped = 0;
+  if (db.isApexSpecies(species)) {
+    apexCubesDropped = db.rollApexCubeDrop();
+    player.apexCubes = (player.apexCubes || 0) + apexCubesDropped;
+  }
 
   if (success) {
     spawn.claimedBy = playerId;
@@ -204,7 +228,10 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     autoReleased,
     autoReleaseRefund,
     buffsApplied,
+    isApex: db.isApexSpecies(species),
+    apexCubesDropped,
+    apexCubes: player.apexCubes || 0,
   };
 }
 
-module.exports = { resolveCaptureAttempt, CaptureError, crystalBonus, padSkillMultiplier };
+module.exports = { resolveCaptureAttempt, CaptureError, crystalBonus, padSkillMultiplier, CAPTURE_RADIUS_METERS };

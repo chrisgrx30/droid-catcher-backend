@@ -125,7 +125,14 @@ function enrichDroid(droid) {
     attack: species ? Math.round(species.baseAttack * lvlMult) : null,
     currentHp: species ? Math.max(0, Math.round(species.baseHP * lvlMult) - (droid.currentHpDamage || 0)) : null,
     fainted: species ? (droid.currentHpDamage || 0) >= Math.round(species.baseHP * lvlMult) : false,
-    nextLevelCost: droid.level >= db.DROID_LEVEL_CAP ? null : db.levelUpCost(droid.level, species?.rarity),
+    // Apex droids cost cubes, everything else costs crystals. Both come
+    // back through nextLevelCost so the UI stays one code path — the
+    // currency flag below tells it which symbol to show.
+    nextLevelCost: droid.level >= db.DROID_LEVEL_CAP
+      ? null
+      : (db.isApexSpecies(species) ? db.apexCubeLevelUpCost(droid.level) : db.levelUpCost(droid.level, species?.rarity)),
+    nextLevelCurrency: db.isApexSpecies(species) ? 'apexCubes' : 'crystals',
+    isApex: db.isApexSpecies(species),
     evolvesToName: evolvesToSpecies?.name || null,
     evolveNovaChipCost: evolution?.novaChipCost || null,
     isEvolutionOnly: species?.isEvolutionOnly || false,
@@ -302,6 +309,28 @@ function levelUpDroid(playerId, droidId) {
   if (droid.level >= db.DROID_LEVEL_CAP) throw new Error(`Droid is already at the level cap (${db.DROID_LEVEL_CAP})`);
 
   const species = speciesById(droid.speciesId);
+
+  // Apex droids level on Apex Cubes, not crystals — an entirely separate
+  // currency, so a huge crystal balance can't fast-track the endgame set.
+  // Same endpoint and same level cap; only the cost source differs.
+  if (db.isApexSpecies(species)) {
+    const cubeCost = db.apexCubeLevelUpCost(droid.level);
+    const held = player.apexCubes || 0;
+    if (held < cubeCost) {
+      throw new Error(`Not enough Apex Cubes — leveling this Apex costs ${cubeCost} (you have ${held})`);
+    }
+    player.apexCubes = held - cubeCost;
+    droid.level += 1;
+    return {
+      droid: enrichDroid(droid),
+      cost: cubeCost,
+      costCurrency: 'apexCubes',
+      apexCubes: player.apexCubes,
+      crystalBalance: player.crystalBalance,
+      settledEarned: settled.earned,
+    };
+  }
+
   const cost = db.levelUpCost(droid.level, species?.rarity);
   if (player.crystalBalance < cost) {
     throw new Error(`Not enough crystals — leveling up costs ${cost}`);
@@ -317,7 +346,7 @@ function levelUpDroid(playerId, droidId) {
   });
   droid.level += 1;
 
-  return { droid: enrichDroid(droid), cost, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
+  return { droid: enrichDroid(droid), cost, costCurrency: 'crystals', crystalBalance: player.crystalBalance, settledEarned: settled.earned };
 }
 
 // Spend crystals to upgrade the control pad itself (account-wide, not
@@ -469,6 +498,13 @@ function releaseDroid(playerId, droidId) {
   if (gotNovaChip) player.novaChips += 1;
 
   let gotChainMaterial = null;
+  let apexCubesDropped = 0;
+  if (db.isApexSpecies(species)) {
+    // Releasing an Apex always returns cubes — the third confirmed drop
+    // route alongside capturing and defeating one.
+    apexCubesDropped = db.rollApexCubeDrop();
+    player.apexCubes = (player.apexCubes || 0) + apexCubesDropped;
+  }
   if (species && species.collection === 'void_zombie' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
     player.zombieJuice = (player.zombieJuice || 0) + 1;
     gotChainMaterial = 'zombieJuice';
@@ -480,7 +516,7 @@ function releaseDroid(playerId, droidId) {
   if (player.companionDroidId === droidId) player.companionDroidId = null;
   db.ownedDroids.delete(droidId);
 
-  return { refund, gotNovaChip, gotChainMaterial, novaChips: player.novaChips, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
+  return { refund, gotNovaChip, gotChainMaterial, apexCubesDropped, apexCubes: player.apexCubes || 0, novaChips: player.novaChips, crystalBalance: player.crystalBalance, settledEarned: settled.earned };
 }
 
 // Bulk release: settles earnings ONCE for the whole batch (not once per

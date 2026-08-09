@@ -45,6 +45,10 @@ const ASSETS_MISC_DIR = path.join(__dirname, '..', 'assets', 'misc');
 const ASSETS_HOME_DIR = path.join(__dirname, '..', 'assets', 'home');
 const ASSETS_BATTLE_DIR = path.join(__dirname, '..', 'assets', 'battle');
 const ASSETS_POSTERS_DIR = path.join(__dirname, '..', 'assets', 'home', 'posters');
+// Apex set art — backgrounds for the Apex battle box, the Apex Hunt
+// banner, and anything else Apex-themed. Drop PNG/GIF files in
+// assets/apex/ and reference them as /assets/apex/<name>.png
+const ASSETS_APEX_DIR = path.join(__dirname, '..', 'assets', 'apex');
 const IMAGE_MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -135,6 +139,27 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: 'invalid filename' });
       }
       const filePath = path.join(ASSETS_DROIDS_DIR, filename);
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+        res.writeHead(200, {
+          'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return res.end(data);
+      } catch (e) {
+        return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
+    // GET /assets/apex/<filename> -> Apex set backgrounds and theming art
+    if (req.method === 'GET' && pathname.startsWith('/assets/apex/')) {
+      const filename = pathname.slice('/assets/apex/'.length);
+      if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+        return sendJson(res, 400, { error: 'invalid filename' });
+      }
+      const filePath = path.join(ASSETS_APEX_DIR, filename);
       try {
         const data = fs.readFileSync(filePath);
         const ext = path.extname(filename).toLowerCase();
@@ -469,6 +494,11 @@ const server = http.createServer(async (req, res) => {
         growths: player.growths,
         outfit: player.outfit,
         ownedOutfits: player.ownedOutfits,
+        // v0.2 currencies
+        apexCubes: player.apexCubes || 0,
+        titanTokens: player.titanTokens || 0,
+        guildTokens: player.guildTokens || 0,
+        joyCoins: player.joyCoins || 0,
       });
     }
 
@@ -948,6 +978,54 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // ---- APEX ENCOUNTERS ----
+    // POST /battles/apex  { creatorId, invitedPlayerIds, teamDroidIds }
+    if (req.method === 'POST' && pathname === '/battles/apex') {
+      const { creatorId, invitedPlayerIds, teamDroidIds } = await readBody(req);
+      try {
+        const battle = battleModule.createApexChallenge(creatorId, invitedPlayerIds || [], teamDroidIds);
+        return sendJson(res, 201, { battle: battleModule.getBattleView(battle.id) });
+      } catch (e) {
+        return sendJson(res, 400, { error: 'APEX_BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/apex-join  { playerId, teamDroidIds }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/apex-join$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId, teamDroidIds } = await readBody(req);
+      try {
+        const battle = battleModule.joinApexBattle(battleId, playerId, teamDroidIds);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battle.id) });
+      } catch (e) {
+        return sendJson(res, 400, { error: 'APEX_BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/apex-start  { creatorId }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/apex-start$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { creatorId } = await readBody(req);
+      try {
+        const battle = battleModule.startApexBattle(battleId, creatorId);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battle.id) });
+      } catch (e) {
+        return sendJson(res, 400, { error: 'APEX_BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/apex-attack  { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/apex-attack$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try {
+        const result = battleModule.attackApex(battleId, playerId);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(result.battle.id), logEntry: result.logEntry });
+      } catch (e) {
+        return sendJson(res, 400, { error: 'APEX_BATTLE_ERROR', message: e.message });
+      }
+    }
+
     // POST /battles/titan  { playerId, teamDroidIds } -> solo Titan encounter
     if (req.method === 'POST' && pathname === '/battles/titan') {
       const { playerId, teamDroidIds } = await readBody(req);
@@ -1290,6 +1368,23 @@ const server = http.createServer(async (req, res) => {
       try {
         const event = db.createEvent(body);
         return sendJson(res, 201, { event });
+      } catch (e) {
+        return sendJson(res, 400, { error: 'EVENT_ERROR', message: e.message });
+      }
+    }
+
+    // POST /events/apex-hunt  { adminCode, durationMs? }
+    // One-button launch for the 30-minute Apex Hunt. Admin-only, same
+    // gate as /events — this is the only thing in the game that makes
+    // Apex droids spawnable at all.
+    if (req.method === 'POST' && pathname === '/events/apex-hunt') {
+      const body = await readBody(req);
+      if (body.adminCode !== ADMIN_CODES.events) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
+      try {
+        const event = db.createApexHuntEvent({ durationMs: body.durationMs || db.APEX_HUNT_DURATION_MS });
+        return sendJson(res, 201, { event, apexSpeciesCount: db.apexSpeciesList().length });
       } catch (e) {
         return sendJson(res, 400, { error: 'EVENT_ERROR', message: e.message });
       }

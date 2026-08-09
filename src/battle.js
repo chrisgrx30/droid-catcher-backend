@@ -51,6 +51,37 @@ const PVP_WIN_CRYSTAL_REWARD = 200;
 
 const DAMAGE_VARIANCE = 0.1; // +/-10% per hit, keeps outcomes from feeling too deterministic
 
+// ---- APEX ENCOUNTERS ----
+// A separate encounter type from the Titan, not a variant of it: its own
+// entry fee, cooldown, roster and rewards, so tuning one never disturbs
+// the other.
+//
+// APEX_BATTLE_HP / ATTACK are fixed ENCOUNTER numbers, not the species'
+// own baseHP (2200) — same approach the Titan takes.
+//
+// These are tuned against a KEY property of this engine: turns rotate,
+// so only ONE player attacks per turn regardless of party size. Extra
+// players therefore do NOT increase damage output — they add team HP,
+// which buys more turns before the raid wipes. That means the lever that
+// makes an Apex a group fight is its ATTACK, not its HP.
+//
+// Measured against the strongest possible team (4x level-20 Apex, 8470
+// HP / 539 attack each):
+//   1 player  — survives ~30 turns, deals ~16,200  -> LOSES
+//   2 players — survives ~61 turns, deals ~32,900  -> wins, narrowly
+//   4 players — survives ~123 turns, deals ~66,300 -> comfortable win
+// Real teams are weaker than that ceiling, so solo is hopeless in
+// practice, which is the confirmed intent.
+const APEX_BATTLE_HP = 20000;
+const APEX_BATTLE_ATTACK = 1100;
+const APEX_ENTRY_FEE = 2500;
+const APEX_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 hours — longer than the Titan's 2h
+const APEX_MAX_PARTICIPANTS = 6;
+// Cube payout on defeating one. Held to the confirmed 1-5 range, same as
+// capturing and releasing. See the note in the delivery summary about
+// what this implies for how long an Apex takes to level.
+const APEX_BATTLE_REWARDS = { repairKits: 2, beacons: 2, paint: 10, novaChips: 10 };
+
 function isFainted(droid) {
   return workshop.enrichDroid(droid).fainted;
 }
@@ -601,7 +632,10 @@ function getBattleView(battleId) {
   if (!battle) throw new Error('Battle not found');
   const enrichTeam = (ids) => (ids || []).map((id) => workshop.enrichDroid(db.ownedDroids.get(id)));
 
-  if (battle.isGroupTitanBattle) {
+  // Apex encounters share the group Titan's multi-participant shape, so
+  // they share this view branch — the `isApexBattle` flag on the battle
+  // is what the client keys its Apex styling off.
+  if (battle.isGroupTitanBattle || battle.isApexBattle) {
     const teamsView = {};
     Object.entries(battle.teamsByParticipant).forEach(([pid, ids]) => {
       teamsView[pid] = enrichTeam(ids);
@@ -623,7 +657,7 @@ function getBattleView(battleId) {
 function getBattlesForPlayer(playerId) {
   return [...db.battles.values()]
     .filter((b) => {
-      if (b.isGroupTitanBattle) {
+      if (b.isGroupTitanBattle || b.isApexBattle) {
         return (b.participantIds && b.participantIds.includes(playerId)) || (b.invitedPlayerIds && b.invitedPlayerIds.includes(playerId));
       }
       return b.player1Id === playerId || b.player2Id === playerId;
@@ -632,4 +666,207 @@ function getBattlesForPlayer(playerId) {
     .map((b) => getBattleView(b.id));
 }
 
-module.exports = { createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp };
+// ============================================================
+// APEX ENCOUNTERS
+// ============================================================
+// Structurally parallel to the group Titan flow (create -> join ->
+// start -> attack) but kept as separate functions rather than flags on
+// the Titan path. The two are meant to diverge as they get tuned, and
+// interleaving them would make every future change to one a risk to the
+// other.
+
+function apexRosterPick() {
+  const apexSpecies = db.apexSpeciesList();
+  if (!apexSpecies.length) throw new Error('No Apex species defined');
+  return apexSpecies[Math.floor(Math.random() * apexSpecies.length)];
+}
+
+function chargeApexEntry(player, now) {
+  if (player.crystalBalance < APEX_ENTRY_FEE) {
+    throw new Error(`Not enough crystals — an Apex encounter costs ${APEX_ENTRY_FEE}`);
+  }
+  if (player.apexCooldownUntil && now < player.apexCooldownUntil) {
+    const minsLeft = Math.ceil((player.apexCooldownUntil - now) / 60000);
+    throw new Error(`Apex encounters are on cooldown for another ~${minsLeft}m`);
+  }
+  player.crystalBalance -= APEX_ENTRY_FEE;
+  db.crystalTransactions.push({ id: db.nextId(), playerId: player.id, amount: -APEX_ENTRY_FEE, source: 'apex_entry', createdAt: now });
+  player.apexCooldownUntil = now + APEX_COOLDOWN_MS;
+}
+
+function createApexChallenge(creatorId, invitedPlayerIds, creatorTeamIds) {
+  const creator = db.players.get(creatorId);
+  if (!creator) throw new Error('Player not found');
+  const invited = Array.isArray(invitedPlayerIds) ? invitedPlayerIds : [];
+  if (invited.length > APEX_MAX_PARTICIPANTS - 1) {
+    throw new Error(`An Apex encounter holds at most ${APEX_MAX_PARTICIPANTS} players including you`);
+  }
+  invited.forEach((id) => {
+    if (!db.players.get(id)) throw new Error(`Player ${id} not found`);
+    if (id === creatorId) throw new Error('Cannot invite yourself');
+  });
+  const creatorTeam = validateTeam(creatorId, creatorTeamIds);
+  const now = Date.now();
+  chargeApexEntry(creator, now);
+
+  const battle = {
+    id: db.nextId(),
+    isApexBattle: true,
+    creatorId,
+    status: 'forming',
+    invitedPlayerIds: invited,
+    participantIds: [creatorId],
+    teamsByParticipant: { [creatorId]: creatorTeam.map((d) => d.id) },
+    activeIndexByParticipant: { [creatorId]: firstNonFaintedIndex(creatorTeam) },
+    eliminatedParticipantIds: [],
+    team2Ids: null,
+    activeIndex2: 0,
+    turnParticipantId: null,
+    winnerParticipantIds: null,
+    apexSpeciesId: null,
+    apexName: null,
+    log: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.battles.set(battle.id, battle);
+  return battle;
+}
+
+function joinApexBattle(battleId, playerId, teamDroidIds) {
+  const battle = db.battles.get(battleId);
+  if (!battle || !battle.isApexBattle) throw new Error('Apex encounter not found');
+  if (battle.status !== 'forming') throw new Error('This encounter is no longer accepting joiners');
+  if (!battle.invitedPlayerIds.includes(playerId)) throw new Error('You were not invited to this encounter');
+  if (battle.participantIds.includes(playerId)) throw new Error('Already joined');
+  if (battle.participantIds.length >= APEX_MAX_PARTICIPANTS) throw new Error('This encounter is full');
+
+  const player = db.players.get(playerId);
+  const now = Date.now();
+  const team = validateTeam(playerId, teamDroidIds);
+  chargeApexEntry(player, now);
+
+  battle.participantIds.push(playerId);
+  battle.teamsByParticipant[playerId] = team.map((d) => d.id);
+  battle.activeIndexByParticipant[playerId] = firstNonFaintedIndex(team);
+  battle.updatedAt = now;
+  return battle;
+}
+
+function startApexBattle(battleId, creatorId) {
+  const battle = db.battles.get(battleId);
+  if (!battle || !battle.isApexBattle) throw new Error('Apex encounter not found');
+  if (battle.creatorId !== creatorId) throw new Error('Only the person who started this encounter can begin the fight');
+  if (battle.status !== 'forming') throw new Error('This encounter has already started');
+
+  // Which of the 30 Apex droids shows up is rolled here, at start time —
+  // so the group doesn't know what they're facing while recruiting.
+  const species = apexRosterPick();
+  const apexDroid = {
+    id: db.nextId(),
+    playerId: null,
+    isTitan: true,        // reuses the same enrichDroid boss path as the Titan
+    isApexBoss: true,
+    titanName: species.name,
+    titanHp: APEX_BATTLE_HP,
+    titanAttack: APEX_BATTLE_ATTACK,
+    speciesId: species.id, // so the client can render the real art
+    variant: 'standard',
+    currentHpDamage: 0,
+  };
+  db.ownedDroids.set(apexDroid.id, apexDroid);
+
+  battle.team2Ids = [apexDroid.id];
+  battle.apexSpeciesId = species.id;
+  battle.apexName = species.name;
+  battle.status = 'active';
+  battle.turnParticipantId = battle.participantIds[0];
+  battle.soloWarning = battle.participantIds.length === 1;
+  battle.updatedAt = Date.now();
+  return battle;
+}
+
+function attackApex(battleId, playerId) {
+  const battle = db.battles.get(battleId);
+  if (!battle || !battle.isApexBattle) throw new Error('Apex encounter not found');
+  if (battle.status === 'forming') throw new Error('This encounter hasn\'t started yet');
+  if (battle.status !== 'active') throw new Error('This battle has already ended');
+  if (battle.turnParticipantId !== playerId) throw new Error('It\'s not your turn');
+
+  const myTeamIds = battle.teamsByParticipant[playerId];
+  const myTeam = myTeamIds.map((id) => db.ownedDroids.get(id));
+  const myActive = myTeam[battle.activeIndexByParticipant[playerId]];
+  const apexDroid = db.ownedDroids.get(battle.team2Ids[0]);
+
+  const myEnriched = workshop.enrichDroid(myActive);
+  const companionMultiplier = workshop.companionBuffMultiplier(playerId, 'damage');
+  const variance = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
+  const damage = Math.max(1, Math.round(myEnriched.attack * companionMultiplier * variance));
+  apexDroid.currentHpDamage = (apexDroid.currentHpDamage || 0) + damage;
+  const apexHpRemaining = Math.max(0, APEX_BATTLE_HP - apexDroid.currentHpDamage);
+  const apexDown = apexHpRemaining <= 0;
+
+  const logEntry = {
+    turn: battle.log.length + 1,
+    attackerPlayerId: playerId,
+    attackerDroidName: myEnriched.speciesName,
+    defenderDroidName: apexDroid.titanName,
+    damage,
+    defenderFainted: apexDown,
+    apexHpRemaining,
+  };
+  battle.log.push(logEntry);
+
+  if (apexDown) {
+    battle.status = 'finished';
+    battle.winnerParticipantIds = battle.participantIds.filter((id) => !battle.eliminatedParticipantIds.includes(id));
+    battle.updatedAt = Date.now();
+    battle.cubeRewards = {};
+    // Everyone still standing gets a full reward, matching how the group
+    // Titan pays out — showing up and surviving is the contribution.
+    battle.winnerParticipantIds.forEach((pid) => {
+      const p = db.players.get(pid);
+      p.paint = (p.paint || 0) + APEX_BATTLE_REWARDS.paint;
+      p.novaChips = (p.novaChips || 0) + APEX_BATTLE_REWARDS.novaChips;
+      p.repairKits = (p.repairKits || 0) + APEX_BATTLE_REWARDS.repairKits;
+      p.beacons = (p.beacons || 0) + APEX_BATTLE_REWARDS.beacons;
+      // The third confirmed cube route: defeating an Apex.
+      const cubes = db.rollApexCubeDrop();
+      p.apexCubes = (p.apexCubes || 0) + cubes;
+      battle.cubeRewards[pid] = cubes;
+    });
+    logEntry.groupWin = true;
+    return { battle, logEntry };
+  }
+
+  // Apex counters whoever just attacked
+  const variance2 = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
+  const counterDamage = Math.max(1, Math.round(apexDroid.titanAttack * variance2));
+  myActive.currentHpDamage = (myActive.currentHpDamage || 0) + counterDamage;
+  const myFainted = workshop.enrichDroid(myActive).fainted;
+  logEntry.counterDamage = counterDamage;
+  logEntry.counterFainted = myFainted;
+
+  if (myFainted) {
+    const nextIdx = firstNonFaintedIndex(myTeam);
+    if (nextIdx === -1) {
+      battle.eliminatedParticipantIds.push(playerId);
+    } else {
+      battle.activeIndexByParticipant[playerId] = nextIdx;
+    }
+  }
+
+  const next = nextParticipantId(battle, playerId);
+  if (!next) {
+    // Whole raid wiped — no reward on a loss, same as the Titan.
+    battle.status = 'finished';
+    battle.winnerParticipantIds = [];
+    logEntry.groupLoss = true;
+  } else {
+    battle.turnParticipantId = next;
+  }
+  battle.updatedAt = Date.now();
+  return { battle, logEntry };
+}
+
+module.exports = { createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };
