@@ -21,6 +21,8 @@ const cosmeticsModule = require('./cosmetics');
 const presenceModule = require('./presence');
 const realtimeModule = require('./realtime');
 const livepvpModule = require('./livepvp');
+const masteryModule = require('./mastery');
+const adminModule = require('./admin');
 const workshopModule = require('./workshop');
 const battleModule = require('./battle');
 const factoryModule = require('./factory');
@@ -1431,6 +1433,128 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // ---- ADMIN ----
+    // Every admin route now goes through adminModule.authenticate(),
+    // which verifies the code AND records who used it. Previously the
+    // code was checked inline with no attribution at all.
+
+    // POST /admin/login { playerId, adminCode }
+    if (req.method === 'POST' && pathname === '/admin/login') {
+      const { playerId, adminCode } = await readBody(req);
+      const player = db.players.get(playerId);
+      try {
+        const who = adminModule.authenticate(playerId, player && player.username, adminCode, ADMIN_CODES.events, 'login');
+        adminModule.record(who.playerId, who.username, 'ADMIN_LOGIN', {});
+        return sendJson(res, 200, { ok: true, ...who });
+      } catch (e) {
+        return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message });
+      }
+    }
+
+    // GET /admin/log?adminCode=X&playerId=N&limit=200
+    if (req.method === 'GET' && pathname === '/admin/log') {
+      const adminCode = searchParams.get('adminCode');
+      const viewerId = Number(searchParams.get('playerId'));
+      const viewer = db.players.get(viewerId);
+      try {
+        adminModule.authenticate(viewerId, viewer && viewer.username, adminCode, ADMIN_CODES.events, 'view_log');
+        return sendJson(res, 200, adminModule.getLog({
+          limit: Number(searchParams.get('limit')) || 200,
+          playerId: searchParams.get('filterPlayerId'),
+          action: searchParams.get('filterAction'),
+        }));
+      } catch (e) {
+        return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message });
+      }
+    }
+
+    // GET /admin/gift-options?adminCode=X&playerId=N
+    if (req.method === 'GET' && pathname === '/admin/gift-options') {
+      const adminCode = searchParams.get('adminCode');
+      const viewerId = Number(searchParams.get('playerId'));
+      const viewer = db.players.get(viewerId);
+      try {
+        adminModule.authenticate(viewerId, viewer && viewer.username, adminCode, ADMIN_CODES.events, 'gift_options');
+        return sendJson(res, 200, {
+          materials: adminModule.giftableMaterials(),
+          species: adminModule.giftableSpecies(),
+          players: adminModule.playerRoster(),
+          variants: ['standard', 'rusty', 'platinum', 'funky'],
+          maxLevel: db.DROID_LEVEL_CAP,
+        });
+      } catch (e) {
+        return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message });
+      }
+    }
+
+    // POST /admin/gift { playerId, adminCode, playerIds, materials, droid, crystals, note }
+    if (req.method === 'POST' && pathname === '/admin/gift') {
+      const body = await readBody(req);
+      const sender = db.players.get(body.playerId);
+      try {
+        const who = adminModule.authenticate(body.playerId, sender && sender.username, body.adminCode, ADMIN_CODES.events, 'gift');
+        const result = adminModule.sendGift(who.playerId, who.username, body);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, e.code === 'ADMIN_ONLY' ? 403 : 400, { error: e.code || 'GIFT_ERROR', message: e.message });
+      }
+    }
+
+    // GET /gifts/:playerId -> a player's own gift inbox
+    if (req.method === 'GET' && pathname.match(/^\/gifts\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const player = db.players.get(playerId);
+      if (!player) return sendJson(res, 404, { error: 'NO_PLAYER', message: 'Player not found' });
+      return sendJson(res, 200, { inbox: player.giftInbox || [] });
+    }
+
+    // POST /gifts/seen { playerId }
+    if (req.method === 'POST' && pathname === '/gifts/seen') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, adminModule.markGiftsSeen(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: 'GIFT_ERROR', message: e.message }); }
+    }
+
+    // ---- BUDDY MASTERY ----
+    if (req.method === 'GET' && pathname.match(/^\/mastery\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, masteryModule.statusFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'MASTERY_ERROR', message: e.message }); }
+    }
+
+    // POST /mastery/assign { playerId, droidId }
+    if (req.method === 'POST' && pathname === '/mastery/assign') {
+      const { playerId, droidId } = await readBody(req);
+      try { return sendJson(res, 200, masteryModule.assignBuddy(playerId, droidId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'MASTERY_ERROR', message: e.message }); }
+    }
+
+    // POST /mastery/unassign { playerId }
+    if (req.method === 'POST' && pathname === '/mastery/unassign') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, masteryModule.unassignBuddy(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'MASTERY_ERROR', message: e.message }); }
+    }
+
+    // ---- SMUGGLER'S TRADE ----
+    if (req.method === 'GET' && pathname === '/smuggler') {
+      return sendJson(res, 200, { items: db.SMUGGLER_TRADE });
+    }
+    // POST /smuggler/trade { playerId, itemId }
+    if (req.method === 'POST' && pathname === '/smuggler/trade') {
+      const { playerId, itemId } = await readBody(req);
+      try { return sendJson(res, 200, db.smugglerTrade(playerId, itemId)); }
+      catch (e) { return sendJson(res, 400, { error: 'SMUGGLER_ERROR', message: e.message }); }
+    }
+
+    // GET /plugins/:playerId -> active Control Pad plug-ins
+    if (req.method === 'GET' && pathname.match(/^\/plugins\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const player = db.players.get(playerId);
+      if (!player) return sendJson(res, 404, { error: 'NO_PLAYER', message: 'Player not found' });
+      return sendJson(res, 200, db.pluginEffects(player));
+    }
+
     // ---- REAL-TIME STREAM (SSE) ----
     // GET /stream?playerId=N — long-lived. Do NOT wrap this in the
     // normal sendJson path; the response deliberately stays open.
@@ -1511,6 +1635,17 @@ const server = http.createServer(async (req, res) => {
       try {
         const r = livepvpModule.attack(roomId, playerId);
         return sendJson(res, 200, livepvpModule.roomView(r.room.id, playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
+      }
+    }
+
+    // POST /livepvp/chat { roomId, playerId, text?, emote? }
+    if (req.method === 'POST' && pathname === '/livepvp/chat') {
+      const { roomId, playerId, text, emote } = await readBody(req);
+      presenceModule.touch(playerId);
+      try {
+        return sendJson(res, 200, { message: livepvpModule.sendChat(roomId, playerId, text, emote) });
       } catch (e) {
         return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
       }

@@ -8,6 +8,7 @@ const db = require('./db');
 const levels = require('./levels');
 const buffs = require('./buffs');
 const attachments = require('./attachments');
+const mastery = require('./mastery');
 
 const MAX_OFFLINE_HOURS = 4; // confirmed cap — was 10 hours at full rate, now 4 hours at OFFLINE_RATE_MULTIPLIER
 const OFFLINE_RATE_MULTIPLIER = 0.30; // confirmed — crystals accrue at 30% of the normal rate once offline
@@ -112,6 +113,13 @@ function enrichDroid(droid) {
   const species = speciesById(droid.speciesId);
   const lvlMult = levelMultiplier(droid.level);
   const attachMult = attachments.droidStatMultipliers(droid);
+  // Mastery continues the same +15%/level curve past level 20 rather
+  // than starting a second stat system.
+  const masteryLvl = mastery.currentMastery(droid);
+  const masteryMult = 1 + masteryLvl * 0.15;
+  // Max HP has to include every multiplier, or a buffed droid would
+  // faint at its unbuffed HP and the extra health would be invisible.
+  const maxHp = species ? Math.round(species.baseHP * lvlMult * attachMult.hp * masteryMult) : null;
   const evolution = db.EVOLUTION_TABLE[droid.speciesId];
   const evolvesToSpecies = evolution ? speciesById(evolution.evolvesTo) : null;
   const now = Date.now();
@@ -131,10 +139,10 @@ function enrichDroid(droid) {
     potentialCrystalsPerMinute: Math.round(droidPotentialCrystalsPerMinute(droid) * 100) / 100,
     // Attachment HP/attack apply to the droid wearing them only — a Mod
     // Chip on one droid must not buff the rest of the roster.
-    hp: species ? Math.round(species.baseHP * lvlMult * attachMult.hp) : null,
-    attack: species ? Math.round(species.baseAttack * lvlMult * attachMult.attack) : null,
-    currentHp: species ? Math.max(0, Math.round(species.baseHP * lvlMult) - (droid.currentHpDamage || 0)) : null,
-    fainted: species ? (droid.currentHpDamage || 0) >= Math.round(species.baseHP * lvlMult) : false,
+    hp: maxHp,
+    attack: species ? Math.round(species.baseAttack * lvlMult * attachMult.attack * masteryMult) : null,
+    currentHp: species ? Math.max(0, maxHp - (droid.currentHpDamage || 0)) : null,
+    fainted: species ? (droid.currentHpDamage || 0) >= maxHp : false,
     // Apex droids cost cubes, everything else costs crystals. Both come
     // back through nextLevelCost so the UI stays one code path — the
     // currency flag below tells it which symbol to show.
@@ -144,6 +152,8 @@ function enrichDroid(droid) {
     nextLevelCurrency: db.isApexSpecies(species) ? 'apexCubes' : 'crystals',
     isApex: db.isApexSpecies(species),
     capturedViaJoystick: Boolean(droid.capturedViaJoystick),
+    masteryLevel: masteryLvl,
+    isBuddy: Boolean(droid.buddySince),
     attachments: droid.attachments || {},
     attachmentSpecials: attachments.droidSpecials(droid),
     evolvesToName: evolvesToSpecies?.name || null,

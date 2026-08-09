@@ -22,7 +22,7 @@ const workshop = require('./workshop');
 // Raise or lower this single value to widen/tighten the capture zone.
 // The wider "how far can I see" number is separate: DEFAULT_SCAN_RADIUS
 // in test-terminal.html.
-const CAPTURE_RADIUS_METERS = 30;
+const CAPTURE_RADIUS_METERS = 40;
 
 const MAX_PLAUSIBLE_RANGE_METERS = CAPTURE_RADIUS_METERS; // kept as an alias so existing references still read naturally
 const CAPTURE_ATTEMPT_COOLDOWN_MS = 3000; // 3 seconds — stops spam-clicking captures

@@ -32,9 +32,102 @@ const captureModule = require('./capture.js');
 // stats, which would be far too weak for a "boss" fight); a successful
 // post-win capture roll grants the actual capturable Common-tier
 // Scaffitan species instead.
+// ---- Titan roster ----
+// Scaffitan is the regular encounter; Luminarch and Voidlord are the
+// surprises. Weights are time-of-day dependent — Luminarch favours
+// daylight, Voidlord the night — using the same longitude-derived local
+// hour that drives spawn windows, so it stays consistent with the rest
+// of the game rather than inventing a second clock.
+//
+// Scaffitan keeps a flat weight so it stays the one you usually meet
+// whatever the hour.
 const TITAN_ROSTER = [
-  { name: 'Scaffitan', hp: 2400, attack: 35 },
+  {
+    name: 'Scaffitan', hp: 2400, attack: 35,
+    weightDay: 70, weightNight: 70,
+    drops: null,
+  },
+  {
+    name: 'Luminarch', hp: 3200, attack: 48,
+    weightDay: 25, weightNight: 5,
+    // Lume Cells feed the Lumen Sentinel evolution line.
+    drops: { material: 'lumeCells', min: 3, max: 8 },
+  },
+  {
+    name: 'Voidlord', hp: 3200, attack: 48,
+    weightDay: 5, weightNight: 25,
+    // Zombie Juice feeds the Void Zombie evolution line.
+    drops: { material: 'zombieJuice', min: 3, max: 8 },
+  },
 ];
+
+// Titan Tokens: a low chance on any Titan defeat.
+const TITAN_TOKEN_DROP_CHANCE = 0.08;
+// Guild Tokens: awarded when you beat a Titan or Apex alongside at
+// least one guild member. Encourages guild play rather than pure luck,
+// so this is a certainty rather than a roll.
+const GUILD_TOKEN_PER_WIN = 1;
+
+function pickTitan(lng) {
+  // Reuse the game's existing day/night logic rather than a second one.
+  let isDay;
+  if (Number.isFinite(lng)) {
+    try { isDay = require('./spawns').isDaytime(lng); } catch (e) { isDay = undefined; }
+  }
+  if (isDay === undefined) {
+    // No player longitude to hand (Titans are started from a menu, not
+    // from a map position), so fall back to server UTC.
+    const h = new Date().getUTCHours();
+    isDay = h >= 6 && h < 18;
+  }
+  const key = isDay ? 'weightDay' : 'weightNight';
+  const total = TITAN_ROSTER.reduce((a, t) => a + t[key], 0);
+  let roll = Math.random() * total;
+  for (const titan of TITAN_ROSTER) {
+    roll -= titan[key];
+    if (roll <= 0) return titan;
+  }
+  return TITAN_ROSTER[0];
+}
+
+// Awards the Titan-specific extras on a win: the roster drop (Lume
+// Cells / Zombie Juice), a low-chance Titan Token, and a Guild Token if
+// a guildmate fought alongside you.
+//
+// `allWinnerIds` is the full winning side, so guild detection works for
+// group encounters. Solo wins can never earn a Guild Token, which is
+// the intent — it's a reward for playing together.
+function awardTitanExtras(player, titanDef, allWinnerIds) {
+  const out = { material: null, materialAmount: 0, titanToken: 0, guildToken: 0 };
+  if (!player) return out;
+
+  if (titanDef && titanDef.drops) {
+    const d = titanDef.drops;
+    const amount = d.min + Math.floor(Math.random() * (d.max - d.min + 1));
+    player[d.material] = (player[d.material] || 0) + amount;
+    out.material = d.material;
+    out.materialAmount = amount;
+  }
+
+  if (Math.random() < TITAN_TOKEN_DROP_CHANCE) {
+    player.titanTokens = (player.titanTokens || 0) + 1;
+    out.titanToken = 1;
+  }
+
+  if (player.guildId && Array.isArray(allWinnerIds)) {
+    const withGuildmate = allWinnerIds.some((id) => {
+      if (id === player.id) return false;
+      const other = db.players.get(id);
+      return other && other.guildId && other.guildId === player.guildId;
+    });
+    if (withGuildmate) {
+      player.guildTokens = (player.guildTokens || 0) + GUILD_TOKEN_PER_WIN;
+      out.guildToken = GUILD_TOKEN_PER_WIN;
+    }
+  }
+  return out;
+}
+
 // "Rare" per confirmed design, exact rate not specified — flagged as my
 // own placeholder number, easy to retune once you've seen it in play.
 const SCAFFITAN_CAPTURE_CHANCE = 0.08;
@@ -327,7 +420,7 @@ function startGroupTitanBattle(battleId, creatorId) {
   if (battle.creatorId !== creatorId) throw new Error('Only the person who started this encounter can begin the fight');
   if (battle.status !== 'forming') throw new Error('This encounter has already started');
 
-  const titanDef = TITAN_ROSTER[Math.floor(Math.random() * TITAN_ROSTER.length)];
+  const titanDef = pickTitan();
   const titanDroid = {
     id: db.nextId(),
     playerId: null,
@@ -341,6 +434,10 @@ function startGroupTitanBattle(battleId, creatorId) {
   db.ownedDroids.set(titanDroid.id, titanDroid);
 
   battle.team2Ids = [titanDroid.id];
+  // Remembered so the reward step knows which Titan was fought and can
+  // hand out the right material drop.
+  battle.titanDef = titanDef;
+  battle.titanName = titanDef.name;
   battle.status = 'active';
   battle.turnParticipantId = battle.participantIds[0];
   battle.updatedAt = Date.now();
@@ -392,13 +489,16 @@ function attackGroupTitan(battleId, playerId) {
     // Every still-active participant gets a full individual reward —
     // group content should reward everyone who showed up, not just
     // whoever landed the final hit.
+    battle.titanExtras = {};
     battle.winnerParticipantIds.forEach((pid) => {
       const p = db.players.get(pid);
       levels.awardXp(pid, 'battleWin');
+      p.battlesWon = (p.battlesWon || 0) + 1;
       p.paint = (p.paint || 0) + TITAN_REWARDS.paint;
       p.novaChips = (p.novaChips || 0) + TITAN_REWARDS.novaChips;
       p.repairKits = (p.repairKits || 0) + TITAN_REWARDS.repairKits;
       p.beacons = (p.beacons || 0) + TITAN_REWARDS.beacons;
+      battle.titanExtras[pid] = awardTitanExtras(p, battle.titanDef, battle.winnerParticipantIds);
       const tubesWon = randInt(2, 4);
       p.energyTubes = (p.energyTubes || 0) + tubesWon;
     });
@@ -458,7 +558,7 @@ function createSoloTitanBattle(playerId, teamDroidIds) {
   // The Titan is stored as a real ownedDroids-style entry (playerId:
   // null, isTitan flag) so it can reuse the exact same attack/faint
   // logic already tested for PVP — no separate combat code path.
-  const titanDef = TITAN_ROSTER[Math.floor(Math.random() * TITAN_ROSTER.length)];
+  const titanDef = pickTitan();
   const titanDroid = {
     id: db.nextId(),
     playerId: null,
@@ -835,6 +935,9 @@ function attackApex(battleId, playerId) {
       const cubes = db.rollApexCubeDrop();
       p.apexCubes = (p.apexCubes || 0) + cubes;
       battle.cubeRewards[pid] = cubes;
+      // Guild Token for beating an Apex alongside a guildmate. No Titan
+      // material drop here — Apex pays in Cubes.
+      awardTitanExtras(p, null, battle.winnerParticipantIds);
     });
     logEntry.groupWin = true;
     return { battle, logEntry };
@@ -870,4 +973,4 @@ function attackApex(battleId, playerId) {
   return { battle, logEntry };
 }
 
-module.exports = { validateTeam, firstNonFaintedIndex, DAMAGE_VARIANCE, createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };
+module.exports = { TITAN_ROSTER, pickTitan, awardTitanExtras, TITAN_TOKEN_DROP_CHANCE, validateTeam, firstNonFaintedIndex, DAMAGE_VARIANCE, createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };

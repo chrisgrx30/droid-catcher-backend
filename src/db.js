@@ -826,6 +826,43 @@ const TRADEABLE_MATERIALS = [
   { key: 'joyCoins', name: 'Joy Coins' },
 ];
 
+// ---- Smuggler's Trade ----
+// A separate counter in the Trade tab that deals only in the two Titan
+// chain materials. Lume Cells and Zombie Juice are otherwise locked to
+// their own evolution lines, so this gives players who farm one Titan a
+// way to convert into the other side's currency.
+//
+// Priced in materials, never crystals — the point is to move Titan
+// drops around, not to open another crystal sink.
+const SMUGGLER_TRADE = [
+  { id: 'smug_light', name: 'Light Stone', costMaterial: 'lumeCells', costAmount: 100, grants: { lightStones: 1 } },
+  { id: 'smug_dark', name: 'Dark Crystal', costMaterial: 'zombieJuice', costAmount: 100, grants: { darkCrystals: 1 } },
+];
+
+function smugglerTrade(playerId, itemId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const item = SMUGGLER_TRADE.find((i) => i.id === itemId);
+  if (!item) throw new Error('Unknown Smuggler item');
+  const held = player[item.costMaterial] || 0;
+  if (held < item.costAmount) {
+    const label = item.costMaterial === 'lumeCells' ? 'Lume Cells' : 'Zombie Juice';
+    throw new Error(`The Smuggler wants ${item.costAmount} ${label} — you have ${held}`);
+  }
+  player[item.costMaterial] = held - item.costAmount;
+  Object.entries(item.grants).forEach(([k, v]) => { player[k] = (player[k] || 0) + v; });
+  return {
+    traded: item.name,
+    spent: { material: item.costMaterial, amount: item.costAmount },
+    balances: {
+      lumeCells: player.lumeCells || 0,
+      zombieJuice: player.zombieJuice || 0,
+      lightStones: player.lightStones || 0,
+      darkCrystals: player.darkCrystals || 0,
+    },
+  };
+}
+
 const SHOP_CATALOG = [
   { id: 'paint', name: 'Paint', cost: 150, type: 'material', grants: { paint: 1 } },
   { id: 'nova_chip', name: 'Nova Chip', cost: 250, type: 'material', grants: { novaChips: 1 } },
@@ -955,16 +992,66 @@ function useTimeWarp(playerId) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
   if (player.timeWarps < 1) throw new Error('No Time Warps owned — buy one from the Shop');
+  const now = Date.now();
+  if (player.timeWarpActiveUntil && now < player.timeWarpActiveUntil) {
+    throw new Error('A Time Warp plug-in is already installed — wait for it to expire');
+  }
   player.timeWarps -= 1;
-  return { timeWarps: player.timeWarps };
+  player.timeWarpActiveUntil = now + PLUGIN_DURATION_MS;
+  return { timeWarps: player.timeWarps, ...pluginEffects(player, now) };
+}
+
+
+// Growth and Time Warp are Control Pad plug-ins. Previously they were
+// consumed and did nothing at all — a player could buy one from the
+// Shop and receive no effect whatsoever. They now install onto the pad
+// for a limited window:
+//
+//   Growth    — widens the capture minigame target zone
+//   Time Warp — slows the minigame marker down
+//
+// Both are single-use and expire on a timer. The percentages are
+// deliberately modest: this is the mechanic under test, and stronger
+// plug-ins are planned to sit above these.
+const PLUGIN_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+const PLUGIN_GROWTH_ZONE_BONUS = 0.25;     // +25% wider target zone
+const PLUGIN_TIMEWARP_SPEED_FACTOR = 0.75; // marker moves at 75% speed
+
+function activePlugins(player, now = Date.now()) {
+  const out = { growth: false, timeWarp: false, growthEndsAt: null, timeWarpEndsAt: null };
+  if (!player) return out;
+  if (player.growthActiveUntil && now < player.growthActiveUntil) {
+    out.growth = true;
+    out.growthEndsAt = player.growthActiveUntil;
+  }
+  if (player.timeWarpActiveUntil && now < player.timeWarpActiveUntil) {
+    out.timeWarp = true;
+    out.timeWarpEndsAt = player.timeWarpActiveUntil;
+  }
+  return out;
+}
+
+function pluginEffects(player, now = Date.now()) {
+  const active = activePlugins(player, now);
+  return {
+    ...active,
+    zoneMultiplier: active.growth ? 1 + PLUGIN_GROWTH_ZONE_BONUS : 1,
+    speedMultiplier: active.timeWarp ? PLUGIN_TIMEWARP_SPEED_FACTOR : 1,
+    durationMs: PLUGIN_DURATION_MS,
+  };
 }
 
 function useGrowth(playerId) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
   if (player.growths < 1) throw new Error('No Growths owned — buy one from the Shop');
+  const now = Date.now();
+  if (player.growthActiveUntil && now < player.growthActiveUntil) {
+    throw new Error('A Growth plug-in is already installed — wait for it to expire');
+  }
   player.growths -= 1;
-  return { growths: player.growths };
+  player.growthActiveUntil = now + PLUGIN_DURATION_MS;
+  return { growths: player.growths, ...pluginEffects(player, now) };
 }
 
 function equipOutfit(playerId, outfitId) {
@@ -1219,7 +1306,13 @@ function getFriendsData(playerId) {
     const f = players.get(id);
     if (!f) return null;
     const dex = getDex(id);
-    return { id, username: f.username, dexCaught: dex.entries.filter((e) => e.caught).length, dexTotal: dex.entries.length };
+    return {
+      id,
+      username: f.username,
+      dexCaught: dex.entries.filter((e) => e.caught).length,
+      dexTotal: dex.entries.length,
+      ...playerLeaderboardStats(id),
+    };
   }).filter(Boolean);
   // Online / idle / offline dot for each friend.
   const decoratedFriends = presence.decorate(friends);
@@ -1361,6 +1454,31 @@ function getGuildMessages(guildId) {
 // Dex completion leaderboard for a guild's members — reuses getDex's
 // counting logic (defined further down) via a lazy require-free call
 // since getDex is in the same module.
+
+// Shared stat block for the guild and friends leaderboards, so both show
+// the same columns and only need changing in one place.
+//
+// `encountered` counts distinct species SEEN (dex entries exist whether
+// or not the catch succeeded); `caught` counts those actually owned.
+// The gap between them is a nice measure of bad luck.
+function playerLeaderboardStats(playerId) {
+  const player = players.get(playerId);
+  if (!player) return {};
+  const dex = getDex(playerId);
+  const owned = [...ownedDroids.values()].filter((d) => d.playerId === playerId);
+  return {
+    encountered: dex.entries.filter((e) => e.seen || e.caught).length,
+    caught: dex.totalCaught,
+    droidsOwned: owned.length,
+    battlesPlayed: player.battlesPlayed || 0,
+    battlesWon: player.battlesWon || 0,
+    winRate: player.battlesPlayed ? Math.round((player.battlesWon / player.battlesPlayed) * 100) : 0,
+    playerLevel: player.playerLevel || 0,
+    rebootCount: player.rebootCount || 0,
+    highestMastery: owned.reduce((max, d) => Math.max(max, d.masteryLevel || 0), 0),
+  };
+}
+
 function getGuildLeaderboard(guildId) {
   const guild = guilds.get(guildId);
   if (!guild) throw new Error('Guild not found');
@@ -1376,6 +1494,7 @@ function getGuildLeaderboard(guildId) {
         totalCaught: dex.totalCaught,
         totalSpecies: dex.totalSpecies,
         percentComplete: dex.percentComplete,
+        ...playerLeaderboardStats(pid),
       };
     })
     .filter(Boolean)
@@ -1392,6 +1511,20 @@ function getGuildLeaderboard(guildId) {
 // except via an optional wishId on a trade offer — see trades.js — which
 // auto-marks the wish fulfilled once that trade is accepted.
 const wishlist = new Map(); // id -> wish row
+const MAX_DROID_WISHES = 4;
+
+// Species IDs a player is currently wishing for. Used by spawns.js to
+// flag matching droids on the map with a star, so a player doesn't walk
+// past the exact droid they've been asking for.
+function wishedSpeciesIds(playerId) {
+  const out = new Set();
+  for (const w of wishlist.values()) {
+    if (w.playerId === playerId && w.wishType === 'droid' && !w.fulfilled && w.speciesId) {
+      out.add(w.speciesId);
+    }
+  }
+  return out;
+}
 
 function createWish(playerId, opts) {
   const player = players.get(playerId);
@@ -1405,6 +1538,17 @@ function createWish(playerId, opts) {
   if (wishType === 'droid' && !speciesId) throw new Error('speciesId required for a droid wish');
   if (!['any', 'rusty', 'platinum'].includes(variantWanted)) throw new Error('variantWanted must be any/rusty/platinum');
   if (!['any', ...PRIMARY_COLORS].includes(colorWanted)) throw new Error(`colorWanted must be any/${PRIMARY_COLORS.join('/')}`);
+
+  // Confirmed cap: up to 4 droids on a player's wish list at once.
+  // Counted against unfulfilled droid wishes only — a fulfilled wish
+  // shouldn't block a new one, and Paint wishes aren't droids.
+  if (wishType === 'droid') {
+    const activeDroidWishes = [...wishlist.values()]
+      .filter((w) => w.playerId === playerId && w.wishType === 'droid' && !w.fulfilled).length;
+    if (activeDroidWishes >= MAX_DROID_WISHES) {
+      throw new Error(`You can list at most ${MAX_DROID_WISHES} droids on your wish list — cancel one first`);
+    }
+  }
 
   const wish = {
     id: id(),
@@ -1452,7 +1596,16 @@ const redeemCodes = new Map(); // code (uppercased) -> row
 function createRedeemCode(opts) {
   const code = opts.code, rewardCrystals = opts.rewardCrystals || 0, rewardSpeciesId = opts.rewardSpeciesId || null, rewardPaint = opts.rewardPaint || 0, rewardNovaChips = opts.rewardNovaChips || 0, maxUses = opts.maxUses != null ? opts.maxUses : null;
   const key = code.toUpperCase();
-  const row = { code: key, rewardCrystals, rewardSpeciesId, rewardPaint, rewardNovaChips, maxUses, usedByPlayerIds: [] };
+  // rewardMaterials is a generic { materialKey: amount } map, so a code
+  // can grant anything in TRADEABLE_MATERIALS. rewardPaint and
+  // rewardNovaChips are kept as-is so existing saved codes keep working.
+  const rewardMaterials = {};
+  const validKeys = new Set(TRADEABLE_MATERIALS.map((m) => m.key));
+  Object.entries(opts.rewardMaterials || {}).forEach(([k, v]) => {
+    const amount = Math.floor(Number(v) || 0);
+    if (amount > 0 && validKeys.has(k)) rewardMaterials[k] = amount;
+  });
+  const row = { code: key, rewardCrystals, rewardSpeciesId, rewardPaint, rewardNovaChips, rewardMaterials, maxUses, usedByPlayerIds: [] };
   redeemCodes.set(key, row);
   return row;
 }
@@ -1472,6 +1625,11 @@ function redeemCodeFn(playerId, code) {
   }
   player.paint += row.rewardPaint || 0;
   player.novaChips += row.rewardNovaChips || 0;
+  const materialsGranted = {};
+  Object.entries(row.rewardMaterials || {}).forEach(([k, v]) => {
+    player[k] = (player[k] || 0) + v;
+    materialsGranted[k] = v;
+  });
 
   let droid = null;
   if (row.rewardSpeciesId) {
@@ -1492,14 +1650,60 @@ function redeemCodeFn(playerId, code) {
     }
   }
 
-  return { crystalsGranted: row.rewardCrystals, paintGranted: row.rewardPaint || 0, novaChipsGranted: row.rewardNovaChips || 0, droid: droid, crystalBalance: player.crystalBalance };
+  return { crystalsGranted: row.rewardCrystals, paintGranted: row.rewardPaint || 0, novaChipsGranted: row.rewardNovaChips || 0, materialsGranted, droid: droid, crystalBalance: player.crystalBalance };
 }
 
 // Seeds the small set of "official" starter codes if they don't already
 // exist — called once at server startup so these work automatically on
 // every fresh deploy without a manual create step. Idempotent: safe to
 // call again after a restore (won't duplicate or reset usage history).
+// Per-material codes, one for each entry in TRADEABLE_MATERIALS.
+//
+// BALANCE: amounts are deliberately modest and scale INVERSELY with how
+// hard the material is to earn. Endgame currencies grant 1 — enough to
+// try the feature, not enough to skip the grind that gates it. A code
+// that handed out 10 Joy Coins would let a tester bypass a 10,000,000
+// crystal wall, which would tell us nothing useful about the economy.
+const MATERIAL_CODE_GRANTS = {
+  paint: 10,
+  novaChips: 10,
+  beacons: 5,
+  augmentCores: 3,
+  lightStones: 3,
+  darkCrystals: 3,
+  padRam: 3,
+  repairKits: 5,
+  timeWarps: 3,
+  growths: 3,
+  energyTubes: 5,
+  zombieJuice: 25,
+  lumeCells: 25,
+  // Endgame: one each. Enough to test the mechanic, not to shortcut it.
+  apexCubes: 5,
+  titanTokens: 1,
+  guildTokens: 1,
+  joyCoins: 1,
+};
+
+// Code names are the material key uppercased with a MAT- prefix, so
+// they're predictable: MAT-PAINT, MAT-APEXCUBES, MAT-JOYCOINS.
+function materialCodeName(key) {
+  return 'MAT-' + key.replace(/([A-Z])/g, '$1').toUpperCase();
+}
+
+function seedMaterialRedeemCodes() {
+  TRADEABLE_MATERIALS.forEach((m) => {
+    const code = materialCodeName(m.key);
+    const amount = MATERIAL_CODE_GRANTS[m.key];
+    if (!amount) return;
+    if (!redeemCodes.has(code)) {
+      createRedeemCode({ code, rewardMaterials: { [m.key]: amount } });
+    }
+  });
+}
+
 function seedStarterRedeemCodes() {
+  seedMaterialRedeemCodes();
   if (!redeemCodes.has('PAINTME10')) createRedeemCode({ code: 'PAINTME10', rewardPaint: 10 });
   if (!redeemCodes.has('WELCOME')) createRedeemCode({ code: 'WELCOME', rewardCrystals: 500 });
   if (!redeemCodes.has('CHIPSTART')) createRedeemCode({ code: 'CHIPSTART', rewardNovaChips: 3 });
@@ -1596,6 +1800,12 @@ function createPlayer(username, pin) {
     achievementBuffs: {},
     // attachmentId -> count owned (equipped units stay counted here)
     attachments: {},
+    battlesPlayed: 0,
+    battlesWon: 0,
+    buddyDroidId: null,
+    giftInbox: [],
+    growthActiveUntil: null,
+    timeWarpActiveUntil: null,
     ownedCosmeticPieces: [],
     equippedCosmetics: { head: null, body: null, arms: null, legs: null },
   };
@@ -1882,11 +2092,25 @@ function exportState() {
     crystalTransactions: crystalTransactions.slice(-1000),
     processorSlots: [...processorSlots.values()],
     eggs: [...eggs.values()],
+    // Admin audit log. Unlike presence (deliberately transient), this
+    // MUST survive a redeploy — an audit log that resets on every push
+    // would be worthless.
+    adminLog: require('./admin').adminLog.slice(-2000),
+    adminUsers: [...require('./admin').adminUsers.values()],
   };
 }
 
 function importState(state) {
   if (!state) return;
+  // Restore the admin log first so anything logged during import is
+  // appended rather than overwritten.
+  try {
+    const admin = require('./admin');
+    admin.adminLog.length = 0;
+    (state.adminLog || []).forEach((e) => admin.adminLog.push(e));
+    admin.adminUsers.clear();
+    (state.adminUsers || []).forEach((u) => admin.adminUsers.set(u.playerId, u));
+  } catch (e) {}
   players.clear();
   ownedDroids.clear();
   workshopSlots.clear();
@@ -1968,6 +2192,12 @@ function importState(state) {
     achievementBuffs: {},
     // attachmentId -> count owned (equipped units stay counted here)
     attachments: {},
+    battlesPlayed: 0,
+    battlesWon: 0,
+    buddyDroidId: null,
+    giftInbox: [],
+    growthActiveUntil: null,
+    timeWarpActiveUntil: null,
     ownedCosmeticPieces: [],
     equippedCosmetics: { head: null, body: null, arms: null, legs: null },
   };
@@ -2060,12 +2290,19 @@ module.exports = {
   TRADE_FEE_BY_RARITY,
   COSMETICS_CATALOG,
   SHOP_CATALOG,
+  SMUGGLER_TRADE,
+  smugglerTrade,
   TRADEABLE_MATERIALS,
   buyShopItem,
   buyShopBasket,
   equipOutfit,
   useTimeWarp,
   useGrowth,
+  activePlugins,
+  pluginEffects,
+  PLUGIN_DURATION_MS,
+  PLUGIN_GROWTH_ZONE_BONUS,
+  PLUGIN_TIMEWARP_SPEED_FACTOR,
   SCAN_RATE_LIMIT_MS,
   checkScanRateLimit,
   DEPOT_AUGMENT_CORE_CHANCE,
@@ -2085,6 +2322,7 @@ module.exports = {
   postGuildMessage,
   getGuildMessages,
   getGuildLeaderboard,
+  playerLeaderboardStats,
   activateCompanionBuff,
   listPlayersAdmin,
   deletePlayerAdmin,
@@ -2092,6 +2330,9 @@ module.exports = {
   createRedeemCode,
   redeemCodeFn,
   seedStarterRedeemCodes,
+  seedMaterialRedeemCodes,
+  MATERIAL_CODE_GRANTS,
+  materialCodeName,
   processorSlots,
   eggs,
   PROCESSOR_SLOT_COUNT,
@@ -2116,6 +2357,8 @@ module.exports = {
   attemptDepot,
   wishlist,
   createWish,
+  wishedSpeciesIds,
+  MAX_DROID_WISHES,
   listWishes,
   cancelWish,
   markWishFulfilled,

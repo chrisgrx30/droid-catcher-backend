@@ -364,6 +364,76 @@
   }
   .out-of-reach-toggle .oor-caret { float: right; }
 
+  .dex-filter-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .dex-filter { width: auto; margin-top: 0; font-size: 8px; padding: 5px 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .dex-filter.active { background: var(--cyan); border-color: var(--cyan); color: #04181a; font-weight: 700; }
+
+  .lb-stats { font-size: 8px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; font-weight: 400; letter-spacing: 0; text-transform: none; }
+
+  /* ---- live pvp chat ---- */
+  .live-chat-wrap { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .live-chat-log { max-height: 110px; overflow-y: auto; background: var(--panel-raised); border: 1px solid var(--line); border-radius: 4px; padding: 6px; }
+  .lc-msg { font-size: 10px; padding: 2px 0; display: flex; gap: 6px; }
+  .lc-who { color: var(--text-dim); flex-shrink: 0; }
+  .lc-msg.mine .lc-who { color: var(--cyan); }
+  .lc-body { color: #fff; word-break: break-word; }
+  .live-emote-row { display: flex; gap: 6px; margin-top: 6px; }
+  .live-emote { flex: 1; margin-top: 0; font-size: 18px; padding: 4px; line-height: 1; }
+
+  .wishlist-hit {
+    margin-top: 6px; padding: 5px 8px;
+    border: 1px solid var(--amber); border-radius: 3px;
+    background: rgba(232,169,79,0.14);
+    font-size: 9px; color: var(--amber); text-align: center; font-weight: 700;
+  }
+
+  /* ---- outfit box with flanking cosmetic slots ---- */
+  .outfit-layout { display: flex; gap: 8px; align-items: center; }
+  .cos-col { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+  .outfit-centre { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; }
+  .cos-mini {
+    width: 58px; padding: 5px 3px;
+    border: 1px dashed var(--line); border-radius: 4px;
+    background: rgba(255,255,255,0.03);
+    text-align: center; font-size: 7px; color: var(--text-dim);
+    cursor: pointer; line-height: 1.3;
+  }
+  .cos-mini.filled { border-style: solid; border-color: var(--cyan); color: #fff; background: rgba(95,216,224,0.08); }
+  .cos-mini img { width: 30px; height: 30px; object-fit: contain; display: block; margin: 0 auto 2px; }
+  .cos-mini .cm-buff { color: var(--cyan); font-weight: 700; font-size: 8px; }
+  .cos-mini.locked { opacity: 0.5; cursor: not-allowed; }
+  .outfit-total {
+    text-align: right; font-size: 10px; color: var(--cyan);
+    margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--line);
+  }
+
+  /* wardrobe set drop-downs */
+  .ward-set summary { cursor: pointer; font-size: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .ward-set[open] summary { color: #fff; }
+  .ward-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px 0; }
+  .ward-piece { border: 1px solid var(--line); border-radius: 4px; padding: 5px; text-align: center; font-size: 7px; color: var(--text-dim); cursor: pointer; }
+  .ward-piece img { width: 100%; height: 34px; object-fit: contain; filter: grayscale(1); opacity: 0.35; }
+  .ward-piece.owned img { filter: none; opacity: 1; }
+  .ward-piece.owned { color: #fff; }
+  .ward-piece.equipped { border-color: var(--cyan); box-shadow: 0 0 6px rgba(95,216,224,0.4); }
+  .ward-piece.locked { opacity: 0.4; cursor: not-allowed; }
+
+  /* ---- admin ---- */
+  .gift-pink { background: #e05a9c; border-color: #e05a9c; color: #fff; font-weight: 700; }
+  .admin-log-row { font-size: 9px; padding: 5px 0; border-bottom: 1px solid var(--line); display: flex; gap: 6px; }
+  .admin-log-row:last-child { border-bottom: none; }
+  .admin-log-row.failed { color: var(--danger); }
+  .admin-log-row .alr-time { color: var(--text-dim); flex-shrink: 0; }
+  .admin-log-row .alr-who { color: var(--cyan); flex-shrink: 0; }
+  .admin-log-row .alr-what { flex: 1; color: #fff; }
+  .gift-group-title { font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin: 10px 0 4px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+  .gift-mat-row { display: flex; align-items: center; gap: 6px; font-size: 10px; padding: 3px 0; }
+  .gift-mat-row .gm-name { flex: 1; color: #fff; }
+  .gift-mat-row input { width: 60px; margin-top: 0; text-align: center; }
+  .gift-player-row { display: flex; align-items: center; gap: 8px; font-size: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .gift-player-row:last-child { border-bottom: none; }
+  .gift-player-row label { margin: 0; flex: 1; color: #fff; text-transform: none; letter-spacing: 0; font-size: 10px; }
+
   /* ---- XP bar ---- */
   .xp-bar { height: 10px; border-radius: 5px; background: var(--panel-raised); border: 1px solid var(--line); overflow: hidden; margin-top: 8px; }
   .xp-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), #8ef0f7); width: 0%; transition: width 0.4s; }
@@ -410,7 +480,7 @@
   /* ---- Joy Stick ---- */
   .joystick-row { display: flex; gap: 12px; align-items: center; }
   .joystick-buttons { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-  .joystick-buttons button { margin-top: 0; font-size: 10px; padding: 10px; }
+  .joystick-buttons button { margin-top: 0; font-size: 9px; padding: 7px 6px; }
   .js-green { background: #2a9d4a; border-color: #2a9d4a; color: #fff; font-weight: 700; }
   .js-green:disabled { opacity: 0.45; }
   .js-blue { background: #4cb8e8; border-color: #4cb8e8; color: #04181a; font-weight: 700; }
@@ -419,7 +489,7 @@
   /* Pad is red while inactive, green once a session is paid for. */
   .joystick-pad {
     position: relative;
-    width: 104px; height: 104px;
+    width: 150px; height: 150px;
     flex-shrink: 0;
     border-radius: 50%;
     border: 2px solid var(--danger);
@@ -432,9 +502,9 @@
   }
   .joystick-knob {
     position: absolute;
-    width: 38px; height: 38px;
+    width: 54px; height: 54px;
     left: 50%; top: 50%;
-    margin-left: -19px; margin-top: -19px;
+    margin-left: -27px; margin-top: -27px;
     border-radius: 50%;
     background: var(--danger);
     box-shadow: 0 0 8px rgba(0,0,0,0.6);
@@ -457,12 +527,14 @@
   .out-of-range-note {
     margin-top: 8px;
     padding: 10px;
-    border: 1px dashed var(--line);
+    border: 1px dashed rgba(232,97,95,0.55);
     border-radius: 4px;
-    background: var(--panel-raised);
+    /* Translucent red so the panel background art shows through and
+       out-of-reach reads as "blocked" at a glance. */
+    background: rgba(232,97,95,0.14);
     text-align: center;
     font-size: 10px;
-    color: var(--text-dim);
+    color: #ffb3b2;
   }
   .out-of-range-note .oor-sub {
     margin-top: 3px;
@@ -738,9 +810,17 @@
 
 <!-- PLAYER TAB -->
 <div class="tab-page" id="tab-player">
-  <div class="panel" id="offlineProjectionPanel">
-    <div class="panel-title">Offline Crystal Rate</div>
-    <div id="offlineProjectionContent" style="margin-top:8px; font-size:10px; color:var(--text-dim);">Deploy a pilot to see your rate</div>
+  <!-- Offline rate and Active Buffs share a row: both are small
+       read-only summaries, and side by side they fit one screen. -->
+  <div style="display:flex; gap:10px; align-items:stretch;">
+    <div class="panel" id="offlineProjectionPanel" style="flex:1; min-width:0;">
+      <div class="panel-title">Offline Crystal Rate</div>
+      <div id="offlineProjectionContent" style="margin-top:8px; font-size:10px; color:var(--text-dim);">Deploy a pilot to see your rate</div>
+    </div>
+    <div class="panel" id="buffsPanel" style="flex:1; min-width:0;">
+      <div class="panel-title">Active Buffs</div>
+      <div id="buffsBody"><div class="empty">No buffs yet</div></div>
+    </div>
   </div>
 
   <div class="panel">
@@ -769,10 +849,28 @@
         <div id="padRamStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
       </div>
 
-      <div style="padding:10px; border:1px solid var(--line); border-radius:4px; min-height:180px; margin-top:16px;">
+      <!-- Outfit box: cosmetic slots flank the outfit itself.
+           Head + Body on the left (both buff HP), Arms + Legs on the
+           right (both buff Attack) — the layout mirrors what each side
+           actually does. Each slot shows its own buff underneath, and
+           the running total sits bottom-right. -->
+      <div style="padding:10px; border:1px solid var(--line); border-radius:4px; margin-top:16px;" id="outfitBox">
         <div class="panel-title" style="margin-bottom:6px;">Outfit</div>
-        <div id="outfitDisplay" style="margin-bottom:8px;"></div>
-        <div id="outfitOptions" style="font-size:9px; color:var(--text-dim);"></div>
+        <div class="outfit-layout">
+          <div class="cos-col">
+            <div class="cos-mini" data-slot="head" id="cosMiniHead"></div>
+            <div class="cos-mini" data-slot="body" id="cosMiniBody"></div>
+          </div>
+          <div class="outfit-centre">
+            <div id="outfitDisplay"></div>
+          </div>
+          <div class="cos-col">
+            <div class="cos-mini" data-slot="arms" id="cosMiniArms"></div>
+            <div class="cos-mini" data-slot="legs" id="cosMiniLegs"></div>
+          </div>
+        </div>
+        <div id="outfitBuffTotal" class="outfit-total">No cosmetics equipped</div>
+        <div id="outfitOptions" style="font-size:9px; color:var(--text-dim); margin-top:8px;"></div>
       </div>
     </div>
 
@@ -800,11 +898,6 @@
       <div id="rebootBody"></div>
     </div>
 
-    <div class="panel" id="buffsPanel" style="margin-top:16px;">
-      <div class="panel-title">Active Buffs</div>
-      <div id="buffsBody"><div class="empty">No buffs yet</div></div>
-    </div>
-
     <!-- Account controls live at the very bottom of the Player tab:
          destructive/rarely-used actions shouldn't sit above the things
          players actually open this tab for. -->
@@ -825,6 +918,12 @@
 
     <div class="panel" id="wardrobeMainPanel" style="margin-top:16px;">
       <div class="panel-title">Wardrobe <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— Head/Body/Arms/Legs, sorted by rarity</span></div>
+    <button id="btnToggleCosmeticSets" style="margin-top:10px; font-size:10px;">👕 Cosmetic Sets <span id="cosTotals" style="color:var(--cyan);"></span></button>
+    <div id="cosmeticSetsSection" style="display:none; margin-top:10px;">
+      <div style="font-size:9px; color:var(--text-dim); margin-bottom:6px;">Tap a piece to equip it to the Outfit box on the Player tab. Greyed-out pieces aren't owned yet.</div>
+      <div id="cosSetList"></div>
+    </div>
+
       <div style="display:flex; gap:6px; margin:10px 0;">
         <button class="wardrobe-slot-tab active" data-slot="head" style="flex:1; padding:6px; font-size:9px;">Head</button>
         <button class="wardrobe-slot-tab" data-slot="body" style="flex:1; padding:6px; font-size:9px;">Body</button>
@@ -855,12 +954,6 @@
       <div id="starterOptions"></div>
     </div>
   </div>
-  <div class="panel" id="cosmeticsSetsPanel" style="margin-top:16px;">
-    <div class="panel-title">Cosmetic Sets <span id="cosTotals" style="color:var(--cyan); font-weight:400; text-transform:none; font-size:10px;"></span></div>
-    <div id="cosEquipped" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:8px 0;"></div>
-    <div id="cosSetList"></div>
-  </div>
-
 </div>
 
 <!-- CAPTURE TAB -->
@@ -1222,6 +1315,54 @@
 
 <!-- ADMIN TAB -->
 <div class="tab-page" id="tab-admin">
+  <div class="panel" id="adminLogPanel">
+    <div class="panel-title">Admin Activity Log</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Every admin action is recorded with the player who performed it. Failed code attempts are logged too.</div>
+    <div style="display:flex; gap:6px;">
+      <button id="btnLoadAdminLog" style="margin-top:0; font-size:9px; padding:8px;">Load Log</button>
+      <select id="adminLogFilter" style="flex:1; margin-top:0; font-size:9px;">
+        <option value="">All actions</option>
+        <option value="ADMIN_LOGIN">Logins</option>
+        <option value="AUTH_FAILED">Failed attempts</option>
+        <option value="GIFT_SENT">Gifts</option>
+        <option value="EVENT_CREATED">Events</option>
+      </select>
+    </div>
+    <div id="adminUserRoster" style="margin-top:10px;"></div>
+    <div id="adminLogList" style="margin-top:8px; max-height:280px; overflow-y:auto;"></div>
+  </div>
+
+  <div class="panel" id="adminGiftPanel" style="margin-top:16px;">
+    <div class="panel-title">Make a Gift</div>
+    <button id="btnOpenGift" class="gift-pink">🎁 Make Gift</button>
+    <div id="giftBuilder" style="display:none; margin-top:10px;">
+
+      <label>1. Materials</label>
+      <div id="giftMaterialGroups"></div>
+
+      <label style="margin-top:12px;">2. Droid (optional)</label>
+      <select id="giftSpecies" style="font-size:10px;"><option value="">— no droid —</option></select>
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <select id="giftVariant" style="flex:1; margin-top:0; font-size:10px;"></select>
+        <input type="number" id="giftLevel" min="1" max="20" value="1" placeholder="Level" style="flex:1; margin-top:0;">
+      </div>
+
+      <label style="margin-top:12px;">3. Crystals</label>
+      <input type="number" id="giftCrystals" min="0" value="0" placeholder="0">
+
+      <label style="margin-top:12px;">4. Note (optional)</label>
+      <input type="text" id="giftNote" maxlength="200" placeholder="Thanks for testing!">
+
+      <label style="margin-top:12px;">5. Recipients <span id="giftCount" style="color:var(--cyan);"></span></label>
+      <button id="btnGiftSelectAll" class="ghost" style="font-size:9px; padding:6px; margin-top:0;">Select all / none</button>
+      <div id="giftPlayerList" style="max-height:180px; overflow-y:auto; margin-top:6px;"></div>
+
+      <div id="giftSummary" style="font-size:9px; color:var(--text-dim); margin-top:10px;"></div>
+      <button id="btnSendGift" class="gift-pink" style="margin-top:8px;">Send Gift</button>
+      <button id="btnCancelGift" class="ghost" style="margin-top:6px; font-size:9px; padding:7px;">Cancel</button>
+    </div>
+  </div>
+
   <div class="panel" id="manualCoordsPanel">
     <div class="panel-title">Manual Coordinates <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— region testing</span></div>
     <div style="font-size:9px; color:var(--danger); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">🔒 Chris Admin Only — no access</div>
@@ -1415,7 +1556,7 @@ let captureRadiusCircle = null;
 function drawCaptureRadiusRing(lat, lng) {
   if (typeof L === 'undefined' || !locationMap) return;
   try {
-    const radius = state.captureRadiusMeters || 30;
+    const radius = state.captureRadiusMeters || 40;
     if (captureRadiusCircle) locationMap.removeLayer(captureRadiusCircle);
     captureRadiusCircle = L.circle([lat, lng], {
       radius,
@@ -1452,13 +1593,20 @@ function renderSpawnMarkers() {
       const markerStyle = inRange
         ? `background:${color}; border:3px solid #ffffff; opacity:1; box-shadow:0 0 0 3px ${color}, 0 0 12px 4px ${color};`
         : `background:${color}; border:2px solid rgba(255,255,255,0.9); opacity:0.95; box-shadow:0 0 5px 1px rgba(0,0,0,0.8);`;
+      // A wishlisted droid gets a star badge on its marker — the whole
+      // point of a wish list is not walking past the thing you asked for.
+      const starHtml = spawn.onWishlist
+        ? `<div style="position:absolute; top:-9px; right:-9px; font-size:14px; line-height:1; filter:drop-shadow(0 0 3px #000);">⭐</div>`
+        : '';
       const icon = L.divIcon({
         className: 'spawn-map-marker' + (inRange ? ' in-range' : ''),
-        html: `<div style="width:${size}px; height:${size}px; border-radius:50%; ${markerStyle}"></div>`,
+        html: `<div style="position:relative; width:${size}px; height:${size}px;">
+                 <div style="width:${size}px; height:${size}px; border-radius:50%; ${markerStyle}"></div>${starHtml}
+               </div>`,
         iconSize: [size, size],
       });
       const marker = L.marker([spawn.lat, spawn.lng], { icon }).addTo(locationMap);
-      marker.bindPopup(`<strong>${spawn.speciesName}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a; font-weight:700;">✓ In capture range</span>' : `<span style="color:#e8615f;">${spawn.distanceMeters}m away</span> — walk ${Math.max(0, spawn.distanceMeters - (state.captureRadiusMeters || 30))}m closer`}`);
+      marker.bindPopup(`<strong>${spawn.onWishlist ? '⭐ ' : ''}${spawn.speciesName}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a; font-weight:700;">✓ In capture range</span>' : `<span style="color:#e8615f;">${spawn.distanceMeters}m away</span> — walk ${Math.max(0, spawn.distanceMeters - (state.captureRadiusMeters || 40))}m closer`}`);
       marker.on('click', () => highlightSpawnCard(spawn.id));
       spawnMarkers.push(marker);
     });
@@ -1481,13 +1629,14 @@ function highlightSpawnCard(spawnId) {
 // Written each build round — a short, plain-language summary of what
 // just shipped. Update this string when packaging a new release.
 const HOME_CHANGELOG = `
-  <p><strong>Latest update — v0.4.0:</strong></p>
+  <p><strong>Latest update — v0.5.0:</strong></p>
   <ul style="margin:6px 0 0; padding-left:18px;">
-    <li><strong>⚡ Live PVP (beta)</strong> — real-time battles against players who are online now. 30 seconds a turn. New tab.</li>
-    <li><strong>Pilot Levels &amp; Re-Boot</strong> — earn XP for everything you do, 0 to 20, then Re-Boot for permanent bonuses.</li>
-    <li><strong>Cosmetic Sets</strong> — 10 sets, 4 pieces each, with a bonus for wearing a full set. The Galactic sets need 5 Re-Boots to wear.</li>
-    <li><strong>Droid Attachments</strong> — three slots per droid: Mod Chip, USB Dongle, Energy Bottle.</li>
-    <li><strong>Online indicators</strong> — see at a glance who's around on your friends and guild lists.</li>
+    <li><strong>Buddy Mastery</strong> — assign a level 20 droid as your buddy. It gains a mastery level every day, up to 30.</li>
+    <li><strong>Growth &amp; Time Warp now work</strong> — plug them into the Control Pad for 15 minutes. Growth widens the capture zone, Time Warp slows the marker.</li>
+    <li><strong>New Titans</strong> — Luminarch and Voidlord now appear alongside Scaffitan. Luminarch favours daylight, Voidlord the night. They drop Lume Cells and Zombie Juice.</li>
+    <li><strong>Titan &amp; Guild Tokens now drop</strong> — Titan Tokens from any Titan win, Guild Tokens for winning alongside a guildmate.</li>
+    <li><strong>Smuggler's Trade</strong> — swap 100 Lume Cells or Zombie Juice for Light Stones and Dark Crystals.</li>
+    <li><strong>Outfit box rebuilt</strong> — cosmetic slots now sit either side of your outfit with their buffs shown, and a running total.</li>
   </ul>
 `;
 
@@ -1630,6 +1779,7 @@ async function activatePlayer(player) {
   if (accInner) accInner.style.display = 'block';
   refreshJoystick();
   refreshLevels();
+  checkGiftInbox();
   refreshCosmeticSets();
   refreshAttachments();
   openLiveStream();
@@ -1763,8 +1913,13 @@ function renderFriendsList(friends) {
   el.innerHTML = friends.map((f) => `
     <div class="droid-row">
       <span class="pdot ${f.presence || 'offline'}" title="${f.lastSeenText || ''}"></span>
-      <span style="flex:1;">${f.username} (#${f.id})</span>
-      <span style="color:var(--text-dim); font-size:9px;">${f.lastSeenText || ''} · Dex ${f.dexCaught}/${f.dexTotal}</span>
+      <span style="flex:1;">${f.username} (#${f.id})
+        <div class="lb-stats">
+          👁 ${f.encountered || 0} seen · 🎯 ${f.caught || 0} caught · ⚔ ${f.battlesPlayed || 0} battles (${f.battlesWon || 0}W, ${f.winRate || 0}%)
+          ${f.rebootCount ? ` · ♻ RB${f.rebootCount}` : ''}
+        </div>
+      </span>
+      <span style="color:var(--text-dim); font-size:9px; text-align:right;">${f.lastSeenText || ''}<br>Lv ${f.playerLevel || 0}</span>
     </div>
   `).join('');
 }
@@ -1853,7 +2008,7 @@ async function scanAt(lat, lng) {
     state.spawns = data.spawns;
     // Server decides the capture radius; we only mirror it. Falls back to
     // 15 if an older server build doesn't send the field yet.
-    state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 30;
+    state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 40;
     drawCaptureRadiusRing(lat, lng);
     const badge = $('todBadge');
     badge.textContent = data.timeOfDay === 'day' ? '☀ Daytime here' : '🌑 Nighttime here';
@@ -1909,7 +2064,7 @@ function renderSpawns() {
   // render straight into the list; out-of-reach ones go into a collapsed
   // "Out of reach" section so a long-range sweep doesn't bury the two or
   // three droids the player can actually do something about.
-  const captureRadiusNow = state.captureRadiusMeters || 30;
+  const captureRadiusNow = state.captureRadiusMeters || 40;
   const inRangeCount = state.spawns.filter((sp) => sp.withinCaptureRadius !== false).length;
   const outOfReachCount = state.spawns.length - inRangeCount;
 
@@ -1929,7 +2084,7 @@ function renderSpawns() {
     // minigame. The server enforces this too (capture.js), so this is
     // presentation, not the actual gate.
     const inCaptureRange = spawn.withinCaptureRadius !== false;
-    const captureRadius = state.captureRadiusMeters || 30;
+    const captureRadius = state.captureRadiusMeters || 40;
 
     const card = document.createElement('div');
     card.className = `spawn-card ${spawn.rarity} align-${spawn.alignment}`
@@ -1966,6 +2121,7 @@ function renderSpawns() {
         <span class="spawn-rarity ${spawn.rarity}">${spawn.rarity}</span>
       </div>
       <div class="spawn-meta">${spawn.distanceMeters}m away · expires ${new Date(spawn.expiresAt).toLocaleTimeString()} · needs ${minCost}+ crystals</div>
+      ${spawn.onWishlist ? '<div class="wishlist-hit">⭐ On your wish list</div>' : ''}
       ${spawn.rarity === 'apex' ? '<div class="apex-warning">⬢ APEX — cubes drop win or lose, but the lock-on window is tiny</div>' : ''}
       ${pluginRow}
       ${inCaptureRange ? `
@@ -3940,8 +4096,14 @@ async function renderGuild() {
     const leaderboard = await api('GET', `/guilds/${state.guildId}/leaderboard`);
     $('guildLeaderboard').innerHTML = leaderboard.leaderboard.map((row, i) => `
       <div class="stat-row">
-        <span class="stat-label"><span class="pdot ${row.presence || 'offline'}" title="${row.lastSeenText || ''}"></span>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.'} ${row.username}</span>
-        <span class="stat-val">${row.totalCaught}/${row.totalSpecies} (${row.percentComplete}%)</span>
+        <span class="stat-label" style="flex:1;">
+          <span class="pdot ${row.presence || 'offline'}" title="${row.lastSeenText || ''}"></span>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.'} ${row.username}
+          <div class="lb-stats">
+            👁 ${row.encountered || 0} seen · 🎯 ${row.caught || 0} caught · ⚔ ${row.battlesPlayed || 0} battles (${row.battlesWon || 0}W, ${row.winRate || 0}%)
+            ${row.rebootCount ? ` · ♻ RB${row.rebootCount}` : ''}${row.highestMastery ? ` · ★${row.highestMastery}` : ''}
+          </div>
+        </span>
+        <span class="stat-val">${row.percentComplete}%<br><span style="font-size:8px; color:var(--text-dim);">Lv ${row.playerLevel || 0}</span></span>
       </div>
     `).join('') || '<div class="empty">No members yet</div>';
 
@@ -4092,6 +4254,8 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('apexEncounterPanel', 'apexbattle', 'apex');
   // Drop assets/misc/manualcoords.png (or .gif) in to skin this panel.
   applyPanelBackground('manualCoordsPanel', 'manualcoords');
+  applyPanelBackground('adminLogPanel', 'adminlog');
+  applyPanelBackground('adminGiftPanel', 'admingift');
   applyPanelBackground('themePickerPanel', 'themepicker');
   applyPanelBackground('wardrobeMainPanel', 'wardrobe');
   applyPanelBackground('offlineProjectionPanel', 'offlineprojection');
@@ -4129,7 +4293,7 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('playerLevelPanel', 'playerlevel');
   applyPanelBackground('rebootPanel', 'reboot');
   applyPanelBackground('buffsPanel', 'buffs');
-  applyPanelBackground('cosmeticsSetsPanel', 'cosmeticsets');
+  applyPanelBackground('outfitBox', 'outfitbox');
   applyPanelBackground('attachmentsPanel', 'attachments');
   applyPanelBackground('livePvpStatusPanel', 'livepvp');
   applyPanelBackground('liveBattlePanel', 'livebattle');
@@ -4306,6 +4470,13 @@ const DEX_PAGE_SIZE = 30;
 function renderDex(entries) {
   const grid = $('dexGrid');
   grid.innerHTML = '';
+  // #dexGrid carries the .dex-grid class from the markup, which makes it
+  // a CSS grid of ~90px columns. Appending the controls bar and the card
+  // container into it made each of them a single 90px grid CELL — which
+  // is why the cards came out in one narrow vertical line. The inner
+  // .dex-grid section does the actual column layout, so this wrapper
+  // must be a plain block.
+  grid.style.display = 'block';
 
   // The collection filter buttons moved out of the main Dex — the whole
   // roster is now one paged list, 30 per page, with a Show All escape
@@ -4313,6 +4484,45 @@ function renderDex(entries) {
   // the group labels on each card.
   let page = 0;
   let showAll = false;
+  let filterKey = 'all';
+
+  // Filters sit alongside "show all" rather than replacing it: pick a
+  // subset, then page through it or show the lot.
+  const FILTERS = [
+    { key: 'all', label: 'All' },
+    { key: 'caught', label: 'Caught' },
+    { key: 'uncaught', label: 'Missing' },
+    { key: 'common', label: 'Common' },
+    { key: 'uncommon', label: 'Uncommon' },
+    { key: 'rare', label: 'Rare' },
+    { key: 'legendary', label: 'Legendary' },
+    { key: 'cosmic', label: 'Cosmic' },
+    { key: 'galactic', label: 'Galactic' },
+    { key: 'apex', label: 'Apex' },
+  ];
+
+  const filtered = () => {
+    if (filterKey === 'all') return entries;
+    if (filterKey === 'caught') return entries.filter((e) => e.caught);
+    if (filterKey === 'uncaught') return entries.filter((e) => !e.caught);
+    return entries.filter((e) => e.rarity === filterKey);
+  };
+
+  const filterBar = document.createElement('div');
+  filterBar.className = 'dex-filter-bar';
+  const drawFilters = () => {
+    filterBar.innerHTML = FILTERS.map((f) => {
+      const count = f.key === 'all' ? entries.length
+        : f.key === 'caught' ? entries.filter((e) => e.caught).length
+        : f.key === 'uncaught' ? entries.filter((e) => !e.caught).length
+        : entries.filter((e) => e.rarity === f.key).length;
+      if (!count) return '';
+      return `<button class="dex-filter ${filterKey === f.key ? 'active' : ''}" data-key="${f.key}">${f.label} <span style="opacity:0.6;">${count}</span></button>`;
+    }).join('');
+    filterBar.querySelectorAll('.dex-filter').forEach((b) => {
+      b.onclick = () => { filterKey = b.dataset.key; page = 0; drawFilters(); draw(); };
+    });
+  };
 
   const controls = document.createElement('div');
   controls.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:10px; flex-wrap:wrap;';
@@ -4322,10 +4532,11 @@ function renderDex(entries) {
 
   const draw = () => {
     section.innerHTML = '';
-    const total = entries.length;
+    const list = filtered();
+    const total = list.length;
     const pageCount = Math.max(1, Math.ceil(total / DEX_PAGE_SIZE));
     if (page > pageCount - 1) page = pageCount - 1;
-    const slice = showAll ? entries : entries.slice(page * DEX_PAGE_SIZE, (page + 1) * DEX_PAGE_SIZE);
+    const slice = showAll ? list : list.slice(page * DEX_PAGE_SIZE, (page + 1) * DEX_PAGE_SIZE);
     slice.forEach((sp) => section.appendChild(buildDexCard(sp)));
 
     controls.innerHTML = '';
@@ -4368,7 +4579,9 @@ function renderDex(entries) {
     controls.appendChild(toggle);
   };
 
+  drawFilters();
   draw();
+  grid.appendChild(filterBar);
   grid.appendChild(controls);
   grid.appendChild(section);
 }
@@ -4778,7 +4991,7 @@ function joystickPadVector(e) {
   const pt = e.touches ? e.touches[0] : e;
   let dx = pt.clientX - cx;
   let dy = pt.clientY - cy;
-  const max = rect.width / 2 - 19;
+  const max = rect.width / 2 - 27;
   const dist = Math.hypot(dx, dy);
   if (dist > max) { dx = (dx / dist) * max; dy = (dy / dist) * max; }
   return { x: dx / max, y: dy / max, px: dx, py: dy };
@@ -4799,15 +5012,15 @@ function initJoystickPad() {
     if (!joystickDragging) return;
     const v = joystickPadVector(e);
     joystickVector = { x: v.x, y: v.y };
-    knob.style.marginLeft = (-19 + v.px) + 'px';
-    knob.style.marginTop = (-19 + v.py) + 'px';
+    knob.style.marginLeft = (-27 + v.px) + 'px';
+    knob.style.marginTop = (-27 + v.py) + 'px';
     e.preventDefault();
   };
   const onEnd = () => {
     joystickDragging = false;
     joystickVector = { x: 0, y: 0 };
-    knob.style.marginLeft = '-19px';
-    knob.style.marginTop = '-19px';
+    knob.style.marginLeft = '-27px';
+    knob.style.marginTop = '-27px';
   };
 
   pad.addEventListener('mousedown', onStart);
@@ -4870,7 +5083,7 @@ $('btnJoystickPulse').onclick = async () => {
   try {
     const data = await api('POST', '/joystick/pulse', { playerId: state.playerId });
     state.spawns = data.spawns;
-    state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 30;
+    state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 40;
     state.lastLat = data.joystick.currentLat;
     state.lastLng = data.joystick.currentLng;
     joystickState = data.joystick;
@@ -4893,6 +5106,185 @@ $('btnJoystickReturn').onclick = async () => {
 
 initJoystickPad();
 startJoystickPolling();
+
+// ============================================================
+// ADMIN — activity log + gift builder
+// ============================================================
+
+let giftOptions = null;
+let giftSelectedPlayers = new Set();
+
+// Groups materials under banners the way the shop basket does, so a
+// 17-item flat list doesn't turn into a wall of inputs.
+const GIFT_MATERIAL_GROUPS = [
+  { title: 'Common', keys: ['paint', 'novaChips', 'repairKits', 'energyTubes', 'beacons'] },
+  { title: 'Pad & Plug-ins', keys: ['padRam', 'timeWarps', 'growths'] },
+  { title: 'Chain Materials', keys: ['lightStones', 'darkCrystals', 'zombieJuice', 'lumeCells'] },
+  { title: 'Endgame', keys: ['apexCubes', 'augmentCores'] },
+  { title: 'Tokens — use sparingly', keys: ['titanTokens', 'guildTokens', 'joyCoins'] },
+];
+
+async function loadAdminLog() {
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
+  try {
+    const filter = $('adminLogFilter').value;
+    const q = `adminCode=${encodeURIComponent(adminCode)}&playerId=${state.playerId}&limit=200`
+      + (filter ? `&filterAction=${filter}` : '');
+    const d = await api('GET', `/admin/log?${q}`);
+
+    $('adminUserRoster').innerHTML = d.admins.length
+      ? `<div style="font-size:9px; color:var(--text-dim); margin-bottom:4px;">Admins on record</div>`
+        + d.admins.map((u) => `<div class="stat-row"><span class="stat-label">${u.username} (#${u.playerId})</span><span class="stat-val">${u.actionCount} actions · ${new Date(u.lastSeen).toLocaleDateString()}</span></div>`).join('')
+      : '';
+
+    $('adminLogList').innerHTML = d.entries.length
+      ? d.entries.map((e) => {
+          const t = new Date(e.at);
+          const detail = e.details && Object.keys(e.details).length
+            ? Object.entries(e.details).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ')
+            : '';
+          return `<div class="admin-log-row ${e.success ? '' : 'failed'}">
+            <span class="alr-time">${t.toLocaleDateString()} ${t.toTimeString().slice(0, 5)}</span>
+            <span class="alr-who">${e.username}</span>
+            <span class="alr-what">${e.action}${detail ? ` <span style="color:var(--text-dim);">— ${detail}</span>` : ''}</span>
+          </div>`;
+        }).join('')
+      : '<div class="empty">No entries</div>';
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not load the log.');
+  }
+}
+
+async function openGiftBuilder() {
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
+  try {
+    giftOptions = await api('GET', `/admin/gift-options?adminCode=${encodeURIComponent(adminCode)}&playerId=${state.playerId}`);
+    giftOptions.adminCode = adminCode;
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Access denied.');
+    return;
+  }
+
+  const byKey = {};
+  giftOptions.materials.forEach((m) => { byKey[m.key] = m.name; });
+
+  // Anything not explicitly grouped still gets shown, so a material
+  // added later can't silently vanish from this screen.
+  const grouped = new Set(GIFT_MATERIAL_GROUPS.flatMap((g) => g.keys));
+  const ungrouped = giftOptions.materials.filter((m) => !grouped.has(m.key)).map((m) => m.key);
+  const groups = ungrouped.length
+    ? [...GIFT_MATERIAL_GROUPS, { title: 'Other', keys: ungrouped }]
+    : GIFT_MATERIAL_GROUPS;
+
+  $('giftMaterialGroups').innerHTML = groups.map((g) => `
+    <div class="gift-group-title">${g.title}</div>
+    ${g.keys.filter((k) => byKey[k]).map((k) => `
+      <div class="gift-mat-row">
+        <span class="gm-name">${byKey[k]}</span>
+        <input type="number" min="0" value="0" data-mat="${k}" class="gift-mat-input">
+      </div>`).join('')}
+  `).join('');
+
+  $('giftSpecies').innerHTML = '<option value="">— no droid —</option>'
+    + giftOptions.species.map((sp) => `<option value="${sp.id}">${sp.name} (${sp.rarity})</option>`).join('');
+  $('giftVariant').innerHTML = giftOptions.variants.map((v) => `<option value="${v}">${v}</option>`).join('');
+  $('giftLevel').max = giftOptions.maxLevel;
+
+  giftSelectedPlayers = new Set();
+  renderGiftPlayers();
+  $('giftBuilder').style.display = 'block';
+  $('btnOpenGift').style.display = 'none';
+}
+
+function renderGiftPlayers() {
+  $('giftPlayerList').innerHTML = giftOptions.players.map((p) => `
+    <div class="gift-player-row">
+      <input type="checkbox" class="gift-player-cb" data-id="${p.id}" ${giftSelectedPlayers.has(p.id) ? 'checked' : ''}>
+      <label>${p.username} <span style="color:var(--text-dim);">#${p.id} · Lv ${p.level}</span></label>
+    </div>`).join('');
+  $('giftPlayerList').querySelectorAll('.gift-player-cb').forEach((cb) => {
+    cb.onchange = () => {
+      const id = Number(cb.dataset.id);
+      if (cb.checked) giftSelectedPlayers.add(id); else giftSelectedPlayers.delete(id);
+      $('giftCount').textContent = giftSelectedPlayers.size ? `(${giftSelectedPlayers.size} selected)` : '';
+    };
+  });
+  $('giftCount').textContent = giftSelectedPlayers.size ? `(${giftSelectedPlayers.size} selected)` : '';
+}
+
+async function sendGift() {
+  if (!giftOptions) return;
+  const materials = {};
+  document.querySelectorAll('.gift-mat-input').forEach((inp) => {
+    const v = Math.floor(Number(inp.value) || 0);
+    if (v > 0) materials[inp.dataset.mat] = v;
+  });
+  const speciesId = Number($('giftSpecies').value) || null;
+  const crystals = Math.floor(Number($('giftCrystals').value) || 0);
+
+  if (!giftSelectedPlayers.size) { showGuildResultPopup(false, 'Select at least one recipient.'); return; }
+  if (!Object.keys(materials).length && !speciesId && !crystals) {
+    showGuildResultPopup(false, 'The gift is empty — add materials, a droid or crystals.');
+    return;
+  }
+
+  const names = giftOptions.players.filter((p) => giftSelectedPlayers.has(p.id)).map((p) => p.username);
+  if (!confirm(`Send this gift to ${names.length} player(s)?\n\n${names.join(', ')}\n\nThis cannot be undone.`)) return;
+
+  try {
+    const r = await api('POST', '/admin/gift', {
+      playerId: state.playerId,
+      adminCode: giftOptions.adminCode,
+      playerIds: [...giftSelectedPlayers],
+      materials,
+      droid: speciesId ? { speciesId, level: Number($('giftLevel').value) || 1, variant: $('giftVariant').value } : null,
+      crystals,
+      note: $('giftNote').value,
+    });
+    showGuildResultPopup(true, `🎁 Gift sent to ${r.sent} player(s).`);
+    closeGiftBuilder();
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not send that gift.');
+  }
+}
+
+function closeGiftBuilder() {
+  $('giftBuilder').style.display = 'none';
+  $('btnOpenGift').style.display = 'block';
+  giftSelectedPlayers = new Set();
+}
+
+// ---- player-facing gift inbox ----
+async function checkGiftInbox() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/gifts/${state.playerId}`);
+    const unseen = (d.inbox || []).filter((g) => !g.seen);
+    if (!unseen.length) return;
+    const g = unseen[unseen.length - 1];
+    const lines = [];
+    if (g.crystals) lines.push(`${g.crystals.toLocaleString()} crystals`);
+    Object.entries(g.materials || {}).forEach(([k, v]) => lines.push(`${v} ${k}`));
+    if (g.droid) lines.push(`${g.droid.name} (Lv ${g.droid.level}, ${g.droid.variant})`);
+    showGuildResultPopup(true, `🎁 Gift from ${g.from}!\n${lines.join(' · ')}${g.note ? `\n"${g.note}"` : ''}`);
+    await api('POST', '/gifts/seen', { playerId: state.playerId });
+    await refreshWorkshop();
+  } catch (e) {}
+}
+
+$('btnToggleCosmeticSets').onclick = () => toggleCosmeticSets();
+$('btnLoadAdminLog').onclick = loadAdminLog;
+$('btnOpenGift').onclick = openGiftBuilder;
+$('btnCancelGift').onclick = closeGiftBuilder;
+$('btnSendGift').onclick = sendGift;
+$('btnGiftSelectAll').onclick = () => {
+  if (!giftOptions) return;
+  if (giftSelectedPlayers.size === giftOptions.players.length) giftSelectedPlayers = new Set();
+  else giftSelectedPlayers = new Set(giftOptions.players.map((p) => p.id));
+  renderGiftPlayers();
+};
 
 // ============================================================
 // LIVE PVP + real-time stream
@@ -4931,6 +5323,14 @@ function openLiveStream() {
     showGuildResultPopup(true, 'Live battle started!');
   });
   liveStream.addEventListener('live:turn', (e) => { liveState = JSON.parse(e.data); renderLiveBattle(); });
+  liveStream.addEventListener('live:chat', (e) => {
+    // Append in place rather than re-rendering the whole battle — a full
+    // redraw on every message would reset the chat input mid-typing.
+    const d = JSON.parse(e.data);
+    if (!liveState || liveState.roomId !== d.roomId) return;
+    liveState.chat = (liveState.chat || []).concat(d.message).slice(-20);
+    renderLiveChat();
+  });
   liveStream.addEventListener('live:timeout', (e) => {
     const d = JSON.parse(e.data);
     if (d.playerId === state.playerId && !d.forfeited) {
@@ -5064,7 +5464,18 @@ function renderLiveBattle() {
     ${liveState.status === 'active' ? `
       <button id="btnLiveAttack" ${myTurn ? '' : 'disabled'} style="margin-top:10px; ${myTurn ? 'background:var(--danger);border-color:var(--danger);color:#fff;font-weight:700;' : ''}">${myTurn ? 'ATTACK' : 'Waiting…'}</button>
       <button id="btnLiveForfeit" class="ghost" style="margin-top:6px; font-size:9px; padding:6px;">Forfeit</button>
-    ` : '<button id="btnLiveClose" class="ghost" style="margin-top:10px;">Close</button>'}`;
+    ` : '<button id="btnLiveClose" class="ghost" style="margin-top:10px;">Close</button>'}
+
+    <div class="live-chat-wrap">
+      <div class="live-chat-log" id="liveChatLog"></div>
+      <div class="live-emote-row">
+        ${Object.entries(liveState.emotes || {}).map(([k, ch]) => `<button class="live-emote" data-emote="${k}" title="${k}">${ch}</button>`).join('')}
+      </div>
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <input type="text" id="liveChatInput" maxlength="140" placeholder="Say something…" style="flex:1; margin-top:0; font-size:10px;">
+        <button id="btnLiveChatSend" style="width:auto; margin-top:0; font-size:9px; padding:7px 10px;">Send</button>
+      </div>
+    </div>`;
 
   const atk = $('btnLiveAttack');
   if (atk) atk.onclick = async () => {
@@ -5079,6 +5490,50 @@ function renderLiveBattle() {
   };
   const cl = $('btnLiveClose');
   if (cl) cl.onclick = () => { liveState = null; $('liveBattlePanel').style.display = 'none'; refreshLivePvp(); };
+
+  renderLiveChat();
+  document.querySelectorAll('.live-emote').forEach((b) => {
+    b.onclick = () => sendLiveChat(null, b.dataset.emote);
+  });
+  const chatSend = $('btnLiveChatSend');
+  if (chatSend) chatSend.onclick = () => sendLiveChat($('liveChatInput').value);
+  const chatInput = $('liveChatInput');
+  if (chatInput) chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendLiveChat(chatInput.value); };
+}
+
+function renderLiveChat() {
+  const el = $('liveChatLog');
+  if (!el || !liveState) return;
+  const msgs = liveState.chat || [];
+  el.innerHTML = msgs.length
+    ? msgs.map((m) => `<div class="lc-msg ${m.playerId === state.playerId ? 'mine' : ''}">
+        <span class="lc-who">${m.playerId === state.playerId ? 'You' : m.username}</span>
+        <span class="lc-body">${m.emoteChar ? `<span style="font-size:18px;">${m.emoteChar}</span>` : escapeHtml(m.text)}</span>
+      </div>`).join('')
+    : '<div style="font-size:9px; color:var(--text-dim); text-align:center; padding:6px;">Say hello or send an emote</div>';
+  el.scrollTop = el.scrollHeight;
+}
+
+// Chat is player-written text rendered into innerHTML, so it has to be
+// escaped — otherwise a message containing a tag would execute.
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+async function sendLiveChat(text, emote) {
+  if (!liveState) return;
+  const input = $('liveChatInput');
+  try {
+    await api('POST', '/livepvp/chat', {
+      roomId: liveState.roomId,
+      playerId: state.playerId,
+      text: emote ? null : text,
+      emote: emote || null,
+    });
+    if (!emote && input) input.value = '';
+  } catch (e) {}
 }
 
 function startLiveTurnTicker() {
@@ -5198,45 +5653,97 @@ async function refreshCosmeticSets() {
   try {
     const d = await api('GET', `/cosmetics2/${state.playerId}`);
     state.cosmeticData = d;
-    $('cosTotals').textContent = `+${d.totals.hpPercent}% HP · +${d.totals.attackPercent}% Attack`;
+    const allPieces = d.sets.flatMap((st) => st.pieces);
 
-    $('cosEquipped').innerHTML = d.slots.map((slot) => {
+    // ---- outfit box slots ----
+    // Head/Body buff HP, Arms/Legs buff Attack. Each mini slot shows its
+    // own contribution so a player can see where the numbers come from
+    // rather than only a single total.
+    const SLOT_LABEL = { head: 'Head', body: 'Body', arms: 'Arms', legs: 'Legs' };
+    const SLOT_STAT = { head: 'HP', body: 'HP', arms: 'ATK', legs: 'ATK' };
+    d.slots.forEach((slot) => {
+      const el = $('cosMini' + slot.charAt(0).toUpperCase() + slot.slice(1));
+      if (!el) return;
       const id = d.equipped[slot];
-      const piece = id ? d.sets.flatMap((st) => st.pieces).find((pp) => pp.id === id) : null;
-      return `<div class="cos-slot ${piece ? 'filled' : ''}" data-slot="${slot}">
-        ${piece ? `<img src="/assets/cosmetics/${piece.icon}" style="width:26px;height:26px;object-fit:contain;" onerror="this.remove();"><br>${piece.name}` : slot}
-      </div>`;
-    }).join('');
-
-    $('cosSetList').innerHTML = d.sets.map((st) => `
-      <div class="cos-set ${st.locked ? 'locked' : ''}">
-        <div style="display:flex; align-items:center; gap:6px;">
-          <strong style="font-size:11px; color:#fff;">${st.name}</strong>
-          <span class="spawn-rarity ${st.rarity}" style="font-size:8px;">${st.rarity}</span>
-          <span style="margin-left:auto; font-size:9px; color:var(--text-dim);">${st.ownedCount}/${st.totalPieces} · +${Math.round(st.percent * 100)}%</span>
-        </div>
-        ${st.locked ? `<div style="font-size:9px; color:var(--danger); margin-top:4px;">🔒 Needs ${d.requiredRebootsForGalactic} Re-Boots to equip (you have ${d.rebootCount})</div>` : ''}
-        ${st.pieces.map((pc) => `
-          <div class="cos-piece ${pc.owned ? 'owned' : ''}">
-            <span class="cp-name">${pc.name}${pc.owned ? '' : ' <span style="opacity:0.5;">(not owned)</span>'}</span>
-            ${pc.owned && !pc.equipped ? `<button class="cos-equip ghost" data-id="${pc.id}">Equip</button>` : ''}
-            ${pc.equipped ? `<button class="cos-unequip ghost" data-slot="${pc.slot}" style="color:var(--danger);">Remove</button>` : ''}
-          </div>`).join('')}
-      </div>`).join('');
-
-    $('cosSetList').querySelectorAll('.cos-equip').forEach((b) => {
-      b.onclick = async () => {
-        try { await api('POST', '/cosmetics2/equip', { playerId: state.playerId, pieceId: b.dataset.id }); await refreshCosmeticSets(); refreshBuffs(); }
-        catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not equip that.'); }
+      const piece = id ? allPieces.find((pp) => pp.id === id) : null;
+      el.className = 'cos-mini' + (piece ? ' filled' : '');
+      el.innerHTML = piece
+        ? `<img src="/assets/cosmetics/${piece.icon}" onerror="this.style.visibility='hidden';">
+           ${piece.name}
+           <div class="cm-buff">+${Math.round(piece.percent * 100)}% ${SLOT_STAT[slot]}</div>`
+        : `${SLOT_LABEL[slot]}<div style="opacity:0.6; margin-top:2px;">empty</div><div class="cm-buff" style="color:var(--text-dim);">— ${SLOT_STAT[slot]}</div>`;
+      el.onclick = () => {
+        if (piece) unequipCosmetic(slot);
+        else {
+          // Wardrobe is on this same tab — open the drawer and scroll to it.
+          toggleCosmeticSets(true);
+          const w = $('wardrobeMainPanel');
+          if (w) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       };
     });
-    $('cosSetList').querySelectorAll('.cos-unequip').forEach((b) => {
-      b.onclick = async () => {
-        try { await api('POST', '/cosmetics2/unequip', { playerId: state.playerId, slot: b.dataset.slot }); await refreshCosmeticSets(); refreshBuffs(); }
-        catch (e) {}
+
+    // Bottom-right running total. Outfits don't carry buffs yet, so this
+    // is cosmetics-only for now — labelled so it's clear why.
+    const bt = $('outfitBuffTotal');
+    if (bt) {
+      const any = d.totals.hpPercent || d.totals.attackPercent;
+      bt.innerHTML = any
+        ? `Total: <strong>+${d.totals.hpPercent}% HP</strong> · <strong>+${d.totals.attackPercent}% Attack</strong>`
+          + (d.setBonusActive ? ` <span style="color:#2a9d4a;">(set bonus active)</span>` : '')
+        : 'No cosmetics equipped';
+    }
+
+    const ct = $('cosTotals');
+    if (ct) ct.textContent = (d.totals.hpPercent || d.totals.attackPercent) ? `+${d.totals.hpPercent}% / +${d.totals.attackPercent}%` : '';
+
+    // ---- wardrobe drawer: one collapsible per set ----
+    $('cosSetList').innerHTML = d.sets.map((st) => `
+      <details class="ward-set">
+        <summary>
+          ${st.name} — ${st.rarity} · ${st.ownedCount}/${st.totalPieces}
+          ${st.locked ? ' 🔒' : ''}
+        </summary>
+        ${st.locked ? `<div style="font-size:9px; color:var(--danger); padding:4px 0;">Needs ${d.requiredRebootsForGalactic} Re-Boots to equip — you have ${d.rebootCount}</div>` : ''}
+        <div class="ward-grid">
+          ${st.pieces.map((pc) => `
+            <div class="ward-piece ${pc.owned ? 'owned' : ''} ${pc.equipped ? 'equipped' : ''} ${st.locked ? 'locked' : ''}"
+                 data-id="${pc.id}" data-owned="${pc.owned}" data-locked="${st.locked}">
+              <img src="/assets/cosmetics/${pc.icon}" onerror="this.style.visibility='hidden';">
+              ${pc.slot}
+              <div style="color:${pc.owned ? 'var(--cyan)' : 'var(--text-dim)'};">+${Math.round(pc.percent * 100)}%</div>
+              ${pc.equipped ? '<div style="color:#2a9d4a;">worn</div>' : ''}
+            </div>`).join('')}
+        </div>
+      </details>`).join('');
+
+    $('cosSetList').querySelectorAll('.ward-piece').forEach((el) => {
+      el.onclick = async () => {
+        if (el.dataset.locked === 'true') { showGuildResultPopup(false, `Needs ${d.requiredRebootsForGalactic} Re-Boots to equip.`); return; }
+        if (el.dataset.owned !== 'true') { showGuildResultPopup(false, "You don't own that piece yet."); return; }
+        try {
+          await api('POST', '/cosmetics2/equip', { playerId: state.playerId, pieceId: el.dataset.id });
+          await refreshCosmeticSets();
+          refreshBuffs();
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not equip that.'); }
       };
     });
   } catch (e) {}
+}
+
+async function unequipCosmetic(slot) {
+  try {
+    await api('POST', '/cosmetics2/unequip', { playerId: state.playerId, slot });
+    await refreshCosmeticSets();
+    refreshBuffs();
+  } catch (e) {}
+}
+
+function toggleCosmeticSets(forceOpen) {
+  const sec = $('cosmeticSetsSection');
+  if (!sec) return;
+  const open = forceOpen !== undefined ? forceOpen : sec.style.display === 'none';
+  sec.style.display = open ? 'block' : 'none';
 }
 
 // ---- attachments ----
@@ -5710,11 +6217,21 @@ $('btnBuyBeacon').onclick = async () => {
 
 $('btnActivateBeacon').onclick = async () => {
   if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  // Checked up front so the message names the actual problem. The
+  // server enforces this too — this is just a clearer, faster failure.
+  if (!state.beacons) {
+    showGuildResultPopup(false, "You have no Beacons.\n\nBeacons boost spawn rates in your area for 30 minutes. Buy one from the Shop, or win one from a Titan encounter.");
+    return;
+  }
   try {
     await api('POST', '/beacon/activate', { playerId: state.playerId });
     log('SYS', 'Beacon active for 30 minutes!');
     await refreshBeacon();
-  } catch (e) {}
+  } catch (e) {
+    // Previously this catch was empty, so a failed activation gave the
+    // player no feedback whatsoever.
+    showGuildResultPopup(false, (e && e.message) || 'Could not activate that Beacon.');
+  }
 };
 
 // ---- Field Ops: Factory ----

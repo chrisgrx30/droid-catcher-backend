@@ -189,6 +189,8 @@ function viewFor(room) {
     maxMissedTurns: MAX_MISSED_TURNS,
     winnerId: room.winnerId,
     log: room.log.slice(-12),
+    chat: (room.chat || []).slice(-20),
+    emotes: EMOTES,
     teams: {},
     activeIndex: room.activeIndex,
   };
@@ -270,7 +272,14 @@ function finish(room, winnerId, lastEntry, reason) {
   room.finishedAt = Date.now();
   room.endReason = reason;
 
+  // Count the match for BOTH players, so win rate means something.
+  room.playerIds.forEach((pid) => {
+    const pl = db.players.get(pid);
+    if (pl) pl.battlesPlayed = (pl.battlesPlayed || 0) + 1;
+  });
+
   const winner = db.players.get(winnerId);
+  if (winner) winner.battlesWon = (winner.battlesWon || 0) + 1;
   if (winner && WIN_REWARD.crystals) {
     winner.crystalBalance = (winner.crystalBalance || 0) + WIN_REWARD.crystals;
     db.crystalTransactions.push({
@@ -349,11 +358,23 @@ function lobbyFor(playerId) {
   const player = db.players.get(playerId);
   if (!player) throw new LivePvpError('NO_PLAYER', 'Player not found');
 
-  const candidateIds = new Set();
-  (player.friends || []).forEach((id) => candidateIds.add(id));
+  // Beta: ANY online player is challengeable, not just friends and
+  // guildmates. With a small test group, restricting it to friends
+  // meant most people had nobody to fight. Friends and guildmates are
+  // still flagged so they sort to the top.
+  const friendIds = new Set(player.friends || []);
+  const guildIds = new Set();
   if (player.guildId) {
     const guild = db.guilds.get(player.guildId);
-    if (guild) guild.memberIds.forEach((id) => { if (id !== playerId) candidateIds.add(id); });
+    if (guild) guild.memberIds.forEach((id) => { if (id !== playerId) guildIds.add(id); });
+  }
+  const candidateIds = new Set();
+  for (const other of db.players.values()) {
+    if (other.id === playerId) continue;
+    // Offline players are hidden entirely — a live match needs both
+    // sides present, so listing them would only invite failed attempts.
+    if (presence.statusOf(other.id) === 'offline' && !friendIds.has(other.id) && !guildIds.has(other.id)) continue;
+    candidateIds.add(other.id);
   }
 
   const opponents = [...candidateIds].map((id) => {
@@ -366,9 +387,18 @@ function lobbyFor(playerId) {
       online: presence.isOnline(id),
       streaming: realtime.isConnected(id),
       inBattle: Boolean(activeRoomFor(id)),
+      isFriend: friendIds.has(id),
+      isGuildmate: guildIds.has(id),
     };
   }).filter(Boolean)
-    .sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+    // Online first, then friends/guildmates, then everyone else.
+    .sort((a, b) => {
+      if (a.online !== b.online) return a.online ? -1 : 1;
+      const aKnown = a.isFriend || a.isGuildmate;
+      const bKnown = b.isFriend || b.isGuildmate;
+      if (aKnown !== bKnown) return aKnown ? -1 : 1;
+      return a.username.localeCompare(b.username);
+    });
 
   const incoming = [...challenges.values()]
     .filter((c) => c.toPlayerId === playerId)
@@ -399,12 +429,60 @@ function roomView(roomId, playerId) {
   return viewFor(room);
 }
 
+
+// ---- in-battle chat and emotes ----
+// Kept to a fixed emote set plus short free text. Messages are held on
+// the room (not persisted) and pushed over SSE — a live battle's chat
+// has no value once the match is over.
+const EMOTES = {
+  smile: '\u{1F642}',
+  grump: '\u{1F620}',
+  amazed: '\u{1F62E}',
+  clap: '\u{1F44F}',
+};
+const MAX_CHAT_LENGTH = 140;
+const MAX_CHAT_HISTORY = 50;
+
+function sendChat(roomId, playerId, text, emote) {
+  const room = rooms.get(roomId);
+  if (!room) throw new LivePvpError('NO_ROOM', 'Battle not found');
+  if (!room.playerIds.includes(playerId)) throw new LivePvpError('NOT_IN_BATTLE', 'You are not in this battle');
+
+  let body = '';
+  let emoteChar = null;
+  if (emote) {
+    if (!EMOTES[emote]) throw new LivePvpError('BAD_EMOTE', 'Unknown emote');
+    emoteChar = EMOTES[emote];
+  } else {
+    body = String(text || '').trim().slice(0, MAX_CHAT_LENGTH);
+    if (!body) throw new LivePvpError('EMPTY', 'Nothing to send');
+  }
+
+  room.chat = room.chat || [];
+  const msg = {
+    id: db.nextId(),
+    playerId,
+    username: room.usernames[playerId],
+    text: body,
+    emote: emote || null,
+    emoteChar,
+    at: Date.now(),
+  };
+  room.chat.push(msg);
+  while (room.chat.length > MAX_CHAT_HISTORY) room.chat.shift();
+
+  realtime.toPlayers(room.playerIds, 'live:chat', { roomId: room.id, message: msg });
+  return msg;
+}
+
 module.exports = {
   TURN_SECONDS,
   MAX_MISSED_TURNS,
   CHALLENGE_EXPIRY_MS,
   WIN_REWARD,
   challenge,
+  sendChat,
+  EMOTES,
   acceptChallenge,
   declineChallenge,
   attack,

@@ -222,6 +222,10 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
   for (let i = 0; i < 8; i++) trySpawnInCell(cell, lng, beaconActive);
   cellsToCheck.filter((c) => c !== cell).forEach((c) => trySpawnInCell(c, lng, beaconActive));
 
+  // Looked up once per scan rather than per spawn.
+
+  const wishedIds = playerId ? db.wishedSpeciesIds(playerId) : new Set();
+
   const results = [];
   for (const spawn of db.spawns.values()) {
     if (spawn.claimedBy) continue;
@@ -251,6 +255,9 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
         // the rounded one, so a droid at 15.4m doesn't display as "15m
         // away" while refusing to open.
         withinCaptureRadius: dist <= CAPTURE_RADIUS_METERS,
+        // Star this spawn if it's a species the player has on their
+        // wish list — so a wanted droid can't be walked past unnoticed.
+        onWishlist: wishedIds.has(species.id),
         boostSource: spawn.boostSource,
       });
     }
