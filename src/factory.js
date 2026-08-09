@@ -7,6 +7,7 @@
 // FACTORY_*, PROTOTYPE_RARITY_TABLE) and constants.
 
 const db = require('./db');
+const levels = require('./levels');
 
 class FactoryError extends Error {
   constructor(code, message) {
@@ -106,6 +107,8 @@ function collectPrototype(playerId, slotId) {
     const minsLeft = Math.ceil((slot.hatchReadyAt - Date.now()) / 60000);
     throw new FactoryError('NOT_READY', `Still incubating — ready in ~${minsLeft}m`);
   }
+
+  levels.awardXp(playerId, 'hatch');
 
   const rarity = db.rollPrototypeRarity();
   const candidates = db.eligiblePrototypeSpecies(rarity);

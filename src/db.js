@@ -11,6 +11,8 @@
 // spawns -> Redis (with native key TTL for auto-expiry).
 
 let nextId = 1;
+const presence = require('./presence');
+
 const id = () => nextId++;
 
 // ---- droid_species (design-time data) ----
@@ -1219,11 +1221,13 @@ function getFriendsData(playerId) {
     const dex = getDex(id);
     return { id, username: f.username, dexCaught: dex.entries.filter((e) => e.caught).length, dexTotal: dex.entries.length };
   }).filter(Boolean);
+  // Online / idle / offline dot for each friend.
+  const decoratedFriends = presence.decorate(friends);
   const incoming = (player.friendRequestsReceived || []).map((id) => {
     const f = players.get(id);
     return f ? { id, username: f.username } : null;
   }).filter(Boolean);
-  return { friends, incomingRequests: incoming };
+  return { friends: decoratedFriends, incomingRequests: incoming };
 }
 
 const GUILD_KICK_GLOBAL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 1 day before joining ANY guild
@@ -1360,15 +1364,24 @@ function getGuildMessages(guildId) {
 function getGuildLeaderboard(guildId) {
   const guild = guilds.get(guildId);
   if (!guild) throw new Error('Guild not found');
-  return guild.memberIds
+  const rows = guild.memberIds
     .map((pid) => {
       const player = players.get(pid);
       if (!player) return null;
       const dex = getDex(pid);
-      return { playerId: pid, username: player.username, totalCaught: dex.totalCaught, totalSpecies: dex.totalSpecies, percentComplete: dex.percentComplete };
+      return {
+        playerId: pid,
+        id: pid, // presence.decorate keys off `id`
+        username: player.username,
+        totalCaught: dex.totalCaught,
+        totalSpecies: dex.totalSpecies,
+        percentComplete: dex.percentComplete,
+      };
     })
     .filter(Boolean)
     .sort((a, b) => b.totalCaught - a.totalCaught);
+  // Online dot on every guild member, same shape as the friends list.
+  return presence.decorate(rows);
 }
 
 // ---- wishlist (public "looking for" board) ----
@@ -1569,6 +1582,22 @@ function createPlayer(username, pin) {
     guildTokens: 0,
     joyCoins: 0,
     apexCooldownUntil: null,
+    joystickSession: null,
+    joystickCooldownUntil: null,
+    // ---- Player levels / Re-Boot (v0.4) ----
+    playerLevel: 0,
+    playerXp: 0,
+    lifetimeXp: 0,
+    rebootCount: 0,
+    lastRebootAt: null,
+    unlockedLevelBadges: [],
+    unlockedRebootBadges: [],
+    // Achievement buff totals, maintained by the achievements system.
+    achievementBuffs: {},
+    // attachmentId -> count owned (equipped units stay counted here)
+    attachments: {},
+    ownedCosmeticPieces: [],
+    equippedCosmetics: { head: null, body: null, arms: null, legs: null },
   };
   players.set(player.id, player);
 
@@ -1925,6 +1954,22 @@ function importState(state) {
     guildTokens: 0,
     joyCoins: 0,
     apexCooldownUntil: null,
+    joystickSession: null,
+    joystickCooldownUntil: null,
+    // ---- Player levels / Re-Boot (v0.4) ----
+    playerLevel: 0,
+    playerXp: 0,
+    lifetimeXp: 0,
+    rebootCount: 0,
+    lastRebootAt: null,
+    unlockedLevelBadges: [],
+    unlockedRebootBadges: [],
+    // Achievement buff totals, maintained by the achievements system.
+    achievementBuffs: {},
+    // attachmentId -> count owned (equipped units stay counted here)
+    attachments: {},
+    ownedCosmeticPieces: [],
+    equippedCosmetics: { head: null, body: null, arms: null, legs: null },
   };
   (state.players || []).forEach((p) => players.set(p.id, { ...playerDefaults, ...p }));
 

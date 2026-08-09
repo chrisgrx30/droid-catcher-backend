@@ -337,7 +337,122 @@
   /* --- Out of capture range (radar band 2) --- */
   /* Visible on the sweep but too far to lock on. Deliberately muted so
      the in-range droids read as the actionable ones at a glance. */
-  .spawn-card.out-of-range { opacity: 0.62; }
+  .spawn-card.out-of-range { opacity: 0.85; }
+  /* In-range map markers pulse so the catchable ones draw the eye,
+     rather than making the out-of-range ones hard to see. */
+  .spawn-map-marker.in-range { animation: markerPulse 1.6s ease-in-out infinite; }
+  @keyframes markerPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.18); }
+  }
+
+  /* Empty / locked slots are see-through so the panel background art
+     shows behind them. Filled slots keep their solid tint. */
+  .slot-card.empty-slot, .slot-card.locked { background: rgba(255,255,255,0.04); }
+  .slot-card.empty-slot { border-style: dashed; }
+
+  /* Out of reach — collapsed list */
+  .out-of-reach-toggle {
+    width: 100%;
+    margin-top: 10px;
+    font-size: 10px;
+    padding: 9px;
+    text-align: left;
+    background: var(--panel-raised);
+    border: 1px dashed var(--line);
+    color: var(--text-dim);
+  }
+  .out-of-reach-toggle .oor-caret { float: right; }
+
+  /* ---- XP bar ---- */
+  .xp-bar { height: 10px; border-radius: 5px; background: var(--panel-raised); border: 1px solid var(--line); overflow: hidden; margin-top: 8px; }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), #8ef0f7); width: 0%; transition: width 0.4s; }
+  .level-badge { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-raised); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color: var(--text-dim); }
+  .level-badge.earned { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 6px rgba(95,216,224,0.4); }
+
+  /* ---- presence dot ---- */
+  .pdot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; flex-shrink:0; background:#555; }
+  .pdot.online { background:#2a9d4a; box-shadow:0 0 5px #2a9d4a; }
+  .pdot.idle   { background:#e8a94f; }
+  .pdot.offline{ background:#555; }
+
+  /* ---- live pvp ---- */
+  .live-conn { padding:8px 10px; border-radius:3px; font-size:10px; text-align:center; border:1px solid var(--line); }
+  .live-conn.online  { color:#bff5cd; background:rgba(42,157,74,0.15); border-color:#2a9d4a; font-weight:700; }
+  .live-conn.offline { color:var(--text-dim); background:var(--panel-raised); }
+  .turn-bar { height:8px; border-radius:4px; background:var(--panel-raised); border:1px solid var(--line); overflow:hidden; margin:6px 0; }
+  .turn-fill { height:100%; background:#2a9d4a; transition: width 1s linear; }
+  .turn-fill.urgent { background:var(--danger); }
+  .live-opponent { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); font-size:11px; }
+  .live-opponent:last-child { border-bottom:none; }
+  .live-opponent .lo-name { flex:1; color:#fff; }
+  .live-opponent button { width:auto; margin-top:0; font-size:9px; padding:6px 10px; }
+
+  /* ---- cosmetics ---- */
+  .cos-slot { border:1px solid var(--line); border-radius:4px; padding:6px; text-align:center; background:var(--panel-raised); font-size:8px; color:var(--text-dim); min-height:52px; }
+  .cos-slot.filled { border-color:var(--cyan); color:#fff; }
+  .cos-set { border:1px solid var(--line); border-radius:4px; padding:8px; margin-top:8px; background:var(--panel-raised); }
+  .cos-set.locked { opacity:0.55; }
+  .cos-piece { display:flex; align-items:center; gap:6px; font-size:10px; padding:3px 0; }
+  .cos-piece.owned .cp-name { color:#fff; }
+  .cos-piece .cp-name { flex:1; color:var(--text-dim); }
+  .cos-piece button { width:auto; margin-top:0; font-size:8px; padding:4px 8px; }
+
+  /* ---- attachments ---- */
+  .att-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:10px; }
+  .att-row:last-child { border-bottom:none; }
+  .att-icon { width:28px; height:28px; border-radius:4px; border:2px solid var(--line); background:var(--panel-raised); flex-shrink:0; object-fit:contain; }
+  .att-icon.common { border-color: var(--common); }
+  .att-icon.uncommon { border-color: var(--uncommon); }
+  .att-icon.rare { border-color: var(--rare); }
+  .att-row .ar-name { flex:1; color:#fff; }
+
+  /* ---- Joy Stick ---- */
+  .joystick-row { display: flex; gap: 12px; align-items: center; }
+  .joystick-buttons { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .joystick-buttons button { margin-top: 0; font-size: 10px; padding: 10px; }
+  .js-green { background: #2a9d4a; border-color: #2a9d4a; color: #fff; font-weight: 700; }
+  .js-green:disabled { opacity: 0.45; }
+  .js-blue { background: #4cb8e8; border-color: #4cb8e8; color: #04181a; font-weight: 700; }
+  .js-blue:disabled { background: var(--panel-raised); border-color: var(--line); color: var(--text-dim); font-weight: 400; }
+
+  /* Pad is red while inactive, green once a session is paid for. */
+  .joystick-pad {
+    position: relative;
+    width: 104px; height: 104px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 2px solid var(--danger);
+    background: radial-gradient(circle at 50% 50%, rgba(232,97,95,0.16), rgba(20,24,26,0.6));
+    touch-action: none;
+  }
+  .joystick-pad.active {
+    border-color: #2a9d4a;
+    background: radial-gradient(circle at 50% 50%, rgba(42,157,74,0.22), rgba(20,24,26,0.6));
+  }
+  .joystick-knob {
+    position: absolute;
+    width: 38px; height: 38px;
+    left: 50%; top: 50%;
+    margin-left: -19px; margin-top: -19px;
+    border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 8px rgba(0,0,0,0.6);
+    transition: background 0.2s;
+  }
+  .joystick-pad.active .joystick-knob { background: #2a9d4a; }
+
+  /* Badge marking a droid caught during a Joy Stick session. */
+  .joystick-badge {
+    position: absolute;
+    top: 4px; right: 4px;
+    font-size: 11px;
+    line-height: 1;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+  }
+
+  /* Assigned-companion box: see-through so the panel background shows. */
+  #companionSlot .droid-row, #companionSlot .empty { background: rgba(255,255,255,0.05); }
   .spawn-card.out-of-range .spawn-icon { filter: grayscale(0.7); }
   .out-of-range-note {
     margin-top: 8px;
@@ -596,6 +711,7 @@
   <button class="tab-btn" data-tab="social">Trading</button>
   <button class="tab-btn" data-tab="dex">Dex</button>
   <button class="tab-btn" data-tab="battles">Battles</button>
+  <button class="tab-btn" data-tab="livepvp">⚡ Live PVP</button>
   <button class="tab-btn" data-tab="storage">Warehouse</button>
 </div>
 
@@ -653,14 +769,6 @@
         <div id="padRamStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
       </div>
 
-      <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Change PIN</div>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <input type="text" id="currentPinInput" placeholder="Current PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
-        <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
-        <button id="btnChangePin" style="width:auto; flex-shrink:0; font-size:9px; padding:8px 12px; margin-top:0;">Update</button>
-      </div>
-      <button id="btnNewPilot" style="margin-top:10px; font-size:9px; padding:8px 12px; color:var(--danger); border-color:var(--danger); background:transparent;">New Pilot (reset)</button>
-
       <div style="padding:10px; border:1px solid var(--line); border-radius:4px; min-height:180px; margin-top:16px;">
         <div class="panel-title" style="margin-bottom:6px;">Outfit</div>
         <div id="outfitDisplay" style="margin-bottom:8px;"></div>
@@ -677,6 +785,42 @@
         <button class="theme-btn" data-theme="theme-skyblue" style="flex:1; min-width:70px; font-size:9px; padding:8px;">💙 Sky Blue</button>
         <button class="theme-btn" data-theme="theme-darkgreen" style="flex:1; min-width:70px; font-size:9px; padding:8px;">🌲 Dark Green</button>
       </div>
+    </div>
+
+    <div class="panel" id="playerLevelPanel" style="margin-top:16px;">
+      <div class="panel-title">Pilot Level <span id="plLevelTag" style="color:var(--cyan); font-weight:400; text-transform:none;"></span></div>
+      <div class="xp-bar"><div class="xp-fill" id="plXpFill"></div></div>
+      <div id="plXpText" style="font-size:9px; color:var(--text-dim); margin-top:4px;">—</div>
+      <div id="plBadges" style="display:flex; gap:4px; flex-wrap:wrap; margin-top:8px;"></div>
+      <div id="plNextReward" style="font-size:9px; color:var(--text-dim); margin-top:8px;"></div>
+    </div>
+
+    <div class="panel" id="rebootPanel" style="margin-top:16px;">
+      <div class="panel-title">Re-Boot</div>
+      <div id="rebootBody"></div>
+    </div>
+
+    <div class="panel" id="buffsPanel" style="margin-top:16px;">
+      <div class="panel-title">Active Buffs</div>
+      <div id="buffsBody"><div class="empty">No buffs yet</div></div>
+    </div>
+
+    <!-- Account controls live at the very bottom of the Player tab:
+         destructive/rarely-used actions shouldn't sit above the things
+         players actually open this tab for. -->
+    <div class="panel" id="accountSecurityPanel" style="margin-top:16px;">
+      <div class="panel-title">Account</div>
+      <div id="accountSecurityInner" style="display:none;">
+        <label style="margin-top:4px;">Change PIN</label>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="text" id="currentPinInput" placeholder="Current PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
+          <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
+          <button id="btnChangePin" style="width:auto; flex-shrink:0; font-size:9px; padding:8px 12px; margin-top:0;">Update</button>
+        </div>
+        <button id="btnNewPilot" style="margin-top:14px; font-size:9px; padding:8px 12px; color:var(--danger); border-color:var(--danger); background:transparent;">New Pilot (reset)</button>
+        <div style="font-size:9px; color:var(--text-dim); margin-top:4px;">Reset clears this device's saved pilot. Your account still exists — resume it with your callsign and PIN.</div>
+      </div>
+      <div id="accountSecurityLocked" class="empty">Deploy a pilot to manage your account</div>
     </div>
 
     <div class="panel" id="wardrobeMainPanel" style="margin-top:16px;">
@@ -711,6 +855,12 @@
       <div id="starterOptions"></div>
     </div>
   </div>
+  <div class="panel" id="cosmeticsSetsPanel" style="margin-top:16px;">
+    <div class="panel-title">Cosmetic Sets <span id="cosTotals" style="color:var(--cyan); font-weight:400; text-transform:none; font-size:10px;"></span></div>
+    <div id="cosEquipped" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:8px 0;"></div>
+    <div id="cosSetList"></div>
+  </div>
+
 </div>
 
 <!-- CAPTURE TAB -->
@@ -729,6 +879,24 @@
 
     <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Your Location</div>
     <div id="locationMap" style="height:220px; border-radius:4px; border:1px solid var(--line); background:var(--panel-raised);"></div>
+
+    <!-- ---- JOY STICK ---- -->
+    <!-- Layout per spec: green activate button top-left, blue Pulse
+         below it, joystick pad to the right. -->
+    <div class="panel" id="joystickPanel" style="margin-top:12px; padding:10px;">
+      <div class="panel-title" style="margin-bottom:6px;">Joy Stick <span id="joystickTimer" style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:10px;"></span></div>
+      <div id="joystickStatusLine" style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Inactive — activate with a Titan Token, Guild Token or Joy Coin</div>
+      <div class="joystick-row">
+        <div class="joystick-buttons">
+          <button id="btnJoystickActivate" class="js-green">Activate Joy Stick</button>
+          <button id="btnJoystickPulse" class="js-blue" disabled>Pulse (500 ✦)</button>
+          <button id="btnJoystickReturn" class="ghost" style="display:none; font-size:9px; padding:7px; margin-top:0;">Return to my location</button>
+        </div>
+        <div class="joystick-pad" id="joystickPad">
+          <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -865,7 +1033,43 @@
 </div>
 
 <!-- INVENTORY TAB -->
+<!-- LIVE PVP TAB (beta) -->
+<div class="tab-page" id="tab-livepvp">
+  <div class="panel" id="livePvpStatusPanel">
+    <div class="panel-title">⚡ Live PVP <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— beta</span></div>
+    <div id="liveConnStatus" class="live-conn offline">Not connected</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-top:8px; line-height:1.5;">
+      Real-time battles against players who are online right now.
+      <strong>30 seconds per turn.</strong> Miss a turn and the server plays it for you;
+      miss three in a row and you forfeit.
+    </div>
+  </div>
+
+  <div class="panel" id="liveBattlePanel" style="margin-top:16px; display:none;">
+    <div class="panel-title">Battle in progress</div>
+    <div id="liveTurnBar"></div>
+    <div id="liveBattleBody"></div>
+  </div>
+
+  <div class="panel" id="liveChallengesPanel" style="margin-top:16px;">
+    <div class="panel-title">Challenges</div>
+    <div id="liveChallengeList"><div class="empty">No challenges right now</div></div>
+  </div>
+
+  <div class="panel" id="liveOpponentsPanel" style="margin-top:16px;">
+    <div class="panel-title">Who's Online</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Friends and guildmates. Pick a battle team on the Battles tab first.</div>
+    <div id="liveOpponentList"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
 <div class="tab-page" id="tab-inventory">
+  <div class="panel" id="attachmentsPanel">
+    <div class="panel-title">Droid Attachments</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Three slots per droid — one Mod Chip, one USB Dongle, one Energy Bottle. Assign from a droid's stats popup in the Warehouse.</div>
+    <div id="attachmentList"><div class="empty">No attachments yet — they drop from the Depot</div></div>
+  </div>
+
   <div class="panel" id="inventoryMainPanel">
     <div class="panel-title">Inventory</div>
     <div class="stat-row"><span class="stat-label">✦ Crystals</span><span class="stat-val amber" id="statInvCrystals">0</span></div>
@@ -1128,6 +1332,12 @@ function levelCostLabel(droid) {
 const FUNKY_PAINT_COST = 10; // matches db.FUNKY_EVOLVE_PAINT_COST default on the backend
 
 // ---- Tab navigation ----
+// Programmatic tab switch, used when a live battle starts.
+function switchTab(name) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+  if (btn) btn.click();
+}
+
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.onclick = () => {
     document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
@@ -1138,6 +1348,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     // initialized or updated while its container was hidden by the
     // previous tab's display:none — recalculating size on every visit
     // to this tab fixes it reliably.
+    if (btn.dataset.tab === 'livepvp') refreshLivePvp();
     if (btn.dataset.tab === 'capture' && locationMap) {
       setTimeout(() => locationMap.invalidateSize(), 50);
     }
@@ -1204,7 +1415,7 @@ let captureRadiusCircle = null;
 function drawCaptureRadiusRing(lat, lng) {
   if (typeof L === 'undefined' || !locationMap) return;
   try {
-    const radius = state.captureRadiusMeters || 15;
+    const radius = state.captureRadiusMeters || 30;
     if (captureRadiusCircle) locationMap.removeLayer(captureRadiusCircle);
     captureRadiusCircle = L.circle([lat, lng], {
       radius,
@@ -1233,19 +1444,21 @@ function renderSpawnMarkers() {
       const size = RARITY_SIZE[spawn.rarity] || 16;
       const borderColor = VARIANT_BORDER_COLOR[spawn.variant] || VARIANT_BORDER_COLOR.standard;
       const borderWidth = spawn.variant !== 'standard' ? 3 : 2;
-      // Out-of-range droids are drawn hollow and faded — still findable on
-      // the map, but visibly not catchable from here.
+      // Out-of-range droids need to be EASY to see — they're the ones a
+      // player is deciding whether to walk to. So both bands are drawn
+      // solid and full-opacity; what marks a droid as catchable is a
+      // bright ring around it, not the other one being faded out.
       const inRange = spawn.withinCaptureRadius !== false;
       const markerStyle = inRange
-        ? `background:${color}; border:${borderWidth}px solid ${borderColor}; opacity:1;`
-        : `background:transparent; border:2px dashed ${color}; opacity:0.55;`;
+        ? `background:${color}; border:3px solid #ffffff; opacity:1; box-shadow:0 0 0 3px ${color}, 0 0 12px 4px ${color};`
+        : `background:${color}; border:2px solid rgba(255,255,255,0.9); opacity:0.95; box-shadow:0 0 5px 1px rgba(0,0,0,0.8);`;
       const icon = L.divIcon({
-        className: 'spawn-map-marker',
-        html: `<div style="width:${size}px; height:${size}px; border-radius:50%; ${markerStyle} box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>`,
+        className: 'spawn-map-marker' + (inRange ? ' in-range' : ''),
+        html: `<div style="width:${size}px; height:${size}px; border-radius:50%; ${markerStyle}"></div>`,
         iconSize: [size, size],
       });
       const marker = L.marker([spawn.lat, spawn.lng], { icon }).addTo(locationMap);
-      marker.bindPopup(`<strong>${spawn.speciesName}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a;">In capture range</span>' : `${spawn.distanceMeters}m away — move closer`}`);
+      marker.bindPopup(`<strong>${spawn.speciesName}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a; font-weight:700;">✓ In capture range</span>' : `<span style="color:#e8615f;">${spawn.distanceMeters}m away</span> — walk ${Math.max(0, spawn.distanceMeters - (state.captureRadiusMeters || 30))}m closer`}`);
       marker.on('click', () => highlightSpawnCard(spawn.id));
       spawnMarkers.push(marker);
     });
@@ -1268,14 +1481,13 @@ function highlightSpawnCard(spawnId) {
 // Written each build round — a short, plain-language summary of what
 // just shipped. Update this string when packaging a new release.
 const HOME_CHANGELOG = `
-  <p><strong>Latest update — v0.2.0:</strong></p>
+  <p><strong>Latest update — v0.4.0:</strong></p>
   <ul style="margin:6px 0 0; padding-left:18px;">
-    <li><strong style="color:var(--apex);">The Apex set</strong> — 30 new droids in a brand-new tier above Galactic. The rarest, toughest catch in the game.</li>
-    <li><strong>Apex Hunt</strong> — Apex droids only spawn during this 30-minute event. Nowhere else, ever.</li>
-    <li><strong>Apex Encounters</strong> — a new 20,000 HP raid boss. Bring friends; solo will not work.</li>
-    <li><strong>Apex Cubes</strong> — a new currency that only levels Apex droids. Always drops, win or lose.</li>
-    <li><strong>Radar rework</strong> — you now need to be within 15m to catch a droid. Anything further shows on the map but can't be locked on.</li>
-    <li>Titan Tokens, Guild Tokens and Joy Coins added to the shop (spend routes coming with the joystick update)</li>
+    <li><strong>⚡ Live PVP (beta)</strong> — real-time battles against players who are online now. 30 seconds a turn. New tab.</li>
+    <li><strong>Pilot Levels &amp; Re-Boot</strong> — earn XP for everything you do, 0 to 20, then Re-Boot for permanent bonuses.</li>
+    <li><strong>Cosmetic Sets</strong> — 10 sets, 4 pieces each, with a bonus for wearing a full set. The Galactic sets need 5 Re-Boots to wear.</li>
+    <li><strong>Droid Attachments</strong> — three slots per droid: Mod Chip, USB Dongle, Energy Bottle.</li>
+    <li><strong>Online indicators</strong> — see at a glance who's around on your friends and guild lists.</li>
   </ul>
 `;
 
@@ -1411,6 +1623,18 @@ async function activatePlayer(player) {
   localStorage.setItem(PLAYER_STORAGE_KEY, String(player.id));
   $('noPlayer').style.display = 'none';
   $('playerStats').style.display = 'block';
+  // Account controls (PIN change / reset) live in their own panel at the
+  // bottom of the tab now, so they need unlocking separately.
+  const accInner = $('accountSecurityInner');
+  const accLocked = $('accountSecurityLocked');
+  if (accInner) accInner.style.display = 'block';
+  refreshJoystick();
+  refreshLevels();
+  refreshCosmeticSets();
+  refreshAttachments();
+  openLiveStream();
+  refreshLivePvp();
+  if (accLocked) accLocked.style.display = 'none';
   updatePlayerStats(player);
 
   const { species } = await api('GET', '/species');
@@ -1538,8 +1762,9 @@ function renderFriendsList(friends) {
   if (!friends.length) { el.innerHTML = '<div class="empty">No friends yet</div>'; return; }
   el.innerHTML = friends.map((f) => `
     <div class="droid-row">
+      <span class="pdot ${f.presence || 'offline'}" title="${f.lastSeenText || ''}"></span>
       <span style="flex:1;">${f.username} (#${f.id})</span>
-      <span style="color:var(--text-dim); font-size:9px;">Dex ${f.dexCaught}/${f.dexTotal}</span>
+      <span style="color:var(--text-dim); font-size:9px;">${f.lastSeenText || ''} · Dex ${f.dexCaught}/${f.dexTotal}</span>
     </div>
   `).join('');
 }
@@ -1628,7 +1853,7 @@ async function scanAt(lat, lng) {
     state.spawns = data.spawns;
     // Server decides the capture radius; we only mirror it. Falls back to
     // 15 if an older server build doesn't send the field yet.
-    state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 15;
+    state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 30;
     drawCaptureRadiusRing(lat, lng);
     const badge = $('todBadge');
     badge.textContent = data.timeOfDay === 'day' ? '☀ Daytime here' : '🌑 Nighttime here';
@@ -1679,12 +1904,32 @@ function renderSpawns() {
     return;
   }
   list.innerHTML = '';
+
+  // Split the two radar bands into separate containers. In-range droids
+  // render straight into the list; out-of-reach ones go into a collapsed
+  // "Out of reach" section so a long-range sweep doesn't bury the two or
+  // three droids the player can actually do something about.
+  const captureRadiusNow = state.captureRadiusMeters || 30;
+  const inRangeCount = state.spawns.filter((sp) => sp.withinCaptureRadius !== false).length;
+  const outOfReachCount = state.spawns.length - inRangeCount;
+
+  const oorWrap = document.createElement('div');
+  oorWrap.id = 'outOfReachWrap';
+  oorWrap.style.display = 'none';
+
+  if (!inRangeCount) {
+    const none = document.createElement('div');
+    none.className = 'empty';
+    none.textContent = `Nothing within ${captureRadiusNow}m — check the map and walk toward a marker`;
+    list.appendChild(none);
+  }
+
   state.spawns.forEach((spawn) => {
     // Two-band radar: only droids inside the capture radius get the
     // minigame. The server enforces this too (capture.js), so this is
     // presentation, not the actual gate.
     const inCaptureRange = spawn.withinCaptureRadius !== false;
-    const captureRadius = state.captureRadiusMeters || 15;
+    const captureRadius = state.captureRadiusMeters || 30;
 
     const card = document.createElement('div');
     card.className = `spawn-card ${spawn.rarity} align-${spawn.alignment}`
@@ -1745,9 +1990,9 @@ function renderSpawns() {
     // animation to start — render and move on. Everything below this
     // point assumes the capture track exists.
     if (!inCaptureRange) {
-      list.appendChild(card);
-      // Drop assets/misc/outofrange.png (or .gif) in to skin this box.
-      applyPanelBackground('oorNote' + spawn.id, 'outofrange');
+      oorWrap.appendChild(card);
+      // Background is applied when the section is expanded (below) —
+      // applying it here would target an element that isn't visible yet.
       return;
     }
 
@@ -1829,6 +2074,27 @@ function renderSpawns() {
     list.appendChild(card);
     applyPanelBackground('captureTrack' + spawn.id, 'bg-' + spawn.alignment);
   });
+
+  // Collapsed "Out of reach" section. Collapsed by default — these are
+  // the droids the player can see on the map but can't act on yet.
+  if (outOfReachCount) {
+    const toggle = document.createElement('button');
+    toggle.className = 'out-of-reach-toggle';
+    toggle.innerHTML = `📍 Out of reach (${outOfReachCount}) — visible on the map, too far to catch <span class="oor-caret">▸</span>`;
+    let open = false;
+    toggle.onclick = () => {
+      open = !open;
+      oorWrap.style.display = open ? 'block' : 'none';
+      toggle.querySelector('.oor-caret').textContent = open ? '▾' : '▸';
+      if (open) {
+        // Backgrounds only apply once the elements are actually visible.
+        state.spawns.filter((sp) => sp.withinCaptureRadius === false)
+          .forEach((sp) => applyPanelBackground('oorNote' + sp.id, 'outofrange'));
+      }
+    };
+    list.appendChild(toggle);
+    list.appendChild(oorWrap);
+  }
 }
 
 async function attemptCapture(spawn, padAccuracy, crystalsSpent) {
@@ -1867,6 +2133,11 @@ function showCaptureResultPopup(spawn, result, crystalsSpent) {
   const box = $('captureResultBox');
   // Apex Cubes are awarded win OR lose, so this line has to render on
   // every branch of the popup below — not just the success ones.
+  // Spec: a Joy Stick icon appears on the capture minigame box when a
+  // droid is caught during a session.
+  const joystickHtml = result.viaJoystick
+    ? '<div class="mb-detail" style="color:#4cb8e8; font-weight:700;">🕹️ Caught with the Joy Stick</div>'
+    : '';
   const apexCubeHtml = result.apexCubesDropped
     ? `<div class="mb-detail" style="color:var(--apex); font-weight:700;">⬢ +${result.apexCubesDropped} Apex Cube${result.apexCubesDropped === 1 ? '' : 's'} (total ${result.apexCubes})</div>`
     : '';
@@ -1885,6 +2156,7 @@ function showCaptureResultPopup(spawn, result, crystalsSpent) {
       <div class="mb-detail">${spawn.speciesName} was a duplicate — released automatically</div>
       <div class="mb-detail" style="color:var(--amber);">✦ +${result.autoReleaseRefund} crystals</div>
       ${result.gotPaint ? '<div class="mb-detail" style="color:var(--amber);">🎨 +1 Paint dropped!</div>' : ''}
+      ${joystickHtml}
       ${apexCubeHtml}
       ${buffsHtml}
       <button class="primary mb-close">Nice!</button>
@@ -1897,6 +2169,7 @@ function showCaptureResultPopup(spawn, result, crystalsSpent) {
       <div class="mb-detail">${spawn.speciesName} is yours${result.critical ? ' — Critical Capture!' : ''}</div>
       <div class="mb-detail">Chance was ${Math.round(result.successChance * 100)}%</div>
       ${result.gotPaint ? '<div class="mb-detail" style="color:var(--amber);">🎨 +1 Paint dropped!</div>' : ''}
+      ${joystickHtml}
       ${apexCubeHtml}
       ${buffsHtml}
       <button class="primary mb-close">Nice!</button>
@@ -1907,6 +2180,7 @@ function showCaptureResultPopup(spawn, result, crystalsSpent) {
       <div class="mb-title fail">Broke Free</div>
       <div class="mb-detail">${spawn.speciesName} escaped. Chance was ${Math.round(result.successChance * 100)}%</div>
       <div class="mb-detail" style="color:var(--danger);">${crystalsSpent} crystals lost — gone for good.</div>
+      ${joystickHtml}
       ${apexCubeHtml}
       ${buffsHtml}
       <button class="mb-close">Try Again</button>
@@ -2186,7 +2460,16 @@ function renderDroids() {
 function buildDroidRow(droid) {
     const row = document.createElement('div');
     row.className = 'droid-row';
-    row.style.cssText = 'display:flex; align-items:flex-start; gap:10px; flex-wrap:nowrap;';
+    // position:relative so the Joy Stick badge can pin to the top-right
+    // of the status box, per spec.
+    row.style.cssText = 'display:flex; align-items:flex-start; gap:10px; flex-wrap:nowrap; position:relative;';
+    if (droid.capturedViaJoystick) {
+      const badge = document.createElement('span');
+      badge.className = 'joystick-badge';
+      badge.textContent = '\uD83D\uDD79\uFE0F';
+      badge.title = 'Caught with the Joy Stick';
+      row.appendChild(badge);
+    }
 
     const variantTag = droid.variant && droid.variant !== 'standard'
       ? `<span class="variant-tag ${droid.variant}">${droid.variant}${droid.color ? ' ' + droid.color : ''}</span>`
@@ -3657,7 +3940,7 @@ async function renderGuild() {
     const leaderboard = await api('GET', `/guilds/${state.guildId}/leaderboard`);
     $('guildLeaderboard').innerHTML = leaderboard.leaderboard.map((row, i) => `
       <div class="stat-row">
-        <span class="stat-label">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.'} ${row.username}</span>
+        <span class="stat-label"><span class="pdot ${row.presence || 'offline'}" title="${row.lastSeenText || ''}"></span>${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.'} ${row.username}</span>
         <span class="stat-val">${row.totalCaught}/${row.totalSpecies} (${row.percentComplete}%)</span>
       </div>
     `).join('') || '<div class="empty">No members yet</div>';
@@ -3766,21 +4049,42 @@ function showRedeemResultPopup(result) {
 // normal solid background untouched if neither file exists. Same dark
 // overlay treatment as the existing control-pad.png background, so
 // text stays legible over any image dropped in.
+// Some background files on disk don't match the name the code asks for —
+// either a typo when the art was made, or the panel was renamed in code
+// later. Rather than force a rename of files already in the repo, each
+// requested name can list fallbacks, tried in order.
+const PANEL_BACKGROUND_ALIASES = {
+  choosebattleteam: ['choosebettleteam'], // file was saved with "bettle"
+  eventdex: ['summerdex'],                // panel renamed from Summer Dex; file kept the old name
+};
+
 function applyPanelBackground(elementId, name, folder = 'misc') {
   const el = document.getElementById(elementId);
   if (!el) return;
-  const tryExt = (ext, isLast) => {
+  // Full candidate list: requested name first, then any aliases, each
+  // tried as .png then .gif before moving to the next.
+  const names = [name, ...(PANEL_BACKGROUND_ALIASES[name] || [])];
+  const candidates = [];
+  names.forEach((n) => {
+    candidates.push(`/assets/${folder}/${n}.png`);
+    candidates.push(`/assets/${folder}/${n}.gif`);
+  });
+  let idx = 0;
+  const tryNext = () => {
+    if (idx >= candidates.length) return; // nothing found — keep the solid panel colour
+    const url = candidates[idx];
+    idx++;
     const img = new Image();
     img.onload = () => {
-      el.style.backgroundImage = `linear-gradient(rgba(20,24,26,0.65), rgba(20,24,26,0.65)), url('/assets/${folder}/${name}.${ext}')`;
+      el.style.backgroundImage = `linear-gradient(rgba(20,24,26,0.65), rgba(20,24,26,0.65)), url('${url}')`;
       el.style.backgroundSize = 'cover';
       el.style.backgroundPosition = 'center';
       el.style.backgroundRepeat = 'no-repeat';
     };
-    img.onerror = () => { if (!isLast) tryExt('gif', true); };
-    img.src = `/assets/${folder}/${name}.${ext}`;
+    img.onerror = tryNext;
+    img.src = url;
   };
-  tryExt('png', false);
+  tryNext();
 }
 
 function applyAllPanelBackgrounds() {
@@ -3810,6 +4114,7 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('wishlistMainPanel', 'wishlist');
   applyPanelBackground('dexMainPanel', 'dex');
   applyPanelBackground('eventDexPanel', 'eventdex');
+  applyPanelBackground('eventDexContentPanel', 'eventdexcontent');
   applyPanelBackground('chooseBattleTeamPanel', 'choosebattleteam');
   applyPanelBackground('selectedTeamPreview', 'yourbattleteam');
   applyPanelBackground('titanEncounterPanel', 'titanencounter');
@@ -3817,8 +4122,18 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('activeBattlePanel', 'activebattle');
   applyPanelBackground('yourBattlesPanel', 'battles');
   applyPanelBackground('radarSweepPanel', 'radarsweep');
+  applyPanelBackground('joystickPanel', 'joystick');
   applyPanelBackground('warehouseMainPanel', 'warehouse');
   applyPanelBackground('warehouseMaintenancePanel', 'warehousemaintenance');
+  applyPanelBackground('accountSecurityPanel', 'account');
+  applyPanelBackground('playerLevelPanel', 'playerlevel');
+  applyPanelBackground('rebootPanel', 'reboot');
+  applyPanelBackground('buffsPanel', 'buffs');
+  applyPanelBackground('cosmeticsSetsPanel', 'cosmeticsets');
+  applyPanelBackground('attachmentsPanel', 'attachments');
+  applyPanelBackground('livePvpStatusPanel', 'livepvp');
+  applyPanelBackground('liveBattlePanel', 'livebattle');
+  applyPanelBackground('liveOpponentsPanel', 'liveopponents');
 }
 applyAllPanelBackgrounds();
 
@@ -3986,48 +4301,76 @@ function buildDexCard(s) {
   return card;
 }
 
+const DEX_PAGE_SIZE = 30;
+
 function renderDex(entries) {
   const grid = $('dexGrid');
   grid.innerHTML = '';
 
-  const groups = {};
-  entries.forEach((s) => {
-    const key = s.collection || 'other';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(s);
-  });
+  // The collection filter buttons moved out of the main Dex — the whole
+  // roster is now one paged list, 30 per page, with a Show All escape
+  // hatch. Collections are still browsable via the Event Dex panel and
+  // the group labels on each card.
+  let page = 0;
+  let showAll = false;
 
-  const orderedKeys = [...DEX_GROUP_ORDER.filter((k) => groups[k]), ...Object.keys(groups).filter((k) => !DEX_GROUP_ORDER.includes(k))];
+  const controls = document.createElement('div');
+  controls.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:10px; flex-wrap:wrap;';
 
-  const buttonRow = document.createElement('div');
-  buttonRow.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;';
-  const contentArea = document.createElement('div');
+  const section = document.createElement('div');
+  section.className = 'dex-grid';
 
-  orderedKeys.forEach((key) => {
-    const caughtCount = groups[key].filter((s) => s.caught).length;
-    const btn = document.createElement('button');
-    btn.className = 'ghost dex-group-btn';
-    btn.style.cssText = 'flex:1; min-width:30%; font-size:9px; padding:8px 6px;';
-    btn.textContent = `${DEX_GROUP_LABELS[key] || 'Others'} (${caughtCount}/${groups[key].length})`;
+  const draw = () => {
+    section.innerHTML = '';
+    const total = entries.length;
+    const pageCount = Math.max(1, Math.ceil(total / DEX_PAGE_SIZE));
+    if (page > pageCount - 1) page = pageCount - 1;
+    const slice = showAll ? entries : entries.slice(page * DEX_PAGE_SIZE, (page + 1) * DEX_PAGE_SIZE);
+    slice.forEach((sp) => section.appendChild(buildDexCard(sp)));
 
-    const section = document.createElement('div');
-    section.className = 'dex-grid';
-    section.style.cssText = 'display:none; margin-bottom:16px;';
-    groups[key].forEach((s) => section.appendChild(buildDexCard(s)));
+    controls.innerHTML = '';
+    if (!showAll) {
+      const prev = document.createElement('button');
+      prev.className = 'ghost';
+      prev.textContent = '‹ Prev';
+      prev.style.cssText = 'width:auto; margin-top:0; font-size:9px; padding:7px 12px;';
+      prev.disabled = page === 0;
+      prev.onclick = () => { page--; draw(); };
 
-    btn.onclick = () => {
-      const isOpen = section.style.display !== 'none';
-      section.style.display = isOpen ? 'none' : 'grid';
-      btn.style.background = isOpen ? '' : 'var(--cyan)';
-      btn.style.color = isOpen ? '' : '#04181a';
-    };
+      const label = document.createElement('span');
+      label.style.cssText = 'flex:1; text-align:center; font-size:10px; color:var(--text-dim);';
+      const from = page * DEX_PAGE_SIZE + 1;
+      const to = Math.min(total, (page + 1) * DEX_PAGE_SIZE);
+      label.textContent = `${from}-${to} of ${total} · page ${page + 1}/${pageCount}`;
 
-    buttonRow.appendChild(btn);
-    contentArea.appendChild(section);
-  });
+      const next = document.createElement('button');
+      next.className = 'ghost';
+      next.textContent = 'Next ›';
+      next.style.cssText = 'width:auto; margin-top:0; font-size:9px; padding:7px 12px;';
+      next.disabled = page >= pageCount - 1;
+      next.onclick = () => { page++; draw(); };
 
-  grid.appendChild(buttonRow);
-  grid.appendChild(contentArea);
+      controls.appendChild(prev);
+      controls.appendChild(label);
+      controls.appendChild(next);
+    } else {
+      const label = document.createElement('span');
+      label.style.cssText = 'flex:1; font-size:10px; color:var(--text-dim);';
+      label.textContent = `Showing all ${total}`;
+      controls.appendChild(label);
+    }
+
+    const toggle = document.createElement('button');
+    toggle.className = 'ghost';
+    toggle.textContent = showAll ? 'Paged view' : 'Show all';
+    toggle.style.cssText = 'width:auto; margin-top:0; font-size:9px; padding:7px 12px;';
+    toggle.onclick = () => { showAll = !showAll; page = 0; draw(); };
+    controls.appendChild(toggle);
+  };
+
+  draw();
+  grid.appendChild(controls);
+  grid.appendChild(section);
 }
 
 function showDexDetailModal(s) {
@@ -4264,6 +4607,657 @@ function initCoordOverrideControls() {
 }
 
 initCoordOverrideControls();
+
+// ============================================================
+// JOY STICK
+// ============================================================
+// The client is a thin controller here. It proposes moves; the server
+// (src/joystick.js) decides whether they're legal, tracks the real
+// position, and is what capture.js reads. Nothing below can grant a
+// session, extend one, or move further than 7kph allows.
+
+let joystickState = null;
+let joystickPollTimer = null;
+let joystickDragging = false;
+let joystickVector = { x: 0, y: 0 };
+let joystickMoveTimer = null;
+
+function joyMsToClock(ms) {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(total / 60);
+  const sec = total % 60;
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+async function refreshJoystick() {
+  if (!state.playerId) return;
+  try {
+    joystickState = await api('GET', `/joystick/${state.playerId}`);
+    renderJoystick();
+    if (joystickState.expiredUnacknowledged) await handleJoystickExpiry();
+  } catch (e) {}
+}
+
+function renderJoystick() {
+  const st = joystickState;
+  const pad = $('joystickPad');
+  const activateBtn = $('btnJoystickActivate');
+  const pulseBtn = $('btnJoystickPulse');
+  const returnBtn = $('btnJoystickReturn');
+  const timer = $('joystickTimer');
+  const line = $('joystickStatusLine');
+  if (!pad || !st) return;
+
+  if (st.active) {
+    pad.classList.add('active');
+    activateBtn.disabled = true;
+    activateBtn.textContent = 'Joy Stick running';
+    pulseBtn.disabled = false;
+    returnBtn.style.display = 'block';
+    timer.textContent = `— ${joyMsToClock(st.msRemaining)} left`;
+    line.textContent = `${st.metersFromOrigin}m from your real location · drag the pad to walk (max ${st.maxSpeedKph}kph) · Pulse to reveal droids here`;
+  } else {
+    pad.classList.remove('active');
+    pulseBtn.disabled = true;
+    returnBtn.style.display = 'none';
+    timer.textContent = '';
+    if (st.onCooldown) {
+      activateBtn.disabled = true;
+      activateBtn.textContent = `Cooling down — ${joyMsToClock(st.cooldownMsRemaining)}`;
+      line.textContent = 'The Joy Stick cools down for 1 hour after every session, however long it ran.';
+    } else {
+      activateBtn.disabled = false;
+      activateBtn.textContent = 'Activate Joy Stick';
+      line.textContent = 'Inactive — activate with a Titan Token, Guild Token or Joy Coin';
+    }
+  }
+}
+
+function startJoystickPolling() {
+  if (joystickPollTimer) clearInterval(joystickPollTimer);
+  // 1s tick keeps the countdown honest; a full status fetch every 15s
+  // keeps it in sync with the server without hammering it.
+  let sinceFetch = 0;
+  joystickPollTimer = setInterval(async () => {
+    if (!joystickState) return;
+    if (joystickState.active) {
+      joystickState.msRemaining = Math.max(0, joystickState.msRemaining - 1000);
+      if (joystickState.msRemaining === 0) { await refreshJoystick(); return; }
+    } else if (joystickState.onCooldown) {
+      joystickState.cooldownMsRemaining = Math.max(0, joystickState.cooldownMsRemaining - 1000);
+      if (joystickState.cooldownMsRemaining === 0) { await refreshJoystick(); return; }
+    }
+    renderJoystick();
+    sinceFetch += 1;
+    if (sinceFetch >= 15) { sinceFetch = 0; await refreshJoystick(); }
+  }, 1000);
+}
+
+// ---- activation popup ----
+function showJoystickTokenPicker() {
+  const st = joystickState;
+  if (!st) return;
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const picks = { titanTokens: 0, guildTokens: 0, joyCoins: 0 };
+  const LABELS = { titanTokens: '🏆 Titan Tokens', guildTokens: '🛡️ Guild Tokens', joyCoins: '🕹️ Joy Coins' };
+
+  const draw = () => {
+    const total = picks.titanTokens + picks.guildTokens + picks.joyCoins;
+    const anyHeld = st.balances.titanTokens + st.balances.guildTokens + st.balances.joyCoins;
+    // Spec: when the player can't afford it, the buy button turns red
+    // and Cancel is the way out.
+    const canAfford = total > 0 && total <= st.maxTokens;
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">Activate Joy Stick</div>
+      <div class="mb-detail">Each token buys ${st.minutesPerToken} minutes. Stack up to ${st.maxTokens} (${st.maxTokens * st.minutesPerToken} min).</div>
+      <div style="margin-top:12px;">
+        ${Object.keys(LABELS).map((k) => `
+          <div class="stat-row" style="align-items:center;">
+            <span class="stat-label">${LABELS[k]} <span style="opacity:0.6;">(have ${st.balances[k]})</span></span>
+            <span style="display:flex; align-items:center; gap:6px;">
+              <button class="jsp-minus ghost" data-k="${k}" style="width:26px; margin-top:0; padding:3px;">−</button>
+              <span class="stat-val" style="min-width:16px; text-align:center;">${picks[k]}</span>
+              <button class="jsp-plus ghost" data-k="${k}" style="width:26px; margin-top:0; padding:3px;">+</button>
+            </span>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:10px; font-size:11px; color:${total > st.maxTokens ? 'var(--danger)' : 'var(--cyan)'};">
+        ${total} token${total === 1 ? '' : 's'} = ${total * st.minutesPerToken} minutes${total > st.maxTokens ? ' — over the limit' : ''}
+      </div>
+      ${anyHeld === 0 ? '<div style="margin-top:8px; font-size:9px; color:var(--text-dim);">You have no tokens. They\'re in the Shop at 1,000,000 crystals each.</div>' : ''}
+      <button id="jspConfirm" style="margin-top:14px; ${canAfford
+        ? 'background:#2a9d4a; border-color:#2a9d4a; color:#fff; font-weight:700;'
+        : 'background:var(--danger); border-color:var(--danger); color:#fff; font-weight:700;'}">
+        ${canAfford ? `Activate for ${total * st.minutesPerToken} minutes` : (anyHeld === 0 ? 'No tokens available' : 'Select at least one token')}
+      </button>
+      <button id="jspCancel" class="ghost" style="margin-top:6px;">Cancel</button>
+    `;
+    box.querySelectorAll('.jsp-plus').forEach((b) => {
+      b.onclick = () => {
+        const k = b.dataset.k;
+        const total2 = picks.titanTokens + picks.guildTokens + picks.joyCoins;
+        if (picks[k] < st.balances[k] && total2 < st.maxTokens) { picks[k]++; draw(); }
+      };
+    });
+    box.querySelectorAll('.jsp-minus').forEach((b) => {
+      b.onclick = () => { const k = b.dataset.k; if (picks[k] > 0) { picks[k]--; draw(); } };
+    });
+    box.querySelector('#jspCancel').onclick = () => { overlay.style.display = 'none'; };
+    box.querySelector('#jspConfirm').onclick = async () => {
+      if (!canAfford) return;
+      const origin = state.coordOverride || { lat: state.lastLat, lng: state.lastLng };
+      if (origin.lat == null || origin.lng == null) {
+        showGuildResultPopup(false, 'Run a scan first so the Joy Stick knows where you\'re starting from.');
+        return;
+      }
+      try {
+        joystickState = await api('POST', '/joystick/activate', { playerId: state.playerId, tokens: picks, lat: origin.lat, lng: origin.lng });
+        overlay.style.display = 'none';
+        renderJoystick();
+        await refreshWorkshop();
+        showGuildResultPopup(true, `Joy Stick active for ${joystickState.minutesPurchased} minutes. Drag the pad to move, then Pulse to reveal droids.`);
+      } catch (e) {
+        showGuildResultPopup(false, (e && e.message) || 'Could not activate the Joy Stick.');
+      }
+    };
+  };
+  draw();
+  overlay.style.display = 'flex';
+}
+
+// ---- pad dragging ----
+// The pad reports a direction vector; a repeating timer converts that
+// into small position deltas. The server clamps anything too fast, so
+// holding the pad simply walks you at the cap.
+function joystickPadVector(e) {
+  const pad = $('joystickPad');
+  const rect = pad.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const pt = e.touches ? e.touches[0] : e;
+  let dx = pt.clientX - cx;
+  let dy = pt.clientY - cy;
+  const max = rect.width / 2 - 19;
+  const dist = Math.hypot(dx, dy);
+  if (dist > max) { dx = (dx / dist) * max; dy = (dy / dist) * max; }
+  return { x: dx / max, y: dy / max, px: dx, py: dy };
+}
+
+function initJoystickPad() {
+  const pad = $('joystickPad');
+  const knob = $('joystickKnob');
+  if (!pad) return;
+
+  const onStart = (e) => {
+    if (!joystickState || !joystickState.active) return;
+    joystickDragging = true;
+    onMove(e);
+    e.preventDefault();
+  };
+  const onMove = (e) => {
+    if (!joystickDragging) return;
+    const v = joystickPadVector(e);
+    joystickVector = { x: v.x, y: v.y };
+    knob.style.marginLeft = (-19 + v.px) + 'px';
+    knob.style.marginTop = (-19 + v.py) + 'px';
+    e.preventDefault();
+  };
+  const onEnd = () => {
+    joystickDragging = false;
+    joystickVector = { x: 0, y: 0 };
+    knob.style.marginLeft = '-19px';
+    knob.style.marginTop = '-19px';
+  };
+
+  pad.addEventListener('mousedown', onStart);
+  pad.addEventListener('touchstart', onStart, { passive: false });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mouseup', onEnd);
+  window.addEventListener('touchend', onEnd);
+
+  // Send a move twice a second while the pad is held.
+  joystickMoveTimer = setInterval(async () => {
+    if (!joystickDragging || !joystickState || !joystickState.active) return;
+    if (joystickVector.x === 0 && joystickVector.y === 0) return;
+    const cur = { lat: joystickState.currentLat, lng: joystickState.currentLng };
+    if (cur.lat == null) return;
+    // 7kph for 0.5s is ~1m. Ask for slightly more than that and let the
+    // server clamp — that way the cap is enforced in exactly one place.
+    const stepMeters = 1.5;
+    const dLat = (-joystickVector.y * stepMeters) / 111320;
+    const dLng = (joystickVector.x * stepMeters) / (111320 * Math.cos(cur.lat * Math.PI / 180));
+    try {
+      joystickState = await api('POST', '/joystick/move', { playerId: state.playerId, lat: cur.lat + dLat, lng: cur.lng + dLng });
+      renderJoystick();
+      updateLocationMap(joystickState.currentLat, joystickState.currentLng);
+      drawCaptureRadiusRing(joystickState.currentLat, joystickState.currentLng);
+    } catch (e) {}
+  }, 500);
+}
+
+async function handleJoystickExpiry() {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-title" style="color:#fff;">Time's up</div>
+    <div class="mb-detail">Your Joy Stick session has ended. The Joy Stick is now on a 1 hour cooldown.</div>
+    <button id="jsRefreshLoc" style="margin-top:14px; background:#2a9d4a; border-color:#2a9d4a; color:#fff; font-weight:700;">Refresh location</button>
+  `;
+  overlay.style.display = 'flex';
+  box.querySelector('#jsRefreshLoc').onclick = async () => {
+    overlay.style.display = 'none';
+    await endJoystickSession();
+  };
+}
+
+async function endJoystickSession() {
+  try {
+    joystickState = await api('POST', '/joystick/end', { playerId: state.playerId });
+  } catch (e) {}
+  renderJoystick();
+  // Snap back to the player's real position.
+  if ($('btnUseLocation')) $('btnUseLocation').click();
+}
+
+$('btnJoystickActivate').onclick = () => {
+  if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
+  refreshJoystick().then(showJoystickTokenPicker);
+};
+
+$('btnJoystickPulse').onclick = async () => {
+  try {
+    const data = await api('POST', '/joystick/pulse', { playerId: state.playerId });
+    state.spawns = data.spawns;
+    state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 30;
+    state.lastLat = data.joystick.currentLat;
+    state.lastLng = data.joystick.currentLng;
+    joystickState = data.joystick;
+    updateLocationMap(data.joystick.currentLat, data.joystick.currentLng);
+    drawCaptureRadiusRing(data.joystick.currentLat, data.joystick.currentLng);
+    renderSpawns();
+    renderSpawnMarkers();
+    renderJoystick();
+    await refreshWorkshop();
+    log('PULSE', `${data.spawns.length} signal(s) at your Joy Stick position — ${data.pulseCost} crystals`);
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Pulse failed.');
+  }
+};
+
+$('btnJoystickReturn').onclick = async () => {
+  if (!confirm('End your Joy Stick session and return to your real location? The 1 hour cooldown starts either way, so ending early doesn\'t save you any.')) return;
+  await endJoystickSession();
+};
+
+initJoystickPad();
+startJoystickPolling();
+
+// ============================================================
+// LIVE PVP + real-time stream
+// ============================================================
+// The EventSource does the reconnecting for us — if Render spins the
+// instance down mid-match, the browser reconnects on its own and we
+// re-fetch the lobby, which restores the battle exactly where it was.
+// All state lives on the server, so nothing is lost with the stream.
+
+let liveStream = null;
+let liveState = null;
+let liveTurnTicker = null;
+
+function openLiveStream() {
+  if (!state.playerId) return;
+  if (liveStream) { try { liveStream.close(); } catch (e) {} }
+  liveStream = new EventSource(`/stream?playerId=${state.playerId}`);
+
+  liveStream.addEventListener('connected', () => setLiveConn(true));
+  liveStream.onerror = () => setLiveConn(false);
+
+  liveStream.addEventListener('live:challenge', (e) => {
+    const d = JSON.parse(e.data);
+    refreshLivePvp();
+    showGuildResultPopup(true, `⚡ ${d.fromUsername} challenged you to a live battle! You have ${d.secondsToRespond}s to respond — see the Live PVP tab.`);
+  });
+  liveStream.addEventListener('live:declined', () => {
+    refreshLivePvp();
+    showGuildResultPopup(false, 'Your live challenge was declined.');
+  });
+  liveStream.addEventListener('live:expired', () => refreshLivePvp());
+  liveStream.addEventListener('live:start', (e) => {
+    liveState = JSON.parse(e.data);
+    renderLiveBattle();
+    switchTab('livepvp');
+    showGuildResultPopup(true, 'Live battle started!');
+  });
+  liveStream.addEventListener('live:turn', (e) => { liveState = JSON.parse(e.data); renderLiveBattle(); });
+  liveStream.addEventListener('live:timeout', (e) => {
+    const d = JSON.parse(e.data);
+    if (d.playerId === state.playerId && !d.forfeited) {
+      log('LIVE', `Turn missed (${d.missed}/${liveState ? liveState.maxMissedTurns : 3}) — played automatically`, true);
+    }
+  });
+  liveStream.addEventListener('live:end', (e) => {
+    liveState = JSON.parse(e.data);
+    renderLiveBattle();
+    const won = liveState.winnerId === state.playerId;
+    const reasons = { knockout: 'knockout', timeout: 'opponent timed out', forfeit: 'forfeit', error: 'error' };
+    showGuildResultPopup(won, won
+      ? `🏆 You won! (${reasons[liveState.reason] || 'victory'}) +${(liveState.reward && liveState.reward.crystals) || 0} crystals`
+      : `Defeated (${reasons[liveState.reason] || 'loss'})`);
+    refreshWorkshop();
+    refreshLevels();
+  });
+}
+
+function setLiveConn(on) {
+  const el = $('liveConnStatus');
+  if (!el) return;
+  el.className = 'live-conn ' + (on ? 'online' : 'offline');
+  el.textContent = on ? '🟢 Connected — you can be challenged' : 'Not connected — reconnecting…';
+}
+
+async function refreshLivePvp() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/livepvp/${state.playerId}`);
+    state.livePvp = d;
+    if (d.currentBattle) { liveState = d.currentBattle; renderLiveBattle(); }
+    else { liveState = null; $('liveBattlePanel').style.display = 'none'; }
+
+    $('liveChallengeList').innerHTML = (d.incoming.length || d.outgoing.length)
+      ? d.incoming.map((c) => `
+          <div class="live-opponent">
+            <span class="lo-name">⚡ ${c.fromUsername} challenges you</span>
+            <button class="live-accept" data-id="${c.challengeId}" style="background:#2a9d4a;border-color:#2a9d4a;color:#fff;">Accept</button>
+            <button class="live-decline ghost" data-id="${c.challengeId}">Decline</button>
+          </div>`).join('')
+        + d.outgoing.map(() => '<div class="live-opponent"><span class="lo-name" style="color:var(--text-dim);">Waiting for a reply…</span></div>').join('')
+      : '<div class="empty">No challenges right now</div>';
+
+    $('liveOpponentList').innerHTML = d.opponents.length
+      ? d.opponents.map((o) => `
+          <div class="live-opponent">
+            <span class="pdot ${o.presence}"></span>
+            <span class="lo-name">${o.username}${o.inBattle ? ' <span style="font-size:8px;color:var(--amber);">in battle</span>' : ''}</span>
+            ${o.online && !o.inBattle
+              ? `<button class="live-challenge" data-id="${o.id}">Challenge</button>`
+              : '<span style="font-size:9px; color:var(--text-dim);">offline</span>'}
+          </div>`).join('')
+      : '<div class="empty">Add friends or join a guild to find opponents</div>';
+
+    $('liveChallengeList').querySelectorAll('.live-accept').forEach((b) => {
+      b.onclick = async () => {
+        if (!requireBattleTeam()) return;
+        try { await api('POST', '/livepvp/accept', { challengeId: Number(b.dataset.id), playerId: state.playerId, teamDroidIds: [...selectedBattleTeam] }); await refreshLivePvp(); }
+        catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not accept.'); }
+      };
+    });
+    $('liveChallengeList').querySelectorAll('.live-decline').forEach((b) => {
+      b.onclick = async () => {
+        try { await api('POST', '/livepvp/decline', { challengeId: Number(b.dataset.id), playerId: state.playerId }); await refreshLivePvp(); } catch (e) {}
+      };
+    });
+    $('liveOpponentList').querySelectorAll('.live-challenge').forEach((b) => {
+      b.onclick = async () => {
+        if (!requireBattleTeam()) return;
+        try {
+          await api('POST', '/livepvp/challenge', { fromPlayerId: state.playerId, toPlayerId: Number(b.dataset.id), teamDroidIds: [...selectedBattleTeam] });
+          showGuildResultPopup(true, 'Challenge sent — they have 60 seconds to accept.');
+          await refreshLivePvp();
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not send that challenge.'); }
+      };
+    });
+  } catch (e) {}
+}
+
+function requireBattleTeam() {
+  if (!selectedBattleTeam || selectedBattleTeam.size !== 4) {
+    showGuildResultPopup(false, 'Pick a battle team of 4 droids on the Battles tab first (they must be 4 different species).');
+    return false;
+  }
+  return true;
+}
+
+function renderLiveBattle() {
+  const panel = $('liveBattlePanel');
+  if (!liveState) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  const me = state.playerId;
+  const oppId = liveState.playerIds.find((id) => id !== me);
+  const myTurn = liveState.turnPlayerId === me && liveState.status === 'active';
+
+  if (liveState.status === 'finished') {
+    const won = liveState.winnerId === me;
+    $('liveTurnBar').innerHTML = `<div style="text-align:center; font-size:13px; font-weight:700; color:${won ? '#2a9d4a' : 'var(--danger)'};">${won ? '🏆 Victory' : 'Defeated'}</div>`;
+  } else {
+    $('liveTurnBar').innerHTML = `
+      <div style="display:flex; justify-content:space-between; font-size:10px;">
+        <span style="color:${myTurn ? '#2a9d4a' : 'var(--text-dim)'}; font-weight:${myTurn ? '700' : '400'};">${myTurn ? 'YOUR TURN' : liveState.usernames[liveState.turnPlayerId] + "'s turn"}</span>
+        <span id="liveSecs" style="color:var(--text-dim);">${liveState.secondsLeft}s</span>
+      </div>
+      <div class="turn-bar"><div class="turn-fill" id="liveTurnFill" style="width:${(liveState.secondsLeft / liveState.turnSeconds) * 100}%;"></div></div>`;
+    startLiveTurnTicker();
+  }
+
+  const teamHtml = (pid, label) => `
+    <div style="flex:1;">
+      <div style="font-size:9px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">${label}</div>
+      ${liveState.teams[pid].map((d, i) => `
+        <div style="font-size:10px; padding:3px 0; opacity:${d.fainted ? 0.4 : 1}; ${i === liveState.activeIndex[pid] ? 'color:#fff; font-weight:700;' : 'color:var(--text-dim);'}">
+          ${i === liveState.activeIndex[pid] ? '▶ ' : ''}${d.speciesName} ${d.fainted ? '💀' : `${d.currentHp}/${d.hp}`}
+        </div>`).join('')}
+    </div>`;
+
+  const lastFew = (liveState.log || []).slice(-4).reverse().map((l) => `
+    <div style="font-size:9px; color:var(--text-dim); padding:2px 0;">
+      ${l.attackerPlayerId === me ? 'You' : liveState.usernames[l.attackerPlayerId]}: ${l.attackerName} hit ${l.defenderName} for ${l.damage}${l.auto ? ' <span style="color:var(--amber);">(auto)</span>' : ''}${l.defenderFainted ? ' 💀' : ''}
+    </div>`).join('');
+
+  $('liveBattleBody').innerHTML = `
+    <div style="display:flex; gap:12px; margin-top:8px;">
+      ${teamHtml(me, 'Your team')}
+      ${teamHtml(oppId, liveState.usernames[oppId])}
+    </div>
+    <div style="margin-top:10px;">${lastFew}</div>
+    ${liveState.status === 'active' ? `
+      <button id="btnLiveAttack" ${myTurn ? '' : 'disabled'} style="margin-top:10px; ${myTurn ? 'background:var(--danger);border-color:var(--danger);color:#fff;font-weight:700;' : ''}">${myTurn ? 'ATTACK' : 'Waiting…'}</button>
+      <button id="btnLiveForfeit" class="ghost" style="margin-top:6px; font-size:9px; padding:6px;">Forfeit</button>
+    ` : '<button id="btnLiveClose" class="ghost" style="margin-top:10px;">Close</button>'}`;
+
+  const atk = $('btnLiveAttack');
+  if (atk) atk.onclick = async () => {
+    atk.disabled = true;
+    try { await api('POST', '/livepvp/attack', { roomId: liveState.roomId, playerId: state.playerId }); }
+    catch (e) { showGuildResultPopup(false, (e && e.message) || 'Attack failed.'); atk.disabled = false; }
+  };
+  const ff = $('btnLiveForfeit');
+  if (ff) ff.onclick = async () => {
+    if (!confirm('Forfeit this battle? Your opponent wins.')) return;
+    try { await api('POST', '/livepvp/forfeit', { roomId: liveState.roomId, playerId: state.playerId }); } catch (e) {}
+  };
+  const cl = $('btnLiveClose');
+  if (cl) cl.onclick = () => { liveState = null; $('liveBattlePanel').style.display = 'none'; refreshLivePvp(); };
+}
+
+function startLiveTurnTicker() {
+  if (liveTurnTicker) clearInterval(liveTurnTicker);
+  liveTurnTicker = setInterval(() => {
+    if (!liveState || liveState.status !== 'active') { clearInterval(liveTurnTicker); return; }
+    const left = Math.max(0, Math.ceil((liveState.turnEndsAt - Date.now()) / 1000));
+    const secs = $('liveSecs');
+    const fill = $('liveTurnFill');
+    if (secs) secs.textContent = left + 's';
+    if (fill) {
+      fill.style.width = (left / liveState.turnSeconds) * 100 + '%';
+      fill.className = 'turn-fill' + (left <= 10 ? ' urgent' : '');
+    }
+  }, 1000);
+}
+
+// ============================================================
+// v0.4 UI — levels, re-boot, buffs, cosmetics, attachments
+// ============================================================
+
+async function refreshLevels() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/levels/${state.playerId}`);
+    state.levels = d;
+    $('plLevelTag').textContent = `Level ${d.level} / ${d.maxLevel}` + (d.rebootCount ? ` · Re-Boot ${d.rebootCount}` : '');
+    $('plXpFill').style.width = d.progressPercent + '%';
+    $('plXpText').textContent = d.xpToNext === null
+      ? `Max level — ${d.lifetimeXp.toLocaleString()} lifetime XP`
+      : `${d.xp.toLocaleString()} / ${d.xpToNext.toLocaleString()} XP to level ${d.level + 1}`;
+
+    // Milestone badges. Art is optional — a numbered circle shows until
+    // assets/levels/lv0NN.png exists.
+    $('plBadges').innerHTML = [5, 10, 15, 20].map((lv) => {
+      const earned = (d.unlockedLevelBadges || []).includes(lv);
+      const file = 'lv' + String(lv).padStart(3, '0') + '.png';
+      return `<div class="level-badge ${earned ? 'earned' : ''}" title="Level ${lv}">
+        <img src="/assets/levels/${file}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.replaceWith(document.createTextNode('${lv}'));">
+      </div>`;
+    }).join('');
+
+    $('plNextReward').textContent = d.nextRewardLevel
+      ? `Next reward at Level ${d.nextRewardLevel}`
+      : (d.canReboot ? 'Re-Boot is available' : '');
+
+    renderReboot(d);
+    refreshBuffs();
+  } catch (e) {}
+}
+
+function renderReboot(d) {
+  const el = $('rebootBody');
+  if (!el) return;
+  if (d.rebootCount >= d.maxReboots) {
+    el.innerHTML = `<div class="empty">Maximum Re-Boots reached (${d.maxReboots}) — +${d.crystalBonusPercent}% crystals, +${d.materialBonusPercent}% materials, permanently.</div>`;
+    return;
+  }
+  const bonusLine = d.rebootCount
+    ? `<div style="font-size:10px; color:var(--cyan); margin-bottom:8px;">Re-Boot ${d.rebootCount}/${d.maxReboots} · +${d.crystalBonusPercent}% crystals · +${d.materialBonusPercent}% materials</div>`
+    : '';
+  if (!d.canReboot) {
+    el.innerHTML = bonusLine + `<div class="empty">Re-Boot unlocks at Level ${d.maxLevel}.</div>`;
+    return;
+  }
+  el.innerHTML = bonusLine + `
+    <div style="font-size:10px; color:#ffb3b2; border:1px solid var(--danger); background:rgba(232,97,95,0.12); border-radius:3px; padding:8px; line-height:1.5;">
+      <strong>Re-Boot destroys your collection.</strong><br>
+      You lose every droid, all crystals and all materials.<br>
+      You keep your Dex, achievements, cosmetics, Pad Level and workshop slots.
+    </div>
+    <button id="btnReboot" style="margin-top:10px; background:var(--danger); border-color:var(--danger); color:#fff; font-weight:700;">Re-Boot (permanent)</button>`;
+  const btn = $('btnReboot');
+  if (btn) btn.onclick = confirmReboot;
+}
+
+// Two prompts on purpose. This is the only irreversible action a player
+// can take, and the second one requires typing, so it can't be
+// double-tapped by accident.
+async function confirmReboot() {
+  if (!confirm('Re-Boot will permanently delete every droid you own, all your crystals and all your materials.\n\nYou keep your Dex, achievements and cosmetics.\n\nContinue?')) return;
+  const typed = prompt('This cannot be undone.\n\nType REBOOT to confirm:');
+  if (typed !== 'REBOOT') { showGuildResultPopup(false, 'Re-Boot cancelled.'); return; }
+  try {
+    const r = await api('POST', '/levels/reboot', { playerId: state.playerId, confirm: true });
+    await refreshLevels();
+    await refreshWorkshop();
+    showGuildResultPopup(true, `Re-Boot ${r.rebootCount} complete. Lost ${r.rebootSummary.droidsLost} droids. You start again with ${r.starterBundle.crystals.toLocaleString()} crystals.`);
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Re-Boot failed.');
+  }
+}
+
+async function refreshBuffs() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/buffs/${state.playerId}`);
+    const rows = Object.entries(d.totals)
+      .filter(([, v]) => v !== 1)
+      .map(([k, v]) => {
+        const pct = Math.round((v - 1) * 1000) / 10;
+        const capped = d.capped[k];
+        return `<div class="stat-row">
+          <span class="stat-label">${k.replace(/([A-Z])/g, ' $1')}</span>
+          <span class="stat-val" style="color:${capped ? 'var(--amber)' : 'var(--cyan)'};">${pct > 0 ? '+' : ''}${pct}%${capped ? ' (max)' : ''}</span>
+        </div>`;
+      });
+    $('buffsBody').innerHTML = rows.length
+      ? rows.join('') + `<div style="font-size:9px; color:var(--text-dim); margin-top:6px;">From: ${Object.keys(d.perSource).join(', ') || 'nothing yet'}</div>`
+      : '<div class="empty">No buffs yet</div>';
+  } catch (e) {}
+}
+
+// ---- cosmetics ----
+async function refreshCosmeticSets() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/cosmetics2/${state.playerId}`);
+    state.cosmeticData = d;
+    $('cosTotals').textContent = `+${d.totals.hpPercent}% HP · +${d.totals.attackPercent}% Attack`;
+
+    $('cosEquipped').innerHTML = d.slots.map((slot) => {
+      const id = d.equipped[slot];
+      const piece = id ? d.sets.flatMap((st) => st.pieces).find((pp) => pp.id === id) : null;
+      return `<div class="cos-slot ${piece ? 'filled' : ''}" data-slot="${slot}">
+        ${piece ? `<img src="/assets/cosmetics/${piece.icon}" style="width:26px;height:26px;object-fit:contain;" onerror="this.remove();"><br>${piece.name}` : slot}
+      </div>`;
+    }).join('');
+
+    $('cosSetList').innerHTML = d.sets.map((st) => `
+      <div class="cos-set ${st.locked ? 'locked' : ''}">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <strong style="font-size:11px; color:#fff;">${st.name}</strong>
+          <span class="spawn-rarity ${st.rarity}" style="font-size:8px;">${st.rarity}</span>
+          <span style="margin-left:auto; font-size:9px; color:var(--text-dim);">${st.ownedCount}/${st.totalPieces} · +${Math.round(st.percent * 100)}%</span>
+        </div>
+        ${st.locked ? `<div style="font-size:9px; color:var(--danger); margin-top:4px;">🔒 Needs ${d.requiredRebootsForGalactic} Re-Boots to equip (you have ${d.rebootCount})</div>` : ''}
+        ${st.pieces.map((pc) => `
+          <div class="cos-piece ${pc.owned ? 'owned' : ''}">
+            <span class="cp-name">${pc.name}${pc.owned ? '' : ' <span style="opacity:0.5;">(not owned)</span>'}</span>
+            ${pc.owned && !pc.equipped ? `<button class="cos-equip ghost" data-id="${pc.id}">Equip</button>` : ''}
+            ${pc.equipped ? `<button class="cos-unequip ghost" data-slot="${pc.slot}" style="color:var(--danger);">Remove</button>` : ''}
+          </div>`).join('')}
+      </div>`).join('');
+
+    $('cosSetList').querySelectorAll('.cos-equip').forEach((b) => {
+      b.onclick = async () => {
+        try { await api('POST', '/cosmetics2/equip', { playerId: state.playerId, pieceId: b.dataset.id }); await refreshCosmeticSets(); refreshBuffs(); }
+        catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not equip that.'); }
+      };
+    });
+    $('cosSetList').querySelectorAll('.cos-unequip').forEach((b) => {
+      b.onclick = async () => {
+        try { await api('POST', '/cosmetics2/unequip', { playerId: state.playerId, slot: b.dataset.slot }); await refreshCosmeticSets(); refreshBuffs(); }
+        catch (e) {}
+      };
+    });
+  } catch (e) {}
+}
+
+// ---- attachments ----
+async function refreshAttachments() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/attachments/${state.playerId}`);
+    state.attachmentData = d;
+    const el = $('attachmentList');
+    if (!d.inventory.length) {
+      el.innerHTML = '<div class="empty">No attachments yet — they drop from the Depot</div>';
+      return;
+    }
+    el.innerHTML = d.inventory.map((it) => `
+      <div class="att-row">
+        <img class="att-icon ${it.rarity}" src="/assets/attachments/${it.icon}" onerror="this.style.visibility='hidden';">
+        <span class="ar-name">${it.name}<br><span style="font-size:8px; color:var(--text-dim); text-transform:uppercase;">${it.rarity} · ${it.slot} slot</span></span>
+        <span class="stat-val">${it.available}/${it.owned}<br><span style="font-size:8px; color:var(--text-dim);">free</span></span>
+      </div>`).join('');
+  } catch (e) {}
+}
 
 function promptAdminCode(purpose) {
   if (state.verifiedAdminCode) return state.verifiedAdminCode;

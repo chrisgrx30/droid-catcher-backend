@@ -13,6 +13,14 @@ const path = require('path');
 const db = require('./db');
 const spawnsModule = require('./spawns');
 const captureModule = require('./capture');
+const joystickModule = require('./joystick');
+const levelsModule = require('./levels');
+const buffsModule = require('./buffs');
+const attachmentsModule = require('./attachments');
+const cosmeticsModule = require('./cosmetics');
+const presenceModule = require('./presence');
+const realtimeModule = require('./realtime');
+const livepvpModule = require('./livepvp');
 const workshopModule = require('./workshop');
 const battleModule = require('./battle');
 const factoryModule = require('./factory');
@@ -49,6 +57,18 @@ const ASSETS_POSTERS_DIR = path.join(__dirname, '..', 'assets', 'home', 'posters
 // banner, and anything else Apex-themed. Drop PNG/GIF files in
 // assets/apex/ and reference them as /assets/apex/<name>.png
 const ASSETS_APEX_DIR = path.join(__dirname, '..', 'assets', 'apex');
+
+// ---- v0.4 asset folders ----
+// All lowercase, no spaces. Linux (which Render runs) treats paths as
+// case-sensitive and URLs can't contain raw spaces, so "Achievements"
+// and "Battle Equipment" would both fail to serve. Use these names.
+const EXTRA_ASSET_DIRS = {
+  attachments:  path.join(__dirname, '..', 'assets', 'attachments'),
+  equipment:    path.join(__dirname, '..', 'assets', 'equipment'),
+  achievements: path.join(__dirname, '..', 'assets', 'achievements'),
+  levels:       path.join(__dirname, '..', 'assets', 'levels'),
+  materials:    path.join(__dirname, '..', 'assets', 'materials'),
+};
 const IMAGE_MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -100,6 +120,19 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const { pathname, searchParams } = url;
 
+  // ---- presence ----
+  // Any request carrying a player id refreshes that player's "last
+  // seen" clock. The client already polls, so an open tab keeps itself
+  // marked online with no extra traffic. Reads the id from the query
+  // string or the path; POST bodies are handled per-route where the
+  // body is already parsed.
+  {
+    const qsId = searchParams.get('playerId');
+    if (qsId) presenceModule.touch(Number(qsId));
+    const pathId = pathname.match(/^\/(?:workshop|levels|buffs|attachments|cosmetics2|joystick|friends|dex)\/(\d+)/);
+    if (pathId) presenceModule.touch(Number(pathId[1]));
+  }
+
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -150,6 +183,31 @@ const server = http.createServer(async (req, res) => {
         return res.end(data);
       } catch (e) {
         return sendJson(res, 404, { error: 'image not found' });
+      }
+    }
+
+    // GET /assets/<folder>/<file> for the v0.4 art folders. One handler
+    // instead of five near-identical blocks — the older folders above
+    // predate this and were left alone rather than refactored.
+    {
+      const m = pathname.match(/^\/assets\/([a-z]+)\/([^/]+)$/);
+      if (req.method === 'GET' && m && EXTRA_ASSET_DIRS[m[1]]) {
+        const filename = m[2];
+        if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif|svg)$/.test(filename)) {
+          return sendJson(res, 400, { error: 'invalid filename' });
+        }
+        try {
+          const data = fs.readFileSync(path.join(EXTRA_ASSET_DIRS[m[1]], filename));
+          const ext = path.extname(filename).toLowerCase();
+          res.writeHead(200, {
+            'Content-Type': IMAGE_MIME_TYPES[ext] || 'application/octet-stream',
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*',
+          });
+          return res.end(data);
+        } catch (e) {
+          return sendJson(res, 404, { error: 'image not found' });
+        }
       }
     }
 
@@ -1373,6 +1431,277 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // ---- REAL-TIME STREAM (SSE) ----
+    // GET /stream?playerId=N — long-lived. Do NOT wrap this in the
+    // normal sendJson path; the response deliberately stays open.
+    if (req.method === 'GET' && pathname === '/stream') {
+      const playerId = Number(searchParams.get('playerId'));
+      if (!playerId || !db.players.get(playerId)) {
+        return sendJson(res, 400, { error: 'NO_PLAYER', message: 'Valid playerId required' });
+      }
+      realtimeModule.subscribe(playerId, res);
+      return; // connection stays open
+    }
+
+    // GET /stream/stats -> how many players/connections are live
+    if (req.method === 'GET' && pathname === '/stream/stats') {
+      return sendJson(res, 200, realtimeModule.stats());
+    }
+
+    // ---- LIVE PVP ----
+    // GET /livepvp/:playerId -> lobby: who's online, challenges, current battle
+    if (req.method === 'GET' && pathname.match(/^\/livepvp\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try {
+        return sendJson(res, 200, livepvpModule.lobbyFor(playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
+      }
+    }
+
+    // GET /livepvp/room/:roomId?playerId=N
+    if (req.method === 'GET' && pathname.match(/^\/livepvp\/room\/\d+$/)) {
+      const roomId = Number(pathname.split('/')[3]);
+      const playerId = Number(searchParams.get('playerId'));
+      try {
+        return sendJson(res, 200, livepvpModule.roomView(roomId, playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
+      }
+    }
+
+    // POST /livepvp/challenge { fromPlayerId, toPlayerId, teamDroidIds }
+    if (req.method === 'POST' && pathname === '/livepvp/challenge') {
+      const { fromPlayerId, toPlayerId, teamDroidIds } = await readBody(req);
+      presenceModule.touch(fromPlayerId);
+      try {
+        const ch = livepvpModule.challenge(fromPlayerId, toPlayerId, teamDroidIds);
+        return sendJson(res, 201, { challengeId: ch.id, expiresAt: ch.expiresAt });
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
+      }
+    }
+
+    // POST /livepvp/accept { challengeId, playerId, teamDroidIds }
+    if (req.method === 'POST' && pathname === '/livepvp/accept') {
+      const { challengeId, playerId, teamDroidIds } = await readBody(req);
+      presenceModule.touch(playerId);
+      try {
+        const room = livepvpModule.acceptChallenge(challengeId, playerId, teamDroidIds);
+        return sendJson(res, 200, livepvpModule.roomView(room.id, playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
+      }
+    }
+
+    // POST /livepvp/decline { challengeId, playerId }
+    if (req.method === 'POST' && pathname === '/livepvp/decline') {
+      const { challengeId, playerId } = await readBody(req);
+      try {
+        return sendJson(res, 200, livepvpModule.declineChallenge(challengeId, playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
+      }
+    }
+
+    // POST /livepvp/attack { roomId, playerId }
+    if (req.method === 'POST' && pathname === '/livepvp/attack') {
+      const { roomId, playerId } = await readBody(req);
+      presenceModule.touch(playerId);
+      try {
+        const r = livepvpModule.attack(roomId, playerId);
+        return sendJson(res, 200, livepvpModule.roomView(r.room.id, playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
+      }
+    }
+
+    // POST /livepvp/forfeit { roomId, playerId }
+    if (req.method === 'POST' && pathname === '/livepvp/forfeit') {
+      const { roomId, playerId } = await readBody(req);
+      try {
+        const r = livepvpModule.forfeit(roomId, playerId);
+        return sendJson(res, 200, livepvpModule.roomView(r.room.id, playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
+      }
+    }
+
+    // GET /presence/:playerId -> that player's status
+    if (req.method === 'GET' && pathname.match(/^\/presence\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, {
+        playerId,
+        presence: presenceModule.statusOf(playerId),
+        online: presenceModule.isOnline(playerId),
+        lastSeenText: presenceModule.lastSeenText(playerId),
+      });
+    }
+
+    // POST /presence/heartbeat { playerId }
+    // Explicit keep-alive for a client sitting on a screen that makes
+    // no other requests, so presence doesn't go stale while someone is
+    // clearly still there.
+    if (req.method === 'POST' && pathname === '/presence/heartbeat') {
+      const { playerId } = await readBody(req);
+      presenceModule.touch(playerId);
+      return sendJson(res, 200, { ok: true, presence: presenceModule.statusOf(playerId) });
+    }
+
+    // ---- COSMETICS ----
+    // GET /cosmetics2/:playerId -> sets, ownership, equipped, totals
+    // (named cosmetics2 to avoid colliding with the existing /cosmetics
+    //  catalogue route from the original build)
+    if (req.method === 'GET' && pathname.match(/^\/cosmetics2\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try {
+        return sendJson(res, 200, cosmeticsModule.summaryFor(playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'COSMETIC_ERROR', message: e.message });
+      }
+    }
+
+    // POST /cosmetics2/equip { playerId, pieceId }
+    if (req.method === 'POST' && pathname === '/cosmetics2/equip') {
+      const { playerId, pieceId } = await readBody(req);
+      try {
+        const r = cosmeticsModule.equip(playerId, pieceId);
+        return sendJson(res, 200, { ...r, summary: cosmeticsModule.summaryFor(playerId) });
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'COSMETIC_ERROR', message: e.message });
+      }
+    }
+
+    // POST /cosmetics2/unequip { playerId, slot }
+    if (req.method === 'POST' && pathname === '/cosmetics2/unequip') {
+      const { playerId, slot } = await readBody(req);
+      try {
+        const r = cosmeticsModule.unequip(playerId, slot);
+        return sendJson(res, 200, { ...r, summary: cosmeticsModule.summaryFor(playerId) });
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'COSMETIC_ERROR', message: e.message });
+      }
+    }
+
+    // ---- DROID ATTACHMENTS ----
+    // GET /attachments/:playerId -> catalog + what they own
+    if (req.method === 'GET' && pathname.match(/^\/attachments\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try {
+        return sendJson(res, 200, attachmentsModule.summaryFor(playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'ATTACHMENT_ERROR', message: e.message });
+      }
+    }
+
+    // POST /attachments/equip { playerId, droidId, attachmentId }
+    if (req.method === 'POST' && pathname === '/attachments/equip') {
+      const { playerId, droidId, attachmentId } = await readBody(req);
+      try {
+        const r = attachmentsModule.equip(playerId, droidId, attachmentId);
+        return sendJson(res, 200, { droid: workshopModule.enrichDroid(r.droid), slot: r.slot, replaced: r.replaced });
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'ATTACHMENT_ERROR', message: e.message });
+      }
+    }
+
+    // POST /attachments/unequip { playerId, droidId, slot }
+    if (req.method === 'POST' && pathname === '/attachments/unequip') {
+      const { playerId, droidId, slot } = await readBody(req);
+      try {
+        const r = attachmentsModule.unequip(playerId, droidId, slot);
+        return sendJson(res, 200, { droid: workshopModule.enrichDroid(r.droid), slot: r.slot, removed: r.removed });
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'ATTACHMENT_ERROR', message: e.message });
+      }
+    }
+
+    // ---- PLAYER LEVELS / RE-BOOT ----
+    // GET /levels/:playerId
+    if (req.method === 'GET' && pathname.match(/^\/levels\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try {
+        return sendJson(res, 200, levelsModule.statusFor(playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LEVEL_ERROR', message: e.message });
+      }
+    }
+
+    // POST /levels/reboot { playerId, confirm: true }
+    // Destructive and irreversible — requires an explicit confirm flag
+    // so a mis-fired request can never wipe an account.
+    if (req.method === 'POST' && pathname === '/levels/reboot') {
+      const { playerId, confirm } = await readBody(req);
+      try {
+        return sendJson(res, 200, levelsModule.reboot(playerId, confirm === true));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'LEVEL_ERROR', message: e.message });
+      }
+    }
+
+    // GET /buffs/:playerId -> full breakdown of every active buff,
+    // which source each came from, and which are capped out.
+    if (req.method === 'GET' && pathname.match(/^\/buffs\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const player = db.players.get(playerId);
+      if (!player) return sendJson(res, 404, { error: 'NO_PLAYER', message: 'Player not found' });
+      return sendJson(res, 200, buffsModule.breakdownFor(player));
+    }
+
+    // ---- JOY STICK ----
+    // Every one of these is server-authoritative: the client proposes,
+    // joystick.js decides. See the security note at the top of that file.
+
+    // GET /joystick/:playerId -> current session + cooldown + balances
+    if (req.method === 'GET' && pathname.match(/^\/joystick\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try {
+        return sendJson(res, 200, joystickModule.statusFor(playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'JOYSTICK_ERROR', message: e.message });
+      }
+    }
+
+    // POST /joystick/activate { playerId, tokens, lat, lng }
+    if (req.method === 'POST' && pathname === '/joystick/activate') {
+      const { playerId, tokens, lat, lng } = await readBody(req);
+      try {
+        return sendJson(res, 200, joystickModule.activate(playerId, tokens, Number(lat), Number(lng)));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'JOYSTICK_ERROR', message: e.message });
+      }
+    }
+
+    // POST /joystick/move { playerId, lat, lng }
+    if (req.method === 'POST' && pathname === '/joystick/move') {
+      const { playerId, lat, lng } = await readBody(req);
+      try {
+        return sendJson(res, 200, joystickModule.move(playerId, Number(lat), Number(lng)));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'JOYSTICK_ERROR', message: e.message });
+      }
+    }
+
+    // POST /joystick/pulse { playerId }
+    if (req.method === 'POST' && pathname === '/joystick/pulse') {
+      const { playerId } = await readBody(req);
+      try {
+        return sendJson(res, 200, joystickModule.pulse(playerId, spawnsModule));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'JOYSTICK_ERROR', message: e.message });
+      }
+    }
+
+    // POST /joystick/end { playerId }  -> return to real location, start cooldown
+    if (req.method === 'POST' && pathname === '/joystick/end') {
+      const { playerId } = await readBody(req);
+      try {
+        return sendJson(res, 200, joystickModule.acknowledgeExpiry(playerId));
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'JOYSTICK_ERROR', message: e.message });
+      }
+    }
+
     // POST /events/apex-hunt  { adminCode, durationMs? }
     // One-button launch for the 30-minute Apex Hunt. Admin-only, same
     // gate as /events — this is the only thing in the game that makes
@@ -1480,6 +1809,8 @@ persistence.load().then(() => {
     console.log(`Sparkfield backend running on http://localhost:${PORT}`);
     persistence.startAutoSave();
     persistence.registerShutdownHook();
+    // Drives live PVP turn countdowns and challenge expiry.
+    livepvpModule.startTicker();
   });
 });
 

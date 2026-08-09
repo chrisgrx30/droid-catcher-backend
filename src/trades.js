@@ -6,6 +6,7 @@
 // an offer sits pending.
 
 const db = require('./db');
+const levels = require('./levels');
 const workshop = require('./workshop');
 
 class TradeError extends Error {
@@ -174,6 +175,10 @@ function acceptTradeOffer(tradeId, playerId) {
   offer.status = 'accepted';
   offer.resolvedAt = Date.now();
   if (offer.wishId) db.markWishFulfilled(offer.wishId);
+
+  // Both sides of a completed trade earn XP.
+  levels.awardXp(offer.fromPlayerId, 'trade');
+  levels.awardXp(offer.toPlayerId, 'trade');
 
   return offer;
 }

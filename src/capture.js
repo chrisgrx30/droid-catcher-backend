@@ -5,6 +5,9 @@
 // sole source of truth for the outcome.
 
 const db = require('./db');
+const joystick = require('./joystick');
+const levels = require('./levels');
+const buffs = require('./buffs');
 const geo = require('./geo');
 const workshop = require('./workshop');
 
@@ -19,7 +22,7 @@ const workshop = require('./workshop');
 // Raise or lower this single value to widen/tighten the capture zone.
 // The wider "how far can I see" number is separate: DEFAULT_SCAN_RADIUS
 // in test-terminal.html.
-const CAPTURE_RADIUS_METERS = 15;
+const CAPTURE_RADIUS_METERS = 30;
 
 const MAX_PLAUSIBLE_RANGE_METERS = CAPTURE_RADIUS_METERS; // kept as an alias so existing references still read naturally
 const CAPTURE_ATTEMPT_COOLDOWN_MS = 3000; // 3 seconds — stops spam-clicking captures
@@ -56,6 +59,15 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   if (!player) throw new CaptureError('NO_PLAYER', 'Player not found');
 
   const now = Date.now();
+
+  // The client's reported position is only used when no Joy Stick
+  // session is live. During a session the SERVER's tracked joystick
+  // position wins — the client cannot claim to be somewhere it hasn't
+  // legitimately walked to at 7kph.
+  const effective = joystick.getEffectivePosition(player, playerLat, playerLng, now);
+  playerLat = effective.lat;
+  playerLng = effective.lng;
+  const viaJoystick = effective.viaJoystick;
   if (player.lastCaptureAttemptAt && now - player.lastCaptureAttemptAt < CAPTURE_ATTEMPT_COOLDOWN_MS) {
     throw new CaptureError('TOO_FAST', 'Slow down a moment before your next attempt');
   }
@@ -100,6 +112,11 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
 
   let successChance =
     species.baseCaptureRate * crystalBonus(crystalsSpent) * padSkillMultiplier(padAccuracy, player.padLevel);
+  // Achievement/cosmetic/attachment catch-rate buffs are applied here,
+  // through the central engine, so they're capped relative to the base
+  // rate rather than added as raw percentage points. That's what keeps
+  // Apex's 2% base rate from being buffed into routine territory.
+  successChance = buffs.applyCatchRateBuff(player, successChance);
   const companionMultiplier = workshop.companionCaptureRateMultiplier(playerId); // Nebulfox: +100% success chance, helps with tough Legendary attempts
   successChance *= companionMultiplier;
   successChance = Math.max(0.05, Math.min(0.95, successChance)); // clamp 5%-95%
@@ -153,9 +170,16 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
       workshopSlotId: null,
       currentHpDamage: 0, // damage taken in battle, persists until healed — null/0 means full HP
       hiddenFromTrade: false,
+      // Permanent record that this droid was caught during a Joy Stick
+      // session. Drives the badge on the droid's status box and will be
+      // what achievements read from later.
+      capturedViaJoystick: viaJoystick,
     };
     db.ownedDroids.set(newDroid.id, newDroid);
     db.markDexSeen(playerId, species.id, spawn.variant);
+    // XP for a completed, valid action only — a failed attempt awards
+    // nothing, so XP can't be farmed by spamming captures.
+    levels.awardXp(playerId, 'capture');
 
     gotPaint = Math.random() < PAINT_DROP_CHANCE;
     if (gotPaint) player.paint += 1;
@@ -229,6 +253,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     autoReleaseRefund,
     buffsApplied,
     isApex: db.isApexSpecies(species),
+    viaJoystick,
     apexCubesDropped,
     apexCubes: player.apexCubes || 0,
   };

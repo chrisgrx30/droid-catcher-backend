@@ -394,6 +394,7 @@ function attackGroupTitan(battleId, playerId) {
     // whoever landed the final hit.
     battle.winnerParticipantIds.forEach((pid) => {
       const p = db.players.get(pid);
+      levels.awardXp(pid, 'battleWin');
       p.paint = (p.paint || 0) + TITAN_REWARDS.paint;
       p.novaChips = (p.novaChips || 0) + TITAN_REWARDS.novaChips;
       p.repairKits = (p.repairKits || 0) + TITAN_REWARDS.repairKits;
@@ -869,4 +870,4 @@ function attackApex(battleId, playerId) {
   return { battle, logEntry };
 }
 
-module.exports = { createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };
+module.exports = { validateTeam, firstNonFaintedIndex, DAMAGE_VARIANCE, createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };

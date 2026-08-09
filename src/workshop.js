@@ -5,6 +5,9 @@
 // workshop screen, or explicit collect action).
 
 const db = require('./db');
+const levels = require('./levels');
+const buffs = require('./buffs');
+const attachments = require('./attachments');
 
 const MAX_OFFLINE_HOURS = 4; // confirmed cap — was 10 hours at full rate, now 4 hours at OFFLINE_RATE_MULTIPLIER
 const OFFLINE_RATE_MULTIPLIER = 0.30; // confirmed — crystals accrue at 30% of the normal rate once offline
@@ -29,7 +32,11 @@ function droidCrystalsPerMinute(droid) {
   const species = speciesById(droid.speciesId);
   if (!slot || !species) return 0;
   const variantMultiplier = db.VARIANT_CRYSTAL_MULTIPLIER[droid.variant] ?? 1.0;
-  return species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier;
+  // Re-Boot and achievement crystal bonuses apply here, via the central
+  // buff engine so they're capped alongside every other source.
+  const owner = db.players.get(droid.playerId);
+  const crystalBuff = owner ? buffs.multiplierFor(owner, 'crystalRate') : 1;
+  return species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier * crystalBuff;
 }
 
 // Same formula, but assuming a base (1.0) slot multiplier — used to show
@@ -104,6 +111,7 @@ function enrichDroid(droid) {
   }
   const species = speciesById(droid.speciesId);
   const lvlMult = levelMultiplier(droid.level);
+  const attachMult = attachments.droidStatMultipliers(droid);
   const evolution = db.EVOLUTION_TABLE[droid.speciesId];
   const evolvesToSpecies = evolution ? speciesById(evolution.evolvesTo) : null;
   const now = Date.now();
@@ -121,8 +129,10 @@ function enrichDroid(droid) {
     buffIsOnCooldown,
     crystalsPerMinute: Math.round(droidCrystalsPerMinute(droid) * 100) / 100,
     potentialCrystalsPerMinute: Math.round(droidPotentialCrystalsPerMinute(droid) * 100) / 100,
-    hp: species ? Math.round(species.baseHP * lvlMult) : null,
-    attack: species ? Math.round(species.baseAttack * lvlMult) : null,
+    // Attachment HP/attack apply to the droid wearing them only — a Mod
+    // Chip on one droid must not buff the rest of the roster.
+    hp: species ? Math.round(species.baseHP * lvlMult * attachMult.hp) : null,
+    attack: species ? Math.round(species.baseAttack * lvlMult * attachMult.attack) : null,
     currentHp: species ? Math.max(0, Math.round(species.baseHP * lvlMult) - (droid.currentHpDamage || 0)) : null,
     fainted: species ? (droid.currentHpDamage || 0) >= Math.round(species.baseHP * lvlMult) : false,
     // Apex droids cost cubes, everything else costs crystals. Both come
@@ -133,6 +143,9 @@ function enrichDroid(droid) {
       : (db.isApexSpecies(species) ? db.apexCubeLevelUpCost(droid.level) : db.levelUpCost(droid.level, species?.rarity)),
     nextLevelCurrency: db.isApexSpecies(species) ? 'apexCubes' : 'crystals',
     isApex: db.isApexSpecies(species),
+    capturedViaJoystick: Boolean(droid.capturedViaJoystick),
+    attachments: droid.attachments || {},
+    attachmentSpecials: attachments.droidSpecials(droid),
     evolvesToName: evolvesToSpecies?.name || null,
     evolveNovaChipCost: evolution?.novaChipCost || null,
     isEvolutionOnly: species?.isEvolutionOnly || false,
@@ -639,6 +652,7 @@ function evolveSpecies(playerId, droidId) {
   droid.speciesId = evolution.evolvesTo;
   db.markDexSeen(playerId, evolution.evolvesTo, droid.variant);
 
+  levels.awardXp(playerId, 'evolve');
   return { droid: enrichDroid(droid), novaChips: player.novaChips, crystalBalance: player.crystalBalance };
 }
 
