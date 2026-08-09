@@ -364,6 +364,27 @@
   }
   .out-of-reach-toggle .oor-caret { float: right; }
 
+  /* ---- attachment slots in the droid stats modal ---- */
+  .att-slots { margin-top: 12px; border: 1px solid var(--line); border-radius: 4px; padding: 8px; background: var(--panel-raised); }
+  .att-slots-title { font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 6px; }
+  .att-slot-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 10px; }
+  .asr-label { flex-shrink: 0; width: 78px; color: var(--text-dim); text-align: left; font-size: 9px; }
+  .asr-item { flex: 1; color: var(--cyan); text-align: left; }
+  .asr-empty { flex: 1; color: var(--text-dim); opacity: 0.6; text-align: left; font-size: 9px; }
+  .att-slot-row select { flex: 1; margin-top: 0; font-size: 9px; padding: 5px; }
+  .att-slot-row button { width: auto; margin-top: 0; font-size: 8px; padding: 4px 8px; }
+
+  /* ---- brood chamber ---- */
+  .keeper-slot { margin-top: 10px; padding: 10px; border: 1px dashed var(--line); border-radius: 4px; text-align: center; font-size: 9px; color: var(--text-dim); background: rgba(255,255,255,0.03); }
+  .bay-card { border: 1px solid var(--line); border-radius: 4px; padding: 10px; margin-top: 8px; background: var(--panel-raised); }
+  .bay-card.ready { border-color: #2a9d4a; box-shadow: 0 0 8px rgba(42,157,74,0.3); }
+  .bay-card.empty { border-style: dashed; text-align: center; color: var(--text-dim); font-size: 10px; }
+  .bay-card .bay-timer { font-size: 10px; color: var(--cyan); margin-top: 4px; }
+  .merge-pick { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 10px; cursor: pointer; }
+  .merge-pick:last-child { border-bottom: none; }
+  .merge-pick.selected { background: rgba(139,109,224,0.18); }
+  .merge-pick .mp-name { flex: 1; color: #fff; }
+
   .dex-filter-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
   .dex-filter { width: auto; margin-top: 0; font-size: 8px; padding: 5px 8px; text-transform: uppercase; letter-spacing: 0.04em; }
   .dex-filter.active { background: var(--cyan); border-color: var(--cyan); color: #04181a; font-weight: 700; }
@@ -784,6 +805,7 @@
   <button class="tab-btn" data-tab="dex">Dex</button>
   <button class="tab-btn" data-tab="battles">Battles</button>
   <button class="tab-btn" data-tab="livepvp">⚡ Live PVP</button>
+  <button class="tab-btn" data-tab="brood">🔮 Brood</button>
   <button class="tab-btn" data-tab="storage">Warehouse</button>
 </div>
 
@@ -1126,6 +1148,32 @@
 </div>
 
 <!-- INVENTORY TAB -->
+<!-- BROOD CHAMBER TAB -->
+<div class="tab-page" id="tab-brood">
+  <div class="panel" id="broodChamberPanel">
+    <div class="panel-title">🔮 Brood Chamber</div>
+    <div style="font-size:9px; color:var(--text-dim); line-height:1.5;">
+      Merge two droids into an Astral Brood egg. <strong style="color:var(--danger);">Both droids are destroyed.</strong>
+      The result is never worse than the lower-rarity parent, and rarer parents improve the odds.
+      Astral Brood droids cannot be caught in the wild — merging is the only way to get them.
+    </div>
+    <div id="broodKeeperSlot" class="keeper-slot"></div>
+  </div>
+
+  <div class="panel" id="genesisBaysPanel" style="margin-top:16px;">
+    <div class="panel-title">Genesis Bays <span id="broodBayCount" style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;"></span></div>
+    <div id="broodBayList"></div>
+    <button id="btnBuyBay" style="margin-top:10px; font-size:10px;">Buy Genesis Bay</button>
+  </div>
+
+  <div class="panel" id="broodMergePanel" style="margin-top:16px;">
+    <div class="panel-title">Merge</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Pick exactly two droids. Cost: <span id="broodMergeCost">5,000</span> crystals.</div>
+    <div id="broodMergePicker"></div>
+    <button id="btnBroodMerge" style="margin-top:10px; background:#8b6de0; border-color:#8b6de0; color:#fff; font-weight:700;">Merge Selected</button>
+  </div>
+</div>
+
 <!-- LIVE PVP TAB (beta) -->
 <div class="tab-page" id="tab-livepvp">
   <div class="panel" id="livePvpStatusPanel">
@@ -1490,6 +1538,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     // previous tab's display:none — recalculating size on every visit
     // to this tab fixes it reliably.
     if (btn.dataset.tab === 'livepvp') refreshLivePvp();
+    if (btn.dataset.tab === 'brood') { refreshMastery().then(refreshBrood); }
     if (btn.dataset.tab === 'capture' && locationMap) {
       setTimeout(() => locationMap.invalidateSize(), 50);
     }
@@ -1779,6 +1828,7 @@ async function activatePlayer(player) {
   if (accInner) accInner.style.display = 'block';
   refreshJoystick();
   refreshLevels();
+  refreshMastery();
   checkGiftInbox();
   refreshCosmeticSets();
   refreshAttachments();
@@ -2843,6 +2893,42 @@ function showStatsModal(droid) {
     : '';
   const hideTradeBtn = `<button class="hide-trade-btn ghost" style="margin-top:6px; width:100%; font-size:9px;">${droid.hiddenFromTrade ? '🔒 Hidden from Trade — tap to unhide' : '👁️ Visible in Trade — tap to hide'}</button>`;
 
+  // ---- attachment slots ----
+  // This is where attachments actually get assigned. Until now the
+  // items existed and could be owned but there was nowhere to equip
+  // them, so their buffs were unreachable.
+  const SLOT_LABEL = { modchip: 'Mod Chip', usb: 'USB Dongle', ebot: 'Energy Bottle' };
+  const inv = (state.attachmentData && state.attachmentData.inventory) || [];
+  const attSlots = ['modchip', 'usb', 'ebot'].map((slot) => {
+    const equippedId = (droid.attachments || {})[slot];
+    const item = equippedId ? inv.find((i) => i.id === equippedId) : null;
+    const spare = inv.filter((i) => i.slot === slot && i.available > 0);
+    return `
+      <div class="att-slot-row">
+        <span class="asr-label">${SLOT_LABEL[slot]}</span>
+        ${item
+          ? `<span class="asr-item">${item.name}</span>
+             <button class="att-remove ghost" data-slot="${slot}">Remove</button>`
+          : spare.length
+            ? `<select class="att-select" data-slot="${slot}">
+                 <option value="">— empty —</option>
+                 ${spare.map((i) => `<option value="${i.id}">${i.name} (${i.available})</option>`).join('')}
+               </select>`
+            : `<span class="asr-empty">none owned</span>`}
+      </div>`;
+  }).join('');
+
+  const attachmentBlock = `
+    <div class="att-slots">
+      <div class="att-slots-title">Attachments${droid.masteryLevel ? ` <span style="color:#8b6de0;">· Mastery ${droid.masteryLevel}</span>` : ''}</div>
+      ${attSlots}
+    </div>`;
+
+  // Buddy assignment lives here too — it's a per-droid action.
+  const buddyBtn = droid.level >= 20
+    ? `<button class="buddy-btn" style="margin-top:6px; width:100%; ${droid.isBuddy ? 'color:var(--danger); border-color:var(--danger);' : ''}">${droid.isBuddy ? 'Remove as Buddy' : '★ Set as Mastery Buddy'}</button>`
+    : '';
+
   box.innerHTML = `
     <div class="mb-icon"></div>
     <div id="statsModalIcon" style="margin-bottom:10px;"></div>
@@ -2855,6 +2941,8 @@ function showStatsModal(droid) {
       <div class="sg-item"><div class="sg-label">${droid.workshopSlotId ? 'Crystals/min' : 'Crystals/min if farming'}</div><div class="sg-val">${droid.workshopSlotId ? droid.crystalsPerMinute : droid.potentialCrystalsPerMinute}</div></div>
       <div class="sg-item"><div class="sg-label">Next Level Cost</div><div class="sg-val" style="font-size:11px;">${levelCostLabel(droid)}</div></div>
     </div>
+    ${attachmentBlock}
+    ${buddyBtn}
     ${healBtn}
     ${masterBtn}
     ${hideTradeBtn}
@@ -2937,6 +3025,45 @@ function showStatsModal(droid) {
       } catch (e) {
         showGuildResultPopup(false, (e && e.message) || 'Could not master that Scaffitan.');
       }
+    };
+  }
+
+  // ---- attachment slot handlers ----
+  box.querySelectorAll('.att-select').forEach((sel) => {
+    sel.onchange = async () => {
+      if (!sel.value) return;
+      try {
+        await api('POST', '/attachments/equip', { playerId: state.playerId, droidId: droid.id, attachmentId: sel.value });
+        overlay.style.display = 'none';
+        await refreshAttachments();
+        await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not equip that.'); }
+    };
+  });
+  box.querySelectorAll('.att-remove').forEach((btn) => {
+    btn.onclick = async () => {
+      try {
+        await api('POST', '/attachments/unequip', { playerId: state.playerId, droidId: droid.id, slot: btn.dataset.slot });
+        overlay.style.display = 'none';
+        await refreshAttachments();
+        await refreshWorkshop();
+      } catch (e) {}
+    };
+  });
+
+  const buddyBtnEl = box.querySelector('.buddy-btn');
+  if (buddyBtnEl) {
+    buddyBtnEl.onclick = async () => {
+      try {
+        if (droid.isBuddy) await api('POST', '/mastery/unassign', { playerId: state.playerId });
+        else await api('POST', '/mastery/assign', { playerId: state.playerId, droidId: droid.id });
+        overlay.style.display = 'none';
+        await refreshMastery();
+        await refreshWorkshop();
+        showGuildResultPopup(true, droid.isBuddy
+          ? 'Buddy removed — its mastery progress is banked and resumes if you re-assign it.'
+          : '★ Buddy set. It gains one mastery level every day, up to 30.');
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not change your buddy.'); }
     };
   }
 
@@ -4256,6 +4383,9 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('manualCoordsPanel', 'manualcoords');
   applyPanelBackground('adminLogPanel', 'adminlog');
   applyPanelBackground('adminGiftPanel', 'admingift');
+  applyPanelBackground('broodChamberPanel', 'broodchamber', 'astral');
+  applyPanelBackground('genesisBaysPanel', 'genesisbays', 'astral');
+  applyPanelBackground('broodMergePanel', 'broodmerge', 'astral');
   applyPanelBackground('themePickerPanel', 'themepicker');
   applyPanelBackground('wardrobeMainPanel', 'wardrobe');
   applyPanelBackground('offlineProjectionPanel', 'offlineprojection');
@@ -4435,10 +4565,11 @@ const DEX_GROUP_LABELS = {
   football: 'Football',
   void_zombie: 'Void Zombie',
   apex: '⬢ APEX',
+  astral_brood: '🔮 Astral Brood',
   lumen_sentinel: 'Lumen Sentinel',
   titan: 'Titan',
 };
-const DEX_GROUP_ORDER = ['mythical', 'nature', 'wildcard', 'football', 'void_zombie', 'lumen_sentinel', 'cosmic', 'titan', 'apex'];
+const DEX_GROUP_ORDER = ['mythical', 'nature', 'wildcard', 'football', 'void_zombie', 'lumen_sentinel', 'cosmic', 'titan', 'apex', 'astral_brood'];
 
 function buildDexCard(s) {
   const card = document.createElement('div');
@@ -5284,6 +5415,144 @@ $('btnGiftSelectAll').onclick = () => {
   if (giftSelectedPlayers.size === giftOptions.players.length) giftSelectedPlayers = new Set();
   else giftSelectedPlayers = new Set(giftOptions.players.map((p) => p.id));
   renderGiftPlayers();
+};
+
+// ============================================================
+// BROOD CHAMBER
+// ============================================================
+
+let broodSelection = new Set();
+
+function broodMs(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+// Keeps state.buddyDroidId current so the merge picker can exclude the
+// buddy — otherwise that filter silently matched nothing.
+async function refreshMastery() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/mastery/${state.playerId}`);
+    state.mastery = d;
+    state.buddyDroidId = d.buddyDroidId;
+  } catch (e) {}
+}
+
+async function refreshBrood() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/brood/${state.playerId}`);
+    state.brood = d;
+
+    $('broodMergeCost').textContent = d.mergeCost.toLocaleString();
+    $('broodBayCount').textContent = `— ${d.bayCount}/${d.maxBays} owned`;
+
+    $('broodKeeperSlot').innerHTML = d.keeper.unlocked
+      ? (d.keeper.droidId ? 'Chamber Keeper assigned — merge odds improved' : 'Empty Chamber Keeper slot')
+      : `🔒 ${d.keeper.note}`;
+
+    // Bays
+    $('broodBayList').innerHTML = d.bayCount
+      ? d.bays.map((bay, i) => {
+          if (!bay.occupied) return `<div class="bay-card empty">Genesis Bay ${i + 1} — empty</div>`;
+          const e = bay.egg;
+          return `<div class="bay-card ${e.ready ? 'ready' : ''}">
+            <div style="font-size:10px; color:#fff;">Bay ${i + 1} — <span class="spawn-rarity ${e.rarity}">${e.rarity}</span> egg</div>
+            <div style="font-size:9px; color:var(--text-dim); margin-top:2px;">From ${e.parents.join(' + ')}</div>
+            <div class="bay-timer">${e.ready ? '✓ Ready to hatch' : `Incubating — ${broodMs(e.msRemaining)} left`}</div>
+            ${e.ready ? `<button class="brood-collect" data-id="${bay.id}" style="margin-top:6px; background:#2a9d4a; border-color:#2a9d4a; color:#fff; font-size:9px; padding:7px;">Collect</button>` : ''}
+          </div>`;
+        }).join('')
+      : '<div class="empty">No Genesis Bays yet — buy one to start merging</div>';
+
+    const buyBtn = $('btnBuyBay');
+    if (d.nextBayCost === null) {
+      buyBtn.disabled = true;
+      buyBtn.textContent = `All ${d.maxBays} Bays owned`;
+    } else {
+      buyBtn.disabled = false;
+      buyBtn.textContent = `Buy Genesis Bay ${d.bayCount + 1} — ${d.nextBayCost.toLocaleString()} ✦`;
+    }
+
+    $('broodBayList').querySelectorAll('.brood-collect').forEach((b) => {
+      b.onclick = async () => {
+        try {
+          const r = await api('POST', '/brood/collect', { playerId: state.playerId, bayId: Number(b.dataset.id) });
+          showGuildResultPopup(true, `🔮 Hatched: ${r.hatched.name} (${r.hatched.rarity}${r.hatched.variant !== 'standard' ? ', ' + r.hatched.variant : ''})`);
+          await refreshBrood();
+          await refreshWorkshop();
+          await refreshDex();
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not collect that egg.'); }
+      };
+    });
+
+    renderBroodPicker();
+  } catch (e) {}
+}
+
+function renderBroodPicker() {
+  const el = $('broodMergePicker');
+  if (!el) return;
+  // Only offer droids that are actually mergeable — hiding the ones the
+  // server would reject saves a round trip and an error popup.
+  const eligible = (state.droids || []).filter((d) =>
+    !d.workshopSlotId && d.rarity !== 'apex' && d.id !== state.buddyDroidId
+  );
+  if (!eligible.length) {
+    el.innerHTML = '<div class="empty">No mergeable droids — unassign one from a workshop slot first</div>';
+    return;
+  }
+  el.innerHTML = eligible.map((d) => `
+    <div class="merge-pick ${broodSelection.has(d.id) ? 'selected' : ''}" data-id="${d.id}">
+      <span class="mp-name">${d.speciesName} <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span></span>
+      <span style="color:var(--text-dim); font-size:9px;">Lv ${d.level}${d.variant !== 'standard' ? ' · ' + d.variant : ''}</span>
+    </div>`).join('');
+
+  el.querySelectorAll('.merge-pick').forEach((row) => {
+    row.onclick = () => {
+      const id = Number(row.dataset.id);
+      if (broodSelection.has(id)) broodSelection.delete(id);
+      else {
+        if (broodSelection.size >= 2) {
+          showGuildResultPopup(false, 'Pick exactly two droids — tap one to deselect it.');
+          return;
+        }
+        broodSelection.add(id);
+      }
+      renderBroodPicker();
+    };
+  });
+}
+
+$('btnBuyBay').onclick = async () => {
+  if (!state.playerId) return;
+  try {
+    await api('POST', '/brood/buy-bay', { playerId: state.playerId });
+    await refreshBrood();
+    await refreshWorkshop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not buy that Bay.'); }
+};
+
+$('btnBroodMerge').onclick = async () => {
+  if (broodSelection.size !== 2) { showGuildResultPopup(false, 'Select exactly two droids.'); return; }
+  const [a, b] = [...broodSelection];
+  const names = (state.droids || []).filter((d) => broodSelection.has(d.id)).map((d) => `${d.speciesName} (Lv ${d.level})`);
+  // Destroying two droids is irreversible, so it gets an explicit
+  // confirmation naming both.
+  if (!confirm(`Merge these two droids?\n\n${names.join('\n')}\n\nBOTH WILL BE PERMANENTLY DESTROYED.\nCost: ${(state.brood ? state.brood.mergeCost : 5000).toLocaleString()} crystals.`)) return;
+  try {
+    const r = await api('POST', '/brood/merge', { playerId: state.playerId, droidIdA: a, droidIdB: b });
+    broodSelection = new Set();
+    showGuildResultPopup(true, `🔮 Merged! A ${r.merged.rarity} egg is incubating — ready in about ${r.merged.hatchHours} hour(s).`);
+    await refreshBrood();
+    await refreshWorkshop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Merge failed.'); }
 };
 
 // ============================================================
@@ -6154,6 +6423,10 @@ $('btnPlayDepot').onclick = async () => {
     showDepotResultPopup(data);
     await refreshWorkshop();
     await refreshDepot();
+    // Refresh the two systems the Depot now feeds, so a new piece shows
+    // up in the Wardrobe / Inventory without a manual reload.
+    if (data.cosmeticDrop && !data.cosmeticDrop.duplicate) await refreshCosmeticSets();
+    if (data.attachmentDrop) await refreshAttachments();
   } catch (e) {
     await refreshDepot();
   }
@@ -6168,6 +6441,13 @@ function showDepotResultPopup(data) {
     <div class="mb-detail" style="color:var(--amber);">+${data.crystalsEarned} crystals</div>
     ${data.gotPaint ? '<div class="mb-detail" style="color:var(--amber);">🎨 +1 Paint!</div>' : ''}
     ${data.gotNovaChip ? '<div class="mb-detail" style="color:var(--cyan);">🔷 +1 Nova Chip!</div>' : ''}
+    ${data.cosmeticDrop ? `<div class="mb-detail" style="color:${data.cosmeticDrop.duplicate ? 'var(--text-dim)' : '#e05a9c'}; font-weight:700;">
+        👕 ${data.cosmeticDrop.name} <span style="font-size:9px;">(${data.cosmeticDrop.rarity})</span>
+        ${data.cosmeticDrop.duplicate ? '<br><span style="font-size:9px;">— already owned</span>' : ''}
+      </div>` : ''}
+    ${data.attachmentDrop ? `<div class="mb-detail" style="color:#8b6de0; font-weight:700;">
+        🔌 ${data.attachmentDrop.name} <span style="font-size:9px;">(${data.attachmentDrop.rarity})</span>
+      </div>` : ''}
     <button class="primary mb-close">Nice</button>
   `;
   overlay.style.display = 'flex';

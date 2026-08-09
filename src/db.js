@@ -288,6 +288,21 @@ const droidSpecies = [
   { id: id(), name: 'Scaffitan Apex',      alignment: 'cosmic', rarity: 'legendary', collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 35, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
   { id: id(), name: 'Scaffitan Eternal',   alignment: 'cosmic', rarity: 'galactic',  collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 60, spawnWeight: 0, isEvolutionOnly: true, isGalactic: true, galacticBuffType: 'hp_boost', galacticBuffPercent: 20, ...statsFor('galactic') },
 
+  // ---- ASTRAL BROOD (10) — merge-exclusive ----
+  // spawnWeight 0 and isBroodOnly: these NEVER spawn in the world and
+  // are not obtainable from the Factory or any event. The Brood Chamber
+  // is the only source, which is what gives merging its own identity.
+  { id: id(), name: 'Astralmatron', alignment: 'cosmic', rarity: 'galactic',  collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 55, spawnWeight: 0, isBroodOnly: true, broodBuffType: 'rarity_chance', broodBuffPercent: 10, ...statsFor('galactic') },
+  { id: id(), name: 'Voidpaladin',  alignment: 'dark',   rarity: 'legendary', collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 30, spawnWeight: 0, isBroodOnly: true, broodBuffType: 'hatch_slot', broodBuffPercent: 50, ...statsFor('legendary') },
+  { id: id(), name: 'Starwarden',   alignment: 'light',  rarity: 'legendary', collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 30, spawnWeight: 0, isBroodOnly: true, broodBuffType: 'hatch_slot', broodBuffPercent: 50, ...statsFor('legendary') },
+  { id: id(), name: 'Crystacore',   alignment: 'dark',   rarity: 'rare',      collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 14, spawnWeight: 0, isBroodOnly: true, broodBuffType: 'first_strike', broodBuffPercent: 100, ...statsFor('rare') },
+  { id: id(), name: 'Forgegrub',    alignment: 'light',  rarity: 'rare',      collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 14, spawnWeight: 0, isBroodOnly: true, broodBuffType: 'first_strike', broodBuffPercent: 100, ...statsFor('rare') },
+  { id: id(), name: 'Nebulonix',    alignment: 'light',  rarity: 'uncommon',  collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 6,  spawnWeight: 0, isBroodOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Gravimite',    alignment: 'dark',   rarity: 'uncommon',  collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 6,  spawnWeight: 0, isBroodOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Sparkmite',    alignment: 'light',  rarity: 'common',    collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 2,  spawnWeight: 0, isBroodOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Dustbyte',     alignment: 'dark',   rarity: 'common',    collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 2,  spawnWeight: 0, isBroodOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Orbitch',      alignment: 'light',  rarity: 'common',    collection: 'astral_brood', baseCaptureRate: 1, baseCrystalRate: 2,  spawnWeight: 0, isBroodOnly: true, ...statsFor('common') },
+
   // ---- APEX (30) ----
   // The endgame set. Every one of these has spawnWeight 0, exactly like
   // the Solar/Summer collection: they NEVER appear on a normal sweep. The
@@ -1091,6 +1106,17 @@ const DEPOT_BONUS_CRYSTAL_RANGE = 150; // total payout ranges 50-200 depending o
 const DEPOT_PAINT_CHANCE = 0.12; // was 0.15 — trimmed slightly to make room for Augment Core
 const DEPOT_NOVA_CHIP_CHANCE = 0.12; // was 0.15
 const DEPOT_AUGMENT_CORE_CHANCE = 0.10;
+// ---- cosmetic + attachment drops ----
+// Until now nothing in the game granted either, so all 40 cosmetic
+// pieces and 15 attachments were unobtainable. The Depot is their
+// source, matching the drop-rate tables in the design docs.
+//
+// Rates are per visit and the Depot has a 1-hour cooldown, so a player
+// visiting every hour sees roughly one cosmetic every 12 visits and one
+// attachment every 14. Slow enough that a full 4-piece set is a real
+// chase, fast enough that it happens.
+const DEPOT_COSMETIC_CHANCE = 0.08;
+const DEPOT_ATTACHMENT_CHANCE = 0.07;
 
 function attemptDepot(playerId, closeness, attemptDurationMs) {
   const player = players.get(playerId);
@@ -1119,6 +1145,37 @@ function attemptDepot(playerId, closeness, attemptDurationMs) {
   const gotAugmentCore = Math.random() < DEPOT_AUGMENT_CORE_CHANCE;
   if (gotAugmentCore) player.augmentCores += 1;
 
+  // Cosmetics: weighted by rarity inside cosmetics.js. A duplicate piece
+  // is reported as such rather than silently vanishing — pieces are
+  // unique-per-player, so there's nothing to stack.
+  let cosmeticDrop = null;
+  if (Math.random() < DEPOT_COSMETIC_CHANCE) {
+    const cosmetics = require('./cosmetics');
+    const { piece, duplicate } = cosmetics.rollDepotCosmeticFor(playerId);
+    if (piece) {
+      if (!duplicate) cosmetics.grant(playerId, piece.id);
+      cosmeticDrop = { id: piece.id, name: piece.name, rarity: piece.rarity, setName: piece.setName, icon: piece.icon, duplicate };
+    }
+  }
+
+  // Attachments: flat pick across the catalogue, then weighted by tier
+  // so Energy Bottles stay rarer than Mod Chips. These DO stack.
+  let attachmentDrop = null;
+  if (Math.random() < DEPOT_ATTACHMENT_CHANCE) {
+    const attachments = require('./attachments');
+    const tierWeights = { common: 60, uncommon: 30, rare: 10 };
+    const pool = attachments.ATTACHMENT_CATALOG;
+    const total = pool.reduce((a, it) => a + (tierWeights[it.rarity] || 1), 0);
+    let roll = Math.random() * total;
+    let picked = pool[pool.length - 1];
+    for (const item of pool) {
+      roll -= (tierWeights[item.rarity] || 1);
+      if (roll <= 0) { picked = item; break; }
+    }
+    attachments.grant(playerId, picked.id);
+    attachmentDrop = { id: picked.id, name: picked.name, rarity: picked.rarity, slot: picked.slot, icon: picked.icon };
+  }
+
   player.depotCooldownUntil = now + DEPOT_COOLDOWN_MS;
 
   return {
@@ -1126,6 +1183,8 @@ function attemptDepot(playerId, closeness, attemptDurationMs) {
     gotPaint,
     gotNovaChip,
     gotAugmentCore,
+    cosmeticDrop,
+    attachmentDrop,
     crystalBalance: player.crystalBalance,
     paint: player.paint,
     novaChips: player.novaChips,
@@ -1800,6 +1859,8 @@ function createPlayer(username, pin) {
     achievementBuffs: {},
     // attachmentId -> count owned (equipped units stay counted here)
     attachments: {},
+    genesisBays: [],
+    chamberKeeperDroidId: null,
     battlesPlayed: 0,
     battlesWon: 0,
     buddyDroidId: null,
@@ -2192,6 +2253,8 @@ function importState(state) {
     achievementBuffs: {},
     // attachmentId -> count owned (equipped units stay counted here)
     attachments: {},
+    genesisBays: [],
+    chamberKeeperDroidId: null,
     battlesPlayed: 0,
     battlesWon: 0,
     buddyDroidId: null,
@@ -2353,6 +2416,8 @@ module.exports = {
   markCellBeaconBoosted,
   isCellBeaconBoosted,
   DEPOT_MINIGAME_COST,
+  DEPOT_COSMETIC_CHANCE,
+  DEPOT_ATTACHMENT_CHANCE,
   DEPOT_COOLDOWN_MS,
   attemptDepot,
   wishlist,

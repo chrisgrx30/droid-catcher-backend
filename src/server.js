@@ -23,6 +23,7 @@ const realtimeModule = require('./realtime');
 const livepvpModule = require('./livepvp');
 const masteryModule = require('./mastery');
 const adminModule = require('./admin');
+const broodModule = require('./broodchamber');
 const workshopModule = require('./workshop');
 const battleModule = require('./battle');
 const factoryModule = require('./factory');
@@ -70,6 +71,7 @@ const EXTRA_ASSET_DIRS = {
   achievements: path.join(__dirname, '..', 'assets', 'achievements'),
   levels:       path.join(__dirname, '..', 'assets', 'levels'),
   materials:    path.join(__dirname, '..', 'assets', 'materials'),
+  astral:       path.join(__dirname, '..', 'assets', 'astral'),
 };
 const IMAGE_MIME_TYPES = {
   '.png': 'image/png',
@@ -1513,6 +1515,34 @@ const server = http.createServer(async (req, res) => {
       const { playerId } = await readBody(req);
       try { return sendJson(res, 200, adminModule.markGiftsSeen(playerId)); }
       catch (e) { return sendJson(res, 400, { error: 'GIFT_ERROR', message: e.message }); }
+    }
+
+    // ---- BROOD CHAMBER ----
+    if (req.method === 'GET' && pathname.match(/^\/brood\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, broodModule.statusFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'BROOD_ERROR', message: e.message }); }
+    }
+
+    // POST /brood/merge { playerId, droidIdA, droidIdB }
+    if (req.method === 'POST' && pathname === '/brood/merge') {
+      const { playerId, droidIdA, droidIdB } = await readBody(req);
+      try { return sendJson(res, 200, broodModule.merge(playerId, droidIdA, droidIdB)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'BROOD_ERROR', message: e.message }); }
+    }
+
+    // POST /brood/collect { playerId, bayId }
+    if (req.method === 'POST' && pathname === '/brood/collect') {
+      const { playerId, bayId } = await readBody(req);
+      try { return sendJson(res, 200, broodModule.collect(playerId, bayId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'BROOD_ERROR', message: e.message }); }
+    }
+
+    // POST /brood/buy-bay { playerId }
+    if (req.method === 'POST' && pathname === '/brood/buy-bay') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, broodModule.buyBay(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'BROOD_ERROR', message: e.message }); }
     }
 
     // ---- BUDDY MASTERY ----

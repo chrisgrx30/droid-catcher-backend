@@ -74,12 +74,23 @@ const PIECE_NAMES = {
 };
 
 // Depot drop weights by rarity, matching the spec's descriptions.
+// Depot drop weights. The design doc's descriptions ("Rarely seen",
+// "Hardly ever seen") were the starting point, but the first pass used
+// galactic: 0.3, which measured out at roughly 13,000 hourly Depot
+// visits to complete the collection — about two years. Since the
+// Galactic sets are ALSO gated behind 5 Re-Boots, that's two gates on
+// the same content.
+//
+// These numbers keep the ordering and the feel, but bring a complete
+// collection to a few months of steady play rather than years:
+//   32 non-galactic pieces  ~2,000 visits
+//   all 40 pieces           ~4,500 visits
 const DROP_WEIGHT = {
   common: 50,      // "Common"
   uncommon: 25,    // "Uncommon"
   rare: 10,        // "Rare"
-  legendary: 3,    // "Rarely seen"
-  galactic: 0.3,   // "Hardly ever seen"
+  legendary: 5,    // "Rarely seen"
+  galactic: 1.5,   // "Hardly ever seen"
 };
 
 function buildCatalog() {
@@ -219,6 +230,32 @@ function rollDepotCosmetic() {
   return COSMETIC_PIECES[COSMETIC_PIECES.length - 1];
 }
 
+// Player-aware version of rollDepotCosmetic.
+//
+// Cosmetic pieces are unique-per-player, so a duplicate is worth
+// literally nothing. Rolling blind meant a player who owned the commons
+// got a useless drop ~90% of the time. This keeps the rarity roll
+// exactly as before, then picks an UNOWNED piece of that rarity — so
+// the odds of getting a Legendary piece are unchanged, but the drop
+// isn't wasted on something already owned.
+//
+// Only when every piece of the rolled rarity is owned does it fall back
+// to a genuine duplicate (reported so the UI can say so).
+function rollDepotCosmeticFor(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) return { piece: rollDepotCosmetic(), duplicate: false };
+  const owned = new Set(player.ownedCosmeticPieces || []);
+
+  const rolled = rollDepotCosmetic();
+  if (!owned.has(rolled.id)) return { piece: rolled, duplicate: false };
+
+  const sameRarityUnowned = COSMETIC_PIECES.filter((p) => p.rarity === rolled.rarity && !owned.has(p.id));
+  if (sameRarityUnowned.length) {
+    return { piece: sameRarityUnowned[Math.floor(Math.random() * sameRarityUnowned.length)], duplicate: false };
+  }
+  return { piece: rolled, duplicate: true };
+}
+
 function summaryFor(playerId) {
   const player = db.players.get(playerId);
   if (!player) throw new CosmeticError('NO_PLAYER', 'Player not found');
@@ -271,6 +308,7 @@ module.exports = {
   completeSets,
   playerBuffSet,
   rollDepotCosmetic,
+  rollDepotCosmeticFor,
   summaryFor,
   CosmeticError,
 };
