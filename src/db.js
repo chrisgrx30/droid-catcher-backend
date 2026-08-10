@@ -572,7 +572,10 @@ function padUpgradeCost(currentPadLevel) {
 // Every 5th level (5, 10, 15...) also needs 1 Pad RAM, on top of the
 // crystal cost — a real wall against rapid-fire leveling.
 function padRequiresRam(nextPadLevel) {
-  return nextPadLevel % 5 === 0;
+  // Was every 5th level only. Now EVERY upgrade past level 5 needs Pad
+  // RAM, so the pad becomes a genuine material sink in the late game
+  // rather than a pure crystal one.
+  return nextPadLevel > 5 || nextPadLevel % 5 === 0;
 }
 function critChanceForPadLevel(padLevel) {
   return Math.min(PAD_CRIT_CAP, PAD_CRIT_BASE + PAD_CRIT_PER_LEVEL * padLevel);
@@ -1470,6 +1473,8 @@ function getFriendsData(playerId) {
       dexCaught: dex.entries.filter((e) => e.caught).length,
       dexTotal: dex.entries.length,
       ...playerLeaderboardStats(id),
+      // Flagged so the friends list can mark guildmates inline.
+      isGuildmate: Boolean(player.guildId && f.guildId && player.guildId === f.guildId),
     };
   }).filter(Boolean);
   // Online / idle / offline dot for each friend.
@@ -1484,10 +1489,17 @@ function getFriendsData(playerId) {
 const GUILD_KICK_GLOBAL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 1 day before joining ANY guild
 const GUILD_KICK_SAME_GUILD_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days before rejoining THAT guild
 
+const GUILD_CREATE_COST = 250;
+
 function createGuild(playerId, name) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
   if (player.guildId) throw new Error('Already in a guild - leave it first');
+  if ((player.crystalBalance || 0) < GUILD_CREATE_COST) {
+    throw new Error(`Creating a guild costs ${GUILD_CREATE_COST} crystals`);
+  }
+  player.crystalBalance -= GUILD_CREATE_COST;
+  crystalTransactions.push({ id: id(), playerId, amount: -GUILD_CREATE_COST, source: 'guild_create', createdAt: Date.now() });
   const guild = { id: id(), name, creatorId: playerId, memberIds: [playerId], createdAt: Date.now(), badge: null, notice: '' };
   guilds.set(guild.id, guild);
   player.guildId = guild.id;
@@ -1767,6 +1779,70 @@ function setGuildBadge(playerId, level) {
   return guildProgress(playerId);
 }
 
+
+
+// Leadership transfer and disbanding. Both are leader-only.
+function passGuildLeadership(playerId, toPlayerId) {
+  const player = players.get(playerId);
+  if (!player || !player.guildId) throw new Error('You are not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (!guild) throw new Error('Guild not found');
+  if (guild.creatorId !== playerId) throw new Error('Only the guild leader can pass leadership');
+  if (!guild.memberIds.includes(toPlayerId)) throw new Error('That player is not in your guild');
+  if (toPlayerId === playerId) throw new Error('You are already the leader');
+  guild.creatorId = toPlayerId;
+  return { guildId: guild.id, leaderId: toPlayerId };
+}
+
+function disbandGuild(playerId) {
+  const player = players.get(playerId);
+  if (!player || !player.guildId) throw new Error('You are not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (!guild) throw new Error('Guild not found');
+  if (guild.creatorId !== playerId) throw new Error('Only the guild leader can disband the guild');
+
+  // A guild holding territory can't vanish — the Forts would be
+  // orphaned on the map with no owner to attack or defend them.
+  let held = 0;
+  try { held = require('./forts').guildFortsOf(guild.id).length; } catch (e) {}
+  if (held) throw new Error(`Your guild still holds ${held} Fort${held === 1 ? '' : 's'} — lose or abandon them first`);
+
+  guild.memberIds.forEach((mid) => {
+    const m = players.get(mid);
+    if (m) m.guildId = null;
+  });
+  guilds.delete(guild.id);
+  return { disbanded: true };
+}
+
+// ---- callsign rename ----
+// Costs crystals and must be unique. Uniqueness is checked
+// case-insensitively so "Nova" and "nova" can't both exist and confuse
+// friend requests, which look players up by name.
+const RENAME_COST = 1000;
+
+function renameCallsign(playerId, newName) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  const name = String(newName || '').trim();
+  if (name.length < 3 || name.length > 16) throw new Error('Call sign must be 3-16 characters');
+  if (!/^[A-Za-z0-9_-]+$/.test(name)) throw new Error('Call sign can use letters, numbers, hyphen and underscore only');
+  if (name.toLowerCase() === player.username.toLowerCase()) throw new Error("That's already your call sign");
+  for (const p of players.values()) {
+    if (p.id !== playerId && p.username.toLowerCase() === name.toLowerCase()) {
+      throw new Error('That call sign is already taken');
+    }
+  }
+  if ((player.crystalBalance || 0) < RENAME_COST) {
+    throw new Error(`Renaming costs ${RENAME_COST.toLocaleString()} crystals`);
+  }
+  player.crystalBalance -= RENAME_COST;
+  crystalTransactions.push({ id: id(), playerId, amount: -RENAME_COST, source: 'callsign_rename', createdAt: Date.now() });
+  const previous = player.username;
+  player.username = name;
+  return { username: name, previous, crystalBalance: Math.floor(player.crystalBalance), cost: RENAME_COST };
+}
+
 // ---- wishlist (public "looking for" board) ----
 // Visible to everyone — any player can browse what others want and offer
 // a trade. Two wish types: a specific droid (species + optional
@@ -2037,7 +2113,7 @@ function createPlayer(username, pin) {
     id: id(),
     username,
     pin: pin || null,
-    crystalBalance: 0,
+    crystalBalance: 100, // starter float so a new pilot can attempt a capture immediately
     lastCrystalCollection: Date.now(),
     createdAt: Date.now(),
     lastOnline: Date.now(),
@@ -2655,6 +2731,11 @@ module.exports = {
   postGuildMessage,
   getGuildMessages,
   getGuildLeaderboard,
+  passGuildLeadership,
+  disbandGuild,
+  GUILD_CREATE_COST,
+  renameCallsign,
+  RENAME_COST,
   guildCheckIn,
   guildProgress,
   setGuildBadge,

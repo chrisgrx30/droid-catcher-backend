@@ -27,7 +27,12 @@ const MAX_SELF_BUILT_FORTS = 5;      // per guild; captured forts don't count
 const BASE_DROID_SLOTS = 10;
 const MIN_DROIDS_ON_BUILD = 2;
 const BUILD_RADIUS_METERS = 40;      // must match the capture radius
-const MIN_FORT_SEPARATION_METERS = 300;
+// 1 mile, per the revised spec — Forts should define a neighbourhood,
+// not cluster on one street.
+const MIN_FORT_SEPARATION_METERS = 1609;
+// Each player may garrison at most this many droids in a single Fort,
+// so one heavy hitter can't solo-wall a Fort and lock guildmates out.
+const MAX_DROIDS_PER_PLAYER_PER_FORT = 2;
 const ASSIGN_COST_ON_CAPTURE = 1000; // per droid, used in stage 3
 
 // Shield and reward fields exist now so later stages don't need a
@@ -144,6 +149,13 @@ function assignDroids(playerId, fortId, droidIds, requireProximity = false, play
   }
 
   const garrison = garrisonOf(fort);
+  const mine = garrison.filter((id) => {
+    const d = db.ownedDroids.get(id);
+    return d && d.playerId === playerId;
+  }).length;
+  if (mine + droidIds.length > MAX_DROIDS_PER_PLAYER_PER_FORT) {
+    throw new FortError('PLAYER_LIMIT', `You can only have ${MAX_DROIDS_PER_PLAYER_PER_FORT} droids in a single Fort — you already have ${mine} here`);
+  }
   if (garrison.length + droidIds.length > fort.droidSlots) {
     throw new FortError('FORT_FULL', `That Fort holds ${fort.droidSlots} droids and already has ${garrison.length}`);
   }
@@ -463,6 +475,7 @@ module.exports = {
   MIN_DROIDS_ON_BUILD,
   BUILD_RADIUS_METERS,
   MIN_FORT_SEPARATION_METERS,
+  MAX_DROIDS_PER_PLAYER_PER_FORT,
   ASSIGN_COST_ON_CAPTURE,
   BASE_SHIELD,
   TOKEN_REWARD_DAYS,

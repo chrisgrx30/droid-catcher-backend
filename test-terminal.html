@@ -364,6 +364,9 @@
   }
   .out-of-reach-toggle .oor-caret { float: right; }
 
+  .set-head { font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 5px; }
+  #playerAvatar { width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--cyan); overflow: hidden; background: var(--panel-raised); display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; cursor: pointer; }
+
   /* ---- forge minigame ---- */
   .forge-track { position: relative; height: 26px; border: 1px solid var(--line); border-radius: 4px; background: linear-gradient(90deg,#2a1400,#5a2a00,#2a1400); overflow: hidden; margin-top: 6px; }
   .forge-zone { position: absolute; top: 0; bottom: 0; background: rgba(255,180,60,0.45); border-left: 1px solid #ffb43c; border-right: 1px solid #ffb43c; }
@@ -925,27 +928,30 @@
       <span class="dot" id="connDot"></span>
       <span id="connLabel">Disconnected</span>
     </div>
-    <span style="color:var(--text-dim); font-size:9px; margin-top:2px;" id="appVersion">v—</span>
+    <span style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+      <span style="color:var(--text-dim); font-size:9px;" id="appVersion">v—</span>
+      <button id="btnSettings" title="Settings" style="width:auto; margin:0; padding:3px 7px; font-size:11px; line-height:1;">⚙️</button>
+    </span>
     <input type="text" id="serverUrl" value="" placeholder="same as this page" style="display:none;">
   </div>
 </header>
 
 <div class="tab-nav" id="tabNav">
-  <button class="tab-btn active" data-tab="home">Home</button>
-  <button class="tab-btn" data-tab="player">Player</button>
-  <button class="tab-btn" data-tab="capture">Override</button>
-  <button class="tab-btn" data-tab="fieldops">Field Ops</button>
-  <button class="tab-btn" data-tab="farm">Foundry</button>
-  <button class="tab-btn" data-tab="guilds">Guilds</button>
-  <button class="tab-btn" data-tab="companion">Companion</button>
-  <button class="tab-btn" data-tab="inventory">Inventory</button>
-  <button class="tab-btn" data-tab="social">Trading</button>
-  <button class="tab-btn" data-tab="dex">Dex</button>
-  <button class="tab-btn" data-tab="battles">Battles</button>
+  <button class="tab-btn active" data-tab="home">🏠 Home</button>
+  <button class="tab-btn" data-tab="player">🧑‍🚀 Player</button>
+  <button class="tab-btn" data-tab="capture">📡 Override</button>
+  <button class="tab-btn" data-tab="fieldops">🛠️ Field Ops</button>
+  <button class="tab-btn" data-tab="farm">⚙️ Foundry</button>
+  <button class="tab-btn" data-tab="guilds">🛡️ Guilds</button>
+  <button class="tab-btn" data-tab="companion">🐾 Companion</button>
+  <button class="tab-btn" data-tab="inventory">🎒 Inventory</button>
+  <button class="tab-btn" data-tab="social">🔄 Trading</button>
+  <button class="tab-btn" data-tab="dex">📖 Dex</button>
+  <button class="tab-btn" data-tab="battles">⚔️ Battles</button>
   <button class="tab-btn" data-tab="livepvp">⚡ Live PVP</button>
   <button class="tab-btn" data-tab="brood">🔮 Brood</button>
   <button class="tab-btn" data-tab="achievements">🏆 Achievements</button>
-  <button class="tab-btn" data-tab="storage">Warehouse</button>
+  <button class="tab-btn" data-tab="storage">📦 Warehouse</button>
 </div>
 
 <!-- HOME TAB -->
@@ -1064,6 +1070,13 @@
     </div>
 
     <div class="panel" id="playerLevelPanel" style="margin-top:16px;">
+      <div style="display:flex; gap:12px; align-items:center; margin-bottom:8px;">
+        <div id="playerAvatar" title="Change in Settings">🧑‍🚀</div>
+        <div style="flex:1; min-width:0;">
+          <div id="pilotName" style="font-size:13px; color:#fff; font-weight:700;">—</div>
+          <div id="pilotSub" style="font-size:9px; color:var(--text-dim);"></div>
+        </div>
+      </div>
       <div class="panel-title">Pilot Level <span id="plLevelTag" style="color:var(--cyan); font-weight:400; text-transform:none;"></span></div>
       <div class="xp-bar"><div class="xp-fill" id="plXpFill"></div></div>
       <div id="plXpText" style="font-size:9px; color:var(--text-dim); margin-top:4px;">—</div>
@@ -1127,8 +1140,8 @@
           <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
           <button id="btnChangePin" style="width:auto; flex-shrink:0; font-size:9px; padding:8px 12px; margin-top:0;">Update</button>
         </div>
-        <button id="btnNewPilot" style="margin-top:14px; font-size:9px; padding:8px 12px; color:var(--danger); border-color:var(--danger); background:transparent;">New Pilot (reset)</button>
-        <div style="font-size:9px; color:var(--text-dim); margin-top:4px;">Reset clears this device's saved pilot. Your account still exists — resume it with your callsign and PIN.</div>
+        <button id="btnNewPilot" style="margin-top:14px; font-size:9px; padding:8px 12px; color:var(--danger); border-color:var(--danger); background:transparent;">Log Out</button>
+        <div style="font-size:9px; color:var(--text-dim); margin-top:4px;">Logs you out of your account on this device. Your account is untouched — log back in any time with your callsign and PIN.</div>
       </div>
       <div id="accountSecurityLocked" class="empty">Deploy a pilot to manage your account</div>
     </div>
@@ -1151,6 +1164,7 @@
     </div>
 
     <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Your Location</div>
+    <button id="btnRecentreMap" title="Re-centre on me" style="position:absolute; z-index:500; right:14px; margin-top:8px; width:auto; padding:6px 9px; font-size:14px; line-height:1;">🎯</button>
     <div id="locationMap" style="height:220px; border-radius:4px; border:1px solid var(--line); background:var(--panel-raised);"></div>
 
     <div class="panel" id="buildFortPanel" style="margin-top:12px; padding:10px;">
@@ -1839,6 +1853,19 @@ let locationMarker = null;
 
 let spawnMarkers = []; // cleared and rebuilt on every scan
 
+let mapFollowsPlayer = true;
+let mapDragHooked = false;
+
+// Astronaut pin for the player's own position.
+function playerPinIcon() {
+  return L.divIcon({
+    className: 'player-pin',
+    html: '<div style="font-size:26px; line-height:1; filter:drop-shadow(0 0 4px #000);">🧑‍🚀</div>',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+}
+
 function updateLocationMap(lat, lng) {
   if (typeof L === 'undefined') return; // Leaflet didn't load — skip silently, nothing else in the app needs it
   try {
@@ -1848,10 +1875,17 @@ function updateLocationMap(lat, lng) {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19,
       }).addTo(locationMap);
-      locationMarker = L.marker([lat, lng]).addTo(locationMap);
+      locationMarker = L.marker([lat, lng], { icon: playerPinIcon() }).addTo(locationMap);
     } else {
-      locationMap.setView([lat, lng], locationMap.getZoom());
+      // Only auto-follow when the player hasn't panned away. Yanking the
+      // view back on every GPS tick makes the map unusable while you're
+      // looking around — that's what the re-centre button is for.
+      if (mapFollowsPlayer) locationMap.setView([lat, lng], locationMap.getZoom());
       locationMarker.setLatLng([lat, lng]);
+    }
+    if (!mapDragHooked) {
+      mapDragHooked = true;
+      locationMap.on('dragstart', () => { mapFollowsPlayer = false; });
     }
   } catch (e) {} // don't let a map failure break the rest of the scan flow
 }
@@ -2245,7 +2279,7 @@ function renderFriendsList(friends) {
   el.innerHTML = friends.map((f) => `
     <div class="droid-row">
       <span class="pdot ${f.presence || 'offline'}" title="${f.lastSeenText || ''}"></span>
-      <span style="flex:1;">${f.username} (#${f.id})
+      <span style="flex:1;">${f.username}${f.isGuildmate ? ' <span style="color:var(--cyan); font-size:8px;">(Guild Member)</span>' : ''} (#${f.id})
         <div class="lb-stats">
           👁 ${f.encountered || 0} seen · 🎯 ${f.caught || 0} caught · ⚔ ${f.battlesPlayed || 0} battles (${f.battlesWon || 0}W, ${f.winRate || 0}%)
           ${f.rebootCount ? ` · ♻ RB${f.rebootCount}` : ''}
@@ -2340,10 +2374,87 @@ $('btnUseLocation').onclick = () => {
   );
 };
 
+// ============================================================
+// CONTINUOUS POSITION TRACKING
+// ============================================================
+// THE BUG THIS FIXES
+// Distance and `withinCaptureRadius` used to be computed ONCE, on the
+// server, at scan time — then frozen. Walking toward a droid changed
+// nothing until you scanned again, and scanning again generated a fresh
+// batch of spawns. That's why droids never "became" catchable and why
+// repeated scanning flooded the map: they were the same root cause.
+//
+// Now position is tracked continuously and distances are recomputed
+// locally on every update, with NO server call. Spawning and position
+// are fully decoupled. The server still owns the authoritative range
+// check on capture, so recomputing client-side is safe — the worst a
+// tampered client achieves is an enabled button the server refuses.
+
+const EARTH_R = 6371000;
+function metresBetween(lat1, lng1, lat2, lng2) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_R * Math.asin(Math.sqrt(a));
+}
+
+// Recompute every cached spawn against a new position and redraw only if
+// something actually crossed the capture boundary — a full re-render on
+// every GPS tick would fight the minigame animation.
+function updatePositionAndRange(lat, lng, { redraw = true } = {}) {
+  if (lat == null || lng == null) return;
+  state.lastLat = lat;
+  state.lastLng = lng;
+  const radius = state.captureRadiusMeters || 40;
+
+  let boundaryChanged = false;
+  (state.spawns || []).forEach((sp) => {
+    const d = metresBetween(lat, lng, sp.lat, sp.lng);
+    const nowInRange = d <= radius;
+    if (nowInRange !== (sp.withinCaptureRadius !== false)) boundaryChanged = true;
+    sp.distanceMeters = Math.round(d);
+    sp.withinCaptureRadius = nowInRange;
+  });
+
+  updateLocationMap(lat, lng);
+  drawCaptureRadiusRing(lat, lng);
+  if (redraw && boundaryChanged) renderSpawns();
+  renderSpawnMarkers();
+  updateBuildFortButton();
+}
+
+let positionWatchId = null;
+function startPositionTracking() {
+  if (positionWatchId !== null || !navigator.geolocation) return;
+  positionWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      // A live Joy Stick session owns the position; real GPS is ignored
+      // until it ends, or the two would fight each other.
+      if (joystickState && joystickState.active) return;
+      if (state.coordOverride) return;
+      updatePositionAndRange(pos.coords.latitude, pos.coords.longitude);
+      const st = $('locationStatus');
+      if (st) st.textContent = `📍 Tracking (±${Math.round(pos.coords.accuracy)}m) — walk toward a droid to bring it in range`;
+    },
+    () => {},
+    { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
+  );
+}
+
+function stopPositionTracking() {
+  if (positionWatchId !== null) {
+    navigator.geolocation.clearWatch(positionWatchId);
+    positionWatchId = null;
+  }
+}
+
 async function scanAt(lat, lng) {
   state.lastLat = lat;
   state.lastLng = lng;
   updateLocationMap(lat, lng);
+  startPositionTracking();
   try {
     const data = await api('GET', `/spawns?lat=${lat}&lng=${lng}&radius=${DEFAULT_SCAN_RADIUS}&playerId=${state.playerId}`);
     state.spawns = data.spawns;
@@ -2802,8 +2913,11 @@ async function refreshWorkshop() {
 
 $('btnUpgradePad').onclick = async () => {
   try {
-    await api('POST', `/players/${state.playerId}/upgrade-pad`);
+    const r = await api('POST', `/players/${state.playerId}/upgrade-pad`);
     await refreshWorkshop();
+    // Upgrading previously gave no confirmation at all — the number just
+    // quietly changed somewhere else on the page.
+    showGuildResultPopup(true, `🎛️ Control Pad upgraded to level ${r.padLevel != null ? r.padLevel : state.padLevel}!\n\nWider capture zone and better lock-on odds.`);
   } catch (e) {
     showGuildResultPopup(false, (e && e.message) || 'Could not upgrade the pad.');
   }
@@ -5573,8 +5687,10 @@ function initJoystickPad() {
     try {
       joystickState = await api('POST', '/joystick/move', { playerId: state.playerId, lat: cur.lat + dLat, lng: cur.lng + dLng });
       renderJoystick();
-      updateLocationMap(joystickState.currentLat, joystickState.currentLng);
-      drawCaptureRadiusRing(joystickState.currentLat, joystickState.currentLng);
+      // Same recompute as walking: droids come into range as the stick
+      // moves, without re-scanning. This is what makes the Joy Stick feel
+      // like actually moving.
+      updatePositionAndRange(joystickState.currentLat, joystickState.currentLng);
     } catch (e) {}
   }, 500);
 }
@@ -5602,6 +5718,11 @@ async function endJoystickSession() {
   // Snap back to the player's real position.
   if ($('btnUseLocation')) $('btnUseLocation').click();
 }
+
+$('btnRecentreMap').onclick = () => {
+  mapFollowsPlayer = true;
+  if (locationMap && state.lastLat != null) locationMap.setView([state.lastLat, state.lastLng], 16);
+};
 
 $('btnJoystickActivate').onclick = () => {
   if (!state.playerId) { log('SYS', 'Deploy a pilot first', true); return; }
@@ -6114,6 +6235,116 @@ function showFortReinforcePicker(fortId, candidates) {
   draw();
   overlay.style.display = 'flex';
 }
+
+// ============================================================
+// SETTINGS
+// ============================================================
+// General settings, deliberately NOT code-protected — unlike the admin
+// tab, this is for every player. Theme lives here now rather than
+// taking up room on the Player tab.
+//
+// The profile image is stored as a data URL in localStorage: it never
+// leaves the device, which avoids needing image upload, storage and
+// moderation on the server for something purely cosmetic.
+
+const PROFILE_IMAGE_KEY = 'sparkfield.profileImage';
+
+function getProfileImage() {
+  try { return localStorage.getItem(PROFILE_IMAGE_KEY); } catch (e) { return null; }
+}
+
+function showSettings() {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const img = getProfileImage();
+  box.innerHTML = `
+    <div class="mb-title" style="color:#fff;">⚙️ Settings</div>
+
+    <div style="text-align:left; margin-top:12px;">
+      <div class="set-head">Profile image</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div id="setAvatar" style="width:56px; height:56px; border-radius:50%; border:1px solid var(--line); overflow:hidden; background:var(--panel-raised); display:flex; align-items:center; justify-content:center; font-size:24px;">
+          ${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;">` : '🧑‍🚀'}
+        </div>
+        <div style="flex:1;">
+          <input type="file" id="setAvatarInput" accept="image/*" style="font-size:9px;">
+          <div style="font-size:8px; color:var(--text-dim); margin-top:3px;">Stored on this device only — never uploaded.</div>
+          ${img ? '<button id="setAvatarClear" class="ghost" style="margin-top:5px; font-size:8px; padding:4px 8px; width:auto;">Remove</button>' : ''}
+        </div>
+      </div>
+
+      <div class="set-head" style="margin-top:14px;">Call sign</div>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="setCallsign" maxlength="16" placeholder="New call sign" style="flex:1; margin-top:0;">
+        <button id="setRename" style="width:auto; margin-top:0; font-size:9px; padding:8px 10px;">Rename — 1,000✦</button>
+      </div>
+      <div style="font-size:8px; color:var(--text-dim); margin-top:3px;">3-16 characters. Must be unique.</div>
+
+      <div class="set-head" style="margin-top:14px;">Theme</div>
+      <div id="setThemes" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+    </div>
+
+    <button id="setClose" class="ghost" style="margin-top:14px;">Close</button>`;
+  overlay.style.display = 'flex';
+
+  // Theme buttons are moved here from the Player tab rather than
+  // duplicated, so there's only ever one place to change it.
+  const themeSrc = document.querySelectorAll('#themePickerPanel .theme-btn');
+  const themeWrap = box.querySelector('#setThemes');
+  themeSrc.forEach((src) => {
+    const b = document.createElement('button');
+    b.textContent = src.textContent;
+    b.style.cssText = 'width:auto; margin-top:0; font-size:9px; padding:6px 9px;';
+    b.onclick = () => { src.click(); };
+    themeWrap.appendChild(b);
+  });
+
+  box.querySelector('#setAvatarInput').onchange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) { showGuildResultPopup(false, 'Please pick an image under 1MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        localStorage.setItem(PROFILE_IMAGE_KEY, reader.result);
+        applyProfileImage();
+        showSettings();
+      } catch (err) { showGuildResultPopup(false, 'That image was too large to store on this device.'); }
+    };
+    reader.readAsDataURL(file);
+  };
+  const clr = box.querySelector('#setAvatarClear');
+  if (clr) clr.onclick = () => { try { localStorage.removeItem(PROFILE_IMAGE_KEY); } catch (e) {} applyProfileImage(); showSettings(); };
+
+  box.querySelector('#setRename').onclick = async () => {
+    const name = box.querySelector('#setCallsign').value.trim();
+    if (!name) return;
+    try {
+      const r = await api('POST', '/player/rename', { playerId: state.playerId, username: name });
+      showGuildResultPopup(true, `Call sign changed to ${r.username}.`);
+      overlay.style.display = 'none';
+      await refreshWorkshop();
+    } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not rename.'); }
+  };
+  box.querySelector('#setClose').onclick = () => { overlay.style.display = 'none'; };
+}
+
+function applyProfileImage() {
+  const img = getProfileImage();
+  const el = $('playerAvatar');
+  if (!el) return;
+  el.innerHTML = img
+    ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;">`
+    : (state.badges && state.badges.selectedBadgeId
+        ? `<img src="/assets/levels/${state.badges.selectedBadgeId}.png" style="width:100%;height:100%;object-fit:contain;" onerror="this.replaceWith(document.createTextNode('🧑‍🚀'));">`
+        : '🧑‍🚀');
+}
+
+$('btnSettings').onclick = showSettings;
+// Tapping the avatar is the obvious way in, so it opens settings too.
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.closest && e.target.closest('#playerAvatar')) showSettings();
+});
 
 // ============================================================
 // GUILD LEVEL, ARMOURY, THE FORGE, FORT UPGRADES
@@ -6631,7 +6862,7 @@ async function refreshAchievements() {
         <img class="ach-icon ${tierClass}" src="/assets/achievements/${a.icon}" onerror="this.style.visibility='hidden';">
         <div class="ach-body">
           <div class="ach-name">${a.name}
-            ${a.tierName ? `<span class="ach-tier-tag ${a.tierName}">${a.tierName}</span>` : ''}
+            ${a.tierName ? `<span class="ach-tier-tag ${a.tierName}">${'●'.repeat(a.tier + 1)}</span>` : ''}
             ${a.pending ? '<span style="font-size:8px; color:var(--amber);">COMING SOON</span>' : ''}
           </div>
           <div class="ach-desc">${a.description}</div>
@@ -7220,6 +7451,11 @@ async function refreshLevels() {
     // Badge tray is rendered separately from /badges so it shows the
     // FULL ladder greyed out, not just the four milestones.
     renderBadgeTray();
+    const pn = $('pilotName');
+    if (pn) pn.textContent = state.username || 'Pilot';
+    const ps = $('pilotSub');
+    if (ps) ps.textContent = `Level ${d.level}${d.rebootCount ? ` · Re-Boot ${d.rebootCount}` : ''} · #${state.playerId}`;
+    applyProfileImage();
 
     $('plNextReward').textContent = d.nextRewardLevel
       ? `Next reward at Level ${d.nextRewardLevel}`

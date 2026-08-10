@@ -202,6 +202,30 @@ function trySpawnInCell(cell, refLng = 0, beaconActive = false) {
 
 // Called when a player opens the map / requests nearby spawns. playerId
 // is optional (older calls without it just get no beacon boost).
+// ---- per-cell spawn cooldown ----
+// A cell only GENERATES new droids once every CELL_SPAWN_COOLDOWN_MS.
+// Scanning again inside that window returns whatever is already live
+// instead of rolling a fresh batch.
+//
+// This was the cause of "constant scanning floods the map": every scan
+// ran generation for every cell in range, so a player tapping scan
+// repeatedly minted droids on demand. Existing spawns still expire on
+// their own TTL, so the world still turns over — it just isn't driven
+// by how often someone presses a button.
+//
+// Beacons and live events bypass it: both are deliberately short bursts
+// of extra activity and are already capped by their own windows.
+const CELL_SPAWN_COOLDOWN_MS = 10 * 60 * 1000;
+const cellLastGenerated = new Map(); // cellKey -> epoch ms
+
+function cellMayGenerate(cellKey, now, bypass) {
+  const last = cellLastGenerated.get(cellKey) || 0;
+  if (bypass) return true;
+  if (now - last < CELL_SPAWN_COOLDOWN_MS) return false;
+  cellLastGenerated.set(cellKey, now);
+  return true;
+}
+
 function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
   const cell = markCellActive(lat, lng);
   const cellsToCheck = geo.neighboringCells(lat, lng);
@@ -219,8 +243,18 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
   // 9 cells produced only 2 spawns within 100m). One lighter pass on
   // neighbors still helps wider-radius queries without wasting most of
   // the generation budget on points that can't be found nearby anyway.
-  for (let i = 0; i < 8; i++) trySpawnInCell(cell, lng, beaconActive);
-  cellsToCheck.filter((c) => c !== cell).forEach((c) => trySpawnInCell(c, lng, beaconActive));
+  // Generation is gated per cell: re-scanning inside the cooldown
+  // returns the existing droids rather than minting new ones. Beacons
+  // and live events bypass it, since both are deliberately short bursts
+  // of extra activity.
+  const now = Date.now();
+  const eventActive = db.listActiveEvents(now).length > 0 || beaconActive;
+  if (cellMayGenerate(cell, now, eventActive)) {
+    for (let i = 0; i < 8; i++) trySpawnInCell(cell, lng, beaconActive);
+    cellsToCheck.filter((c) => c !== cell).forEach((c) => {
+      if (cellMayGenerate(c, now, eventActive)) trySpawnInCell(c, lng, beaconActive);
+    });
+  }
 
   // Looked up once per scan rather than per spawn.
 
@@ -279,6 +313,9 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
     // Sent to the client so the map ring and the "move closer" copy stay
     // in sync with the server automatically when this value is tuned.
     captureRadiusMeters: CAPTURE_RADIUS_METERS,
+    // When this cell will next produce fresh droids, so the client can
+    // show a meaningful refresh state rather than inviting spam.
+    cellRefreshAt: (cellLastGenerated.get(cell) || 0) + CELL_SPAWN_COOLDOWN_MS,
     // Local time AT THE SCANNED LONGITUDE, not the device clock. Every
     // time-gated collection (football weekends, Void Zombies, Lumen
     // Sentinels, day/night bias) is computed from this — so when a
@@ -316,4 +353,5 @@ function purgeExpiredSpawns() {
   }
 }
 
-module.exports = { getNearbySpawns, trySpawnInCell, purgeExpiredSpawns, markCellActive, fleeSpawn };
+module.exports = {
+  CELL_SPAWN_COOLDOWN_MS, getNearbySpawns, trySpawnInCell, purgeExpiredSpawns, markCellActive, fleeSpawn };

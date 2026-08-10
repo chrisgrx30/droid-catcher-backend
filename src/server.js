@@ -1546,6 +1546,26 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { info: db.MATERIAL_INFO });
     }
 
+    // POST /player/rename { playerId, username }
+    if (req.method === 'POST' && pathname === '/player/rename') {
+      const { playerId, username } = await readBody(req);
+      try { return sendJson(res, 200, db.renameCallsign(playerId, username)); }
+      catch (e) { return sendJson(res, 400, { error: 'RENAME_ERROR', message: e.message }); }
+    }
+
+    // POST /guilds/pass-leadership { playerId, toPlayerId }
+    if (req.method === 'POST' && pathname === '/guilds/pass-leadership') {
+      const { playerId, toPlayerId } = await readBody(req);
+      try { return sendJson(res, 200, db.passGuildLeadership(playerId, toPlayerId)); }
+      catch (e) { return sendJson(res, 400, { error: 'GUILD_ERROR', message: e.message }); }
+    }
+    // POST /guilds/disband { playerId }
+    if (req.method === 'POST' && pathname === '/guilds/disband') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, db.disbandGuild(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: 'GUILD_ERROR', message: e.message }); }
+    }
+
     // ---- GUILD CHECK-IN / LEVELLING ----
     if (req.method === 'GET' && pathname.match(/^\/guild-progress\/\d+$/)) {
       const playerId = Number(pathname.split('/')[2]);
