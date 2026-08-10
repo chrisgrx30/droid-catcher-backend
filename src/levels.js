@@ -173,6 +173,76 @@ function grantLevelReward(player, level) {
   if (!player.unlockedLevelBadges.includes(level)) player.unlockedLevelBadges.push(level);
 }
 
+// Every badge in the game, earned or not, so the UI can show the full
+// ladder greyed out rather than only the four milestones a player has
+// hit. Also reports which one is currently set as their player icon.
+function allBadgesFor(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new LevelError('NO_PLAYER', 'Player not found');
+  const level = player.playerLevel || 0;
+  const reboots = player.rebootCount || 0;
+
+  const badges = [];
+  for (let lv = 1; lv <= MAX_LEVEL; lv++) {
+    badges.push({
+      id: 'lv' + String(lv).padStart(3, '0'),
+      type: 'level',
+      label: 'Level ' + lv,
+      icon: 'lv' + String(lv).padStart(3, '0') + '.png',
+      folder: 'levels',
+      earned: level >= lv,
+      requirement: `Reach Level ${lv}`,
+    });
+  }
+  for (let rb = 1; rb <= MAX_REBOOTS; rb++) {
+    badges.push({
+      id: 'rb' + String(rb).padStart(3, '0'),
+      type: 'reboot',
+      label: 'Re-Boot ' + rb,
+      icon: 'rb' + String(rb).padStart(3, '0') + '.png',
+      folder: 'levels',
+      earned: reboots >= rb,
+      requirement: `Complete ${rb} Re-Boot${rb === 1 ? '' : 's'}`,
+    });
+  }
+
+  // Achievement badges: one per achievement, earned at any tier.
+  try {
+    const ach = require('./achievements');
+    const unlocked = player.achievementsUnlocked || {};
+    ach.ACHIEVEMENTS.forEach((a) => {
+      badges.push({
+        id: a.id,
+        type: 'achievement',
+        label: a.name,
+        icon: a.icon,
+        folder: 'achievements',
+        earned: unlocked[a.id] !== undefined && unlocked[a.id] >= 0,
+        requirement: a.description,
+      });
+    });
+  } catch (e) {}
+
+  return { badges, selectedBadgeId: player.playerBadgeId || null };
+}
+
+function setPlayerBadge(playerId, badgeId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new LevelError('NO_PLAYER', 'Player not found');
+  if (badgeId === null || badgeId === '') {
+    player.playerBadgeId = null;
+    return allBadgesFor(playerId);
+  }
+  const { badges } = allBadgesFor(playerId);
+  const badge = badges.find((b) => b.id === badgeId);
+  if (!badge) throw new LevelError('NO_BADGE', 'Unknown badge');
+  if (!badge.earned) throw new LevelError('NOT_EARNED', `${badge.label} isn't unlocked yet — ${badge.requirement}`);
+  player.playerBadgeId = badgeId;
+  player.playerBadgeIcon = badge.icon;
+  player.playerBadgeFolder = badge.folder;
+  return allBadgesFor(playerId);
+}
+
 function statusFor(playerId) {
   const player = db.players.get(playerId);
   if (!player) throw new LevelError('NO_PLAYER', 'Player not found');
@@ -279,6 +349,8 @@ module.exports = {
   REBOOT_STARTER_BUNDLE,
   awardXp,
   statusFor,
+  allBadgesFor,
+  setPlayerBadge,
   reboot,
   xpToNext,
   totalXpForLevel,

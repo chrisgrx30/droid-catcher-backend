@@ -7,6 +7,7 @@
 
 const db = require('./db');
 const levels = require('./levels');
+const ach = require('./achievements');
 const workshop = require('./workshop');
 
 class TradeError extends Error {
@@ -179,6 +180,10 @@ function acceptTradeOffer(tradeId, playerId) {
   // Both sides of a completed trade earn XP.
   levels.awardXp(offer.fromPlayerId, 'trade');
   levels.awardXp(offer.toPlayerId, 'trade');
+  ach.track(offer.fromPlayerId, 'tradesCompleted');
+  ach.track(offer.toPlayerId, 'tradesCompleted');
+  ach.track(offer.fromPlayerId, 'uniqueDroidsTraded');
+  ach.track(offer.toPlayerId, 'uniqueDroidsTraded');
 
   return offer;
 }

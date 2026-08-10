@@ -364,6 +364,127 @@
   }
   .out-of-reach-toggle .oor-caret { float: right; }
 
+  /* ---- fort sieges ---- */
+  .siege-card { border: 1px solid var(--line); border-radius: 4px; padding: 10px; margin-top: 8px; background: var(--panel-raised); }
+  .siege-card.attacking { border-color: var(--danger); }
+  .siege-card.defending { border-color: #4cb8e8; }
+  .battle-box { border: 1px solid var(--line); border-radius: 4px; padding: 8px; margin-top: 8px; }
+  .battle-box.state-attack { border-color: var(--danger); background: rgba(232,97,95,0.10); }
+  .battle-box.state-safe { border-color: #2a9d4a; background: rgba(42,157,74,0.10); }
+  .battle-box.state-locked { opacity: 0.5; border-style: dashed; }
+  .battle-box.state-breached { border-color: var(--amber); background: rgba(232,169,79,0.12); }
+  .bb-head { display: flex; align-items: center; gap: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .bb-state { margin-left: auto; font-weight: 800; font-size: 9px; }
+  .bb-state.attack { color: var(--danger); }
+  .bb-state.safe { color: #2a9d4a; }
+  .bb-state.locked { color: var(--text-dim); }
+  .bb-state.breached { color: var(--amber); }
+  .def-row { display: flex; align-items: center; gap: 6px; font-size: 9px; padding: 3px 0; }
+  .def-row .dr-name { flex: 1; }
+  .def-hp { height: 4px; border-radius: 2px; background: rgba(0,0,0,0.4); overflow: hidden; width: 60px; }
+  .def-hp > div { height: 100%; background: #2a9d4a; }
+  .def-row.down .dr-name { color: var(--danger); opacity: 0.7; }
+
+  /* ---- forts ---- */
+  .fort-orange { background: #e8862f; border-color: #e8862f; color: #201002; font-weight: 800; }
+  .fort-orange:disabled { background: var(--panel-raised); border-color: var(--line); color: var(--text-dim); font-weight: 400; }
+  .fort-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 10px; }
+  .fort-row:last-child { border-bottom: none; }
+  .fort-row .fr-name { flex: 1; color: #fff; }
+  .fort-row.enemy .fr-name { color: #ffb3b2; }
+  .fort-card { border: 1px solid var(--line); border-radius: 4px; padding: 10px; margin-top: 8px; background: var(--panel-raised); }
+  .fort-card.own { border-color: #2a9d4a; }
+  .fort-card.captured { border-color: var(--amber); }
+  .fort-bar { height: 6px; border-radius: 3px; background: rgba(0,0,0,0.4); overflow: hidden; margin-top: 4px; }
+  .fort-bar > div { height: 100%; background: #4cb8e8; }
+  .garrison-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 10px; margin: 2px 2px 0 0; }
+  .garrison-chip.fainted { opacity: 0.45; border-color: var(--danger); }
+
+  /* ---- casino ---- */
+  .casino-box { border: 1px solid var(--line); border-radius: 4px; padding: 10px; background: var(--panel-raised); }
+  .cb-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cyan); margin-bottom: 4px; }
+  .roulette-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; }
+  .roulette-grid button, .rl-bet { margin-top: 0; font-size: 9px; padding: 8px 4px; }
+  .bj-cards { font-size: 15px; letter-spacing: 2px; color: #fff; margin: 3px 0; }
+  .casino-win { color: #2a9d4a; font-weight: 700; }
+  .casino-lose { color: var(--danger); font-weight: 700; }
+
+  .gc-msg { font-size: 10px; padding: 3px 0; display: flex; gap: 6px; }
+  .gc-msg .gc-who { flex-shrink: 0; }
+  .gc-msg .gc-body { color: #fff; word-break: break-word; }
+
+  .mat-row:active { background: rgba(255,255,255,0.06); }
+  .mat-row .stat-label::after { content: ' ⓘ'; font-size: 8px; opacity: 0.4; }
+
+  /* ---- control pad plug-ins ---- */
+  .plugin-row { display: flex; gap: 8px; margin-top: 8px; }
+  .plugin-btn {
+    flex: 1; margin-top: 0; padding: 9px 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    line-height: 1.2;
+  }
+  .plugin-btn.growth { background: #4cb8e8; border-color: #4cb8e8; color: #04181a; }
+  .plugin-btn.timewarp { background: #c8ced6; border-color: #c8ced6; color: #1a1d20; }
+  .plugin-btn:disabled { background: var(--panel-raised); border-color: var(--line); color: var(--text-dim); }
+  .plugin-btn .pb-icon { font-size: 16px; }
+  .plugin-btn .pb-label { font-size: 10px; font-weight: 700; }
+  .plugin-btn .pb-sub { font-size: 8px; opacity: 0.8; }
+  .plugin-btn.active { box-shadow: 0 0 10px rgba(76,184,232,0.7); }
+
+  .map-legend { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .map-legend .ml-title { font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 5px; }
+  .ml-row { display: flex; align-items: center; gap: 7px; font-size: 9px; color: var(--text-dim); padding: 2px 0; }
+  .ml-dot { display: inline-block; border-radius: 50%; flex-shrink: 0; }
+
+  /* ---- badge tray ---- */
+  .badge-tabs { display:flex; gap:4px; margin-bottom:4px; }
+  .badge-tab { width:auto; margin-top:0; font-size:8px; padding:5px 8px; text-transform:uppercase; }
+  .badge-tab.active { background:var(--cyan); border-color:var(--cyan); color:#04181a; font-weight:700; }
+  .badge-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(52px,1fr)); gap:6px; max-height:230px; overflow-y:auto; }
+  .badge-cell { border:1px solid var(--line); border-radius:4px; padding:4px; text-align:center; cursor:pointer; background:var(--panel-raised); }
+  .badge-cell img { width:100%; height:34px; object-fit:contain; }
+  .badge-cell.locked img { filter:grayscale(1); opacity:0.3; }
+  .badge-cell.locked { opacity:0.65; }
+  .badge-cell.earned { border-color:var(--cyan); }
+  .badge-cell.selected { border-color:var(--amber); box-shadow:0 0 8px rgba(232,169,79,0.5); }
+  .badge-cap { font-size:7px; color:var(--text-dim); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* ---- buff badges ---- */
+  .buff-badge-row { display:flex; flex-wrap:wrap; gap:5px; }
+  .buff-badge { display:flex; align-items:center; gap:3px; padding:4px 7px; border:1px solid var(--cyan); border-radius:12px; background:rgba(95,216,224,0.10); font-size:9px; color:var(--cyan); }
+  .buff-badge.capped { border-color:var(--amber); background:rgba(232,169,79,0.12); color:var(--amber); }
+  .buff-badge .bb-icon { font-size:11px; line-height:1; }
+  .buff-badge .bb-val { font-weight:700; }
+
+  /* larger outfit art */
+  #outfitDisplay img { width:120px !important; height:120px !important; object-fit:contain; }
+  .outfit-opt.selected { background:var(--cyan); border-color:var(--cyan); color:#04181a; font-weight:700; }
+
+  /* ---- achievements ---- */
+  .ach-filter-bar { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .ach-filter { width: auto; margin-top: 0; font-size: 8px; padding: 5px 8px; text-transform: uppercase; }
+  .ach-filter.active { background: var(--cyan); border-color: var(--cyan); color: #04181a; font-weight: 700; }
+  .ach-row { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  .ach-row:last-child { border-bottom: none; }
+  .ach-row.pending { opacity: 0.45; }
+  .ach-icon { width: 34px; height: 34px; border-radius: 4px; border: 2px solid var(--line); background: var(--panel-raised); flex-shrink: 0; object-fit: contain; }
+  .ach-icon.bronze { border-color: #b0713a; }
+  .ach-icon.silver { border-color: #b9c4cc; }
+  .ach-icon.gold { border-color: #e8c14f; }
+  .ach-icon.gem { border-color: #5fd8e0; box-shadow: 0 0 8px rgba(95,216,224,0.5); }
+  .ach-body { flex: 1; min-width: 0; }
+  .ach-name { font-size: 11px; color: #fff; }
+  .ach-desc { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+  .ach-bar { height: 5px; border-radius: 3px; background: var(--panel-raised); border: 1px solid var(--line); overflow: hidden; margin-top: 5px; }
+  .ach-fill { height: 100%; background: var(--cyan); }
+  .ach-fill.gem { background: linear-gradient(90deg, var(--cyan), #8ef0f7); }
+  .ach-meta { font-size: 8px; color: var(--text-dim); margin-top: 3px; display: flex; justify-content: space-between; gap: 6px; }
+  .ach-tier-tag { font-size: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+  .ach-tier-tag.bronze { color: #b0713a; }
+  .ach-tier-tag.silver { color: #b9c4cc; }
+  .ach-tier-tag.gold { color: #e8c14f; }
+  .ach-tier-tag.gem { color: #5fd8e0; }
+
   /* ---- attachment slots in the droid stats modal ---- */
   .att-slots { margin-top: 12px; border: 1px solid var(--line); border-radius: 4px; padding: 8px; background: var(--panel-raised); }
   .att-slots-title { font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 6px; }
@@ -787,7 +908,7 @@
       <span class="dot" id="connDot"></span>
       <span id="connLabel">Disconnected</span>
     </div>
-    <span style="color:var(--text-dim); font-size:9px; margin-top:2px;">v0.1.9</span>
+    <span style="color:var(--text-dim); font-size:9px; margin-top:2px;" id="appVersion">v—</span>
     <input type="text" id="serverUrl" value="" placeholder="same as this page" style="display:none;">
   </div>
 </header>
@@ -806,6 +927,7 @@
   <button class="tab-btn" data-tab="battles">Battles</button>
   <button class="tab-btn" data-tab="livepvp">⚡ Live PVP</button>
   <button class="tab-btn" data-tab="brood">🔮 Brood</button>
+  <button class="tab-btn" data-tab="achievements">🏆 Achievements</button>
   <button class="tab-btn" data-tab="storage">Warehouse</button>
 </div>
 
@@ -868,6 +990,23 @@
         <div class="stat-row"><span class="stat-label">Pad Level</span><span class="stat-val" id="statPadLevel">0</span></div>
         <div class="stat-row"><span class="stat-label">Crit Chance</span><span class="stat-val" id="statCritChance">2%</span></div>
         <button id="btnUpgradePad">Upgrade Pad — <span id="padUpgradeCost">100</span> ✦</button>
+
+        <!-- Control Pad plug-ins. Side by side under the upgrade button:
+             Growth widens the capture zone, Time Warp slows the marker.
+             Both last 15 minutes and are single-use. -->
+        <div class="plugin-row">
+          <button id="btnUseGrowth" class="plugin-btn growth">
+            <span class="pb-icon">🌱</span>
+            <span class="pb-label">Growth</span>
+            <span class="pb-sub" id="growthSub">—</span>
+          </button>
+          <button id="btnUseTimeWarp" class="plugin-btn timewarp">
+            <span class="pb-icon">⏳</span>
+            <span class="pb-label">Time Warp</span>
+            <span class="pb-sub" id="timeWarpSub">—</span>
+          </button>
+        </div>
+        <div id="pluginStatus" style="font-size:9px; color:var(--text-dim); margin-top:5px; text-align:center;"></div>
         <div id="padRamStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
       </div>
 
@@ -923,21 +1062,7 @@
     <!-- Account controls live at the very bottom of the Player tab:
          destructive/rarely-used actions shouldn't sit above the things
          players actually open this tab for. -->
-    <div class="panel" id="accountSecurityPanel" style="margin-top:16px;">
-      <div class="panel-title">Account</div>
-      <div id="accountSecurityInner" style="display:none;">
-        <label style="margin-top:4px;">Change PIN</label>
-        <div style="display:flex; gap:6px; align-items:center;">
-          <input type="text" id="currentPinInput" placeholder="Current PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
-          <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
-          <button id="btnChangePin" style="width:auto; flex-shrink:0; font-size:9px; padding:8px 12px; margin-top:0;">Update</button>
-        </div>
-        <button id="btnNewPilot" style="margin-top:14px; font-size:9px; padding:8px 12px; color:var(--danger); border-color:var(--danger); background:transparent;">New Pilot (reset)</button>
-        <div style="font-size:9px; color:var(--text-dim); margin-top:4px;">Reset clears this device's saved pilot. Your account still exists — resume it with your callsign and PIN.</div>
-      </div>
-      <div id="accountSecurityLocked" class="empty">Deploy a pilot to manage your account</div>
-    </div>
-
+    
     <div class="panel" id="wardrobeMainPanel" style="margin-top:16px;">
       <div class="panel-title">Wardrobe <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— Head/Body/Arms/Legs, sorted by rarity</span></div>
     <button id="btnToggleCosmeticSets" style="margin-top:10px; font-size:10px;">👕 Cosmetic Sets <span id="cosTotals" style="color:var(--cyan);"></span></button>
@@ -976,12 +1101,28 @@
       <div id="starterOptions"></div>
     </div>
   </div>
+<div class="panel" id="accountSecurityPanel" style="margin-top:16px;">
+      <div class="panel-title">Account</div>
+      <div id="accountSecurityInner" style="display:none;">
+        <label style="margin-top:4px;">Change PIN</label>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="text" id="currentPinInput" placeholder="Current PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
+          <input type="text" id="newPinInput" placeholder="New PIN" maxlength="8" inputmode="numeric" style="flex:1; margin-top:0;">
+          <button id="btnChangePin" style="width:auto; flex-shrink:0; font-size:9px; padding:8px 12px; margin-top:0;">Update</button>
+        </div>
+        <button id="btnNewPilot" style="margin-top:14px; font-size:9px; padding:8px 12px; color:var(--danger); border-color:var(--danger); background:transparent;">New Pilot (reset)</button>
+        <div style="font-size:9px; color:var(--text-dim); margin-top:4px;">Reset clears this device's saved pilot. Your account still exists — resume it with your callsign and PIN.</div>
+      </div>
+      <div id="accountSecurityLocked" class="empty">Deploy a pilot to manage your account</div>
+    </div>
+
 </div>
 
 <!-- CAPTURE TAB -->
 <div class="tab-page" id="tab-capture">
   <div class="panel" id="radarSweepPanel">
     <div class="panel-title">Radar Sweep <span id="todBadge" style="color: var(--text-dim);"></span></div>
+    <div id="scanLocalTime" style="font-size:9px; color:var(--text-dim); text-align:center; margin:6px 0;"></div>
     <div id="coordOverrideBanner"></div>
     <div id="beaconCellBanner"></div>
     <div id="eventBanner"></div>
@@ -994,6 +1135,13 @@
 
     <div class="panel-title" style="margin-top:16px; margin-bottom:6px;">Your Location</div>
     <div id="locationMap" style="height:220px; border-radius:4px; border:1px solid var(--line); background:var(--panel-raised);"></div>
+
+    <div class="panel" id="buildFortPanel" style="margin-top:12px; padding:10px;">
+      <div class="panel-title" style="margin-bottom:6px;">🏰 Forts</div>
+      <div id="nearbyFortsList" style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Scan to find Forts nearby</div>
+      <button id="btnBuildFort" class="fort-orange">🏰 Build Fort Here</button>
+      <div id="buildFortNote" style="font-size:9px; color:var(--text-dim); margin-top:5px; text-align:center;"></div>
+    </div>
 
     <!-- ---- JOY STICK ---- -->
     <!-- Layout per spec: green activate button top-left, blue Pulse
@@ -1134,6 +1282,16 @@
     </div>
   </div>
 
+  <div class="panel" id="siegePanel" style="margin-top:16px;">
+    <div class="panel-title">⚔️ Fort Assaults</div>
+    <div id="siegeList"><div class="empty">No Fort assaults running</div></div>
+  </div>
+
+  <div class="panel" id="territoryPanel" style="margin-top:16px;">
+    <div class="panel-title">🏰 Territory <span id="territoryCount" style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;"></span></div>
+    <div id="territoryList"><div class="empty">Join a guild to hold territory</div></div>
+  </div>
+
   <div class="panel" style="margin-top:16px; display:none;" id="guildLeaderboardPanel">
     <div class="panel-title">Dex Leaderboard</div>
     <div id="guildLeaderboard"></div>
@@ -1148,6 +1306,15 @@
 </div>
 
 <!-- INVENTORY TAB -->
+<!-- ACHIEVEMENTS TAB -->
+<div class="tab-page" id="tab-achievements">
+  <div class="panel" id="achievementsPanel">
+    <div class="panel-title">🏆 Achievements <span id="achSummary" style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;"></span></div>
+    <div class="ach-filter-bar" id="achFilterBar"></div>
+    <div id="achList"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
 <!-- BROOD CHAMBER TAB -->
 <div class="tab-page" id="tab-brood">
   <div class="panel" id="broodChamberPanel">
@@ -1156,6 +1323,9 @@
       Merge two droids into an Astral Brood egg. <strong style="color:var(--danger);">Both droids are destroyed.</strong>
       The result is never worse than the lower-rarity parent, and rarer parents improve the odds.
       Astral Brood droids cannot be caught in the wild — merging is the only way to get them.
+    </div>
+    <div id="broodAutoReleaseWarn" class="apex-warning" style="display:none; border-color:var(--amber); background:rgba(232,169,79,0.14); color:var(--amber);">
+      ⚠️ Auto-release duplicates is ON. If you're farming droids to merge, turn it off in Warehouse → Duplicate Management or your merge fodder will be released automatically.
     </div>
     <div id="broodKeeperSlot" class="keeper-slot"></div>
   </div>
@@ -1214,16 +1384,16 @@
   <div class="panel" id="inventoryMainPanel">
     <div class="panel-title">Inventory</div>
     <div class="stat-row"><span class="stat-label">✦ Crystals</span><span class="stat-val amber" id="statInvCrystals">0</span></div>
-    <div class="stat-row"><span class="stat-label">🎨 Paint</span><span class="stat-val" id="statPaint">0</span></div>
-    <div class="stat-row"><span class="stat-label">🔷 Nova Chips</span><span class="stat-val" id="statNovaChips">0</span></div>
-    <div class="stat-row"><span class="stat-label">📡 Beacons</span><span class="stat-val" id="statInvBeacons">0</span></div>
-    <div class="stat-row"><span class="stat-label">⚙️ Augment Cores</span><span class="stat-val" id="statAugmentCores">0</span></div>
-    <div class="stat-row"><span class="stat-label">🩹 Repair Kits</span><span class="stat-val" id="statRepairKits">0</span></div>
-    <div class="stat-row"><span class="stat-label">🔋 Energy Tubes</span><span class="stat-val" id="statEnergyTubes">0</span></div>
-    <div class="stat-row"><span class="stat-label" style="color:var(--apex);">⬢ Apex Cubes</span><span class="stat-val" id="statApexCubes" style="color:var(--apex); font-weight:900;">0</span></div>
-    <div class="stat-row"><span class="stat-label">🏆 Titan Tokens</span><span class="stat-val" id="statTitanTokens">0</span></div>
-    <div class="stat-row"><span class="stat-label">🛡️ Guild Tokens</span><span class="stat-val" id="statGuildTokens">0</span></div>
-    <div class="stat-row"><span class="stat-label">🕹️ Joy Coins</span><span class="stat-val" id="statJoyCoins">0</span></div>
+    <div class="stat-row mat-row" data-mat="paint"><span class="stat-label">🎨 Paint</span><span class="stat-val" id="statPaint">0</span></div>
+    <div class="stat-row mat-row" data-mat="novaChips"><span class="stat-label">🔷 Nova Chips</span><span class="stat-val" id="statNovaChips">0</span></div>
+    <div class="stat-row mat-row" data-mat="beacons"><span class="stat-label">📡 Beacons</span><span class="stat-val" id="statInvBeacons">0</span></div>
+    <div class="stat-row mat-row" data-mat="augmentCores"><span class="stat-label">⚙️ Augment Cores</span><span class="stat-val" id="statAugmentCores">0</span></div>
+    <div class="stat-row mat-row" data-mat="repairKits"><span class="stat-label">🩹 Repair Kits</span><span class="stat-val" id="statRepairKits">0</span></div>
+    <div class="stat-row mat-row" data-mat="energyTubes"><span class="stat-label">🔋 Energy Tubes</span><span class="stat-val" id="statEnergyTubes">0</span></div>
+    <div class="stat-row mat-row" data-mat="apexCubes"><span class="stat-label" style="color:var(--apex);">⬢ Apex Cubes</span><span class="stat-val" id="statApexCubes" style="color:var(--apex); font-weight:900;">0</span></div>
+    <div class="stat-row mat-row" data-mat="titanTokens"><span class="stat-label">🏆 Titan Tokens</span><span class="stat-val" id="statTitanTokens">0</span></div>
+    <div class="stat-row mat-row" data-mat="guildTokens"><span class="stat-label">🛡️ Guild Tokens</span><span class="stat-val" id="statGuildTokens">0</span></div>
+    <div class="stat-row mat-row" data-mat="joyCoins"><span class="stat-label">🕹️ Joy Coins</span><span class="stat-val" id="statJoyCoins">0</span></div>
   </div>
 
   <div class="panel" id="shopMainPanel" style="margin-top:16px;">
@@ -1239,6 +1409,50 @@
 
 <!-- EVENTS & TRADING TAB -->
 <div class="tab-page" id="tab-social">
+  <div class="panel" id="casinoPanel">
+    <div class="panel-title">🎰 The Spark Lounge</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">
+      Bet crystals. The house has an edge — these are a crystal sink, not a way to farm.
+      The daily spin is free and always pays.
+    </div>
+
+    <div id="dailySpinBox" class="casino-box">
+      <div class="cb-title">🎡 Daily Spin — free</div>
+      <div id="dailySpinStatus" style="font-size:10px; color:var(--text-dim);">—</div>
+      <button id="btnDailySpin" class="primary" style="margin-top:8px;">Spin</button>
+    </div>
+
+    <div class="casino-box" style="margin-top:12px;">
+      <div class="cb-title">🔴 Roulette</div>
+      <label style="margin-top:4px;">Bet amount</label>
+      <input type="number" id="rouletteBet" value="500" min="100" step="100">
+      <div class="roulette-grid">
+        <button class="rl-bet" data-type="red" style="background:#b3352f; border-color:#b3352f; color:#fff;">Red 2x</button>
+        <button class="rl-bet" data-type="black" style="background:#22262b; border-color:#555; color:#fff;">Black 2x</button>
+        <button class="rl-bet" data-type="odd">Odd 2x</button>
+        <button class="rl-bet" data-type="even">Even 2x</button>
+        <button class="rl-bet" data-type="low">1-18 2x</button>
+        <button class="rl-bet" data-type="high">19-36 2x</button>
+      </div>
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <input type="number" id="rouletteNumber" min="0" max="36" placeholder="0-36" style="flex:1; margin-top:0;">
+        <button class="rl-bet" data-type="number" style="width:auto; margin-top:0; padding:8px 12px;">Straight 36x</button>
+      </div>
+      <div id="rouletteResult" style="margin-top:8px; font-size:11px; text-align:center;"></div>
+    </div>
+
+    <div class="casino-box" style="margin-top:12px;">
+      <div class="cb-title">🃏 Blackjack</div>
+      <div id="blackjackTable">
+        <label style="margin-top:4px;">Bet amount</label>
+        <input type="number" id="blackjackBet" value="500" min="100" step="100">
+        <button id="btnBlackjackDeal" class="primary" style="margin-top:8px;">Deal</button>
+      </div>
+      <div id="blackjackResult" style="margin-top:8px; font-size:11px;"></div>
+    </div>
+  </div>
+
+
   <div class="panel" id="tradingMainPanel">
     <div class="panel-title">Trading</div>
     <label>Target Player ID</label>
@@ -1539,6 +1753,9 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     // to this tab fixes it reliably.
     if (btn.dataset.tab === 'livepvp') refreshLivePvp();
     if (btn.dataset.tab === 'brood') { refreshMastery().then(refreshBrood); }
+    if (btn.dataset.tab === 'achievements') refreshAchievements();
+    if (btn.dataset.tab === 'social') refreshCasino();
+    if (btn.dataset.tab === 'guilds') { refreshTerritory(); refreshSieges(); }
     if (btn.dataset.tab === 'capture' && locationMap) {
       setTimeout(() => locationMap.invalidateSize(), 50);
     }
@@ -1647,15 +1864,23 @@ function renderSpawnMarkers() {
       const starHtml = spawn.onWishlist
         ? `<div style="position:absolute; top:-9px; right:-9px; font-size:14px; line-height:1; filter:drop-shadow(0 0 3px #000);">⭐</div>`
         : '';
+      // Event-exclusive droids get a bolt; already-caught species get a
+      // tick, so a player can tell at a glance what's worth walking to.
+      const boltHtml = spawn.isEvent
+        ? `<div style="position:absolute; top:-9px; left:-9px; font-size:13px; line-height:1; filter:drop-shadow(0 0 3px #000);">⚡</div>`
+        : '';
+      const caughtHtml = spawn.alreadyCaught
+        ? `<div style="position:absolute; bottom:-8px; right:-8px; font-size:11px; line-height:1; filter:drop-shadow(0 0 3px #000);">✅</div>`
+        : '';
       const icon = L.divIcon({
         className: 'spawn-map-marker' + (inRange ? ' in-range' : ''),
         html: `<div style="position:relative; width:${size}px; height:${size}px;">
-                 <div style="width:${size}px; height:${size}px; border-radius:50%; ${markerStyle}"></div>${starHtml}
+                 <div style="width:${size}px; height:${size}px; border-radius:50%; ${markerStyle}"></div>${starHtml}${boltHtml}${caughtHtml}
                </div>`,
         iconSize: [size, size],
       });
       const marker = L.marker([spawn.lat, spawn.lng], { icon }).addTo(locationMap);
-      marker.bindPopup(`<strong>${spawn.onWishlist ? '⭐ ' : ''}${spawn.speciesName}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a; font-weight:700;">✓ In capture range</span>' : `<span style="color:#e8615f;">${spawn.distanceMeters}m away</span> — walk ${Math.max(0, spawn.distanceMeters - (state.captureRadiusMeters || 40))}m closer`}`);
+      marker.bindPopup(`<strong>${spawn.onWishlist ? '⭐ ' : ''}${spawn.isEvent ? '⚡ ' : ''}${spawn.speciesName}${spawn.alreadyCaught ? ' ✅' : ''}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a; font-weight:700;">✓ In capture range</span>' : `<span style="color:#e8615f;">${spawn.distanceMeters}m away</span> — walk ${Math.max(0, spawn.distanceMeters - (state.captureRadiusMeters || 40))}m closer`}`);
       marker.on('click', () => highlightSpawnCard(spawn.id));
       spawnMarkers.push(marker);
     });
@@ -1678,14 +1903,14 @@ function highlightSpawnCard(spawnId) {
 // Written each build round — a short, plain-language summary of what
 // just shipped. Update this string when packaging a new release.
 const HOME_CHANGELOG = `
-  <p><strong>Latest update — v0.5.0:</strong></p>
+  <p><strong>Latest update — v0.7.0:</strong></p>
   <ul style="margin:6px 0 0; padding-left:18px;">
-    <li><strong>Buddy Mastery</strong> — assign a level 20 droid as your buddy. It gains a mastery level every day, up to 30.</li>
-    <li><strong>Growth &amp; Time Warp now work</strong> — plug them into the Control Pad for 15 minutes. Growth widens the capture zone, Time Warp slows the marker.</li>
-    <li><strong>New Titans</strong> — Luminarch and Voidlord now appear alongside Scaffitan. Luminarch favours daylight, Voidlord the night. They drop Lume Cells and Zombie Juice.</li>
-    <li><strong>Titan &amp; Guild Tokens now drop</strong> — Titan Tokens from any Titan win, Guild Tokens for winning alongside a guildmate.</li>
-    <li><strong>Smuggler's Trade</strong> — swap 100 Lume Cells or Zombie Juice for Light Stones and Dark Crystals.</li>
-    <li><strong>Outfit box rebuilt</strong> — cosmetic slots now sit either side of your outfit with their buffs shown, and a running total.</li>
+    <li><strong>🎰 The Spark Lounge</strong> — Roulette, Blackjack and a free Daily Spin, in the Trading tab.</li>
+    <li><strong>Tap any material</strong> in your Inventory to see exactly where it drops and what it's for.</li>
+    <li><strong>Wardrobe detail view</strong> — tap a cosmetic for a large image, its stats, and how to get it.</li>
+    <li><strong>Guild chat is now instant</strong> — messages arrive the moment they're sent.</li>
+    <li><strong>Companion</strong> — level up, view stats and release straight from the Companion tab.</li>
+    <li>Shop hides what you already own, and the Summer Event actually spawns Summer droids now.</li>
   </ul>
 `;
 
@@ -1770,6 +1995,18 @@ function log(tag, body, isErr) {
   $('console').scrollTop = $('console').scrollHeight;
 }
 
+// Prevents double-firing an action when a button is tapped rapidly.
+// The turn engine is server-authoritative and counters every attack, so
+// spamming isn't an exploit — but two requests in flight at once can
+// resolve two turns before the UI has redrawn once, which LOOKS like one.
+const _inFlight = new Set();
+async function guardedAction(key, fn) {
+  if (_inFlight.has(key)) return null;
+  _inFlight.add(key);
+  try { return await fn(); }
+  finally { setTimeout(() => _inFlight.delete(key), 250); }
+}
+
 async function api(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
@@ -1828,7 +2065,11 @@ async function activatePlayer(player) {
   if (accInner) accInner.style.display = 'block';
   refreshJoystick();
   refreshLevels();
+  refreshPlugins();
+  updateBuildFortButton();
+  wireMaterialRows();
   refreshMastery();
+  loadAppVersion();
   checkGiftInbox();
   refreshCosmeticSets();
   refreshAttachments();
@@ -2032,6 +2273,15 @@ $('btnUseLocation').onclick = () => {
     return;
   }
 
+  // A live Joy Stick session scans from the joystick position rather
+  // than blocking the button. Previously the button appeared dead
+  // during a session, which looked broken.
+  if (joystickState && joystickState.active && joystickState.currentLat != null) {
+    status.textContent = `🕹️ Joy Stick active — scanning from your Joy Stick position`;
+    scanAt(joystickState.currentLat, joystickState.currentLng);
+    return;
+  }
+
   if (!navigator.geolocation) {
     status.textContent = 'Geolocation not supported by this browser.';
     return;
@@ -2059,6 +2309,16 @@ async function scanAt(lat, lng) {
     // Server decides the capture radius; we only mirror it. Falls back to
     // 15 if an older server build doesn't send the field yet.
     state.captureRadiusMeters = data.captureRadiusMeters != null ? data.captureRadiusMeters : 40;
+    // Shows the local time the SERVER used for time-gated spawns. With a
+    // coordinate override on, this is the override's local time — which
+    // is what decides football weekends and night-only lines.
+    refreshNearbyForts(lat, lng);
+    updateBuildFortButton();
+    const lt = $('scanLocalTime');
+    if (lt && data.localDayName) {
+      const h = Math.floor(data.localHour), m = Math.round((data.localHour % 1) * 60);
+      lt.textContent = `🕒 Spawn clock: ${data.localDayName} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} (${data.timeOfDay})`;
+    }
     drawCaptureRadiusRing(lat, lng);
     const badge = $('todBadge');
     badge.textContent = data.timeOfDay === 'day' ? '☀ Daytime here' : '🌑 Nighttime here';
@@ -2184,10 +2444,7 @@ function renderSpawns() {
       <button class="stop-btn">LOCK-ON</button>
       <button class="run-btn ghost" style="margin-top:4px; font-size:9px; padding:6px;">Run</button>
       ` : `
-      <div class="out-of-range-note" id="oorNote${spawn.id}">
-        📍 Out of capture range — move within ${captureRadius}m to lock on
-        <div class="oor-sub">${spawn.distanceMeters}m away · ${Math.max(0, spawn.distanceMeters - captureRadius)}m closer needed</div>
-      </div>
+      <div class="oor-sub" style="margin-top:6px; text-align:center;">${spawn.distanceMeters}m away — ${Math.max(0, spawn.distanceMeters - captureRadius)}m closer to lock on</div>
       `}
     `;
     card.querySelector('.spawn-icon').appendChild(createDroidVisual(spawn, 28));
@@ -2403,6 +2660,17 @@ $('captureResultOverlay').onclick = (e) => {
 };
 
 // ---- Workshop ----
+// Anything that can award XP or change buffs calls refreshWorkshop(),
+// so hanging the level/buff refresh off it is what makes the XP bar
+// actually move. Previously refreshLevels() only ran on player load,
+// so the bar sat at 0 no matter what you did.
+let _levelRefreshQueued = false;
+function queueLevelRefresh() {
+  if (_levelRefreshQueued) return;
+  _levelRefreshQueued = true;
+  setTimeout(() => { _levelRefreshQueued = false; refreshLevels(); }, 400);
+}
+
 async function refreshWorkshop() {
   if (!state.playerId) return;
   try {
@@ -2414,6 +2682,9 @@ async function refreshWorkshop() {
     state.droids = data.droids;
     state.crystalsPerSecond = data.crystalsPerSecond || 0;
     state.displayBalance = data.crystalBalance; // baseline for the live ticker
+    queueLevelRefresh(); // keeps the XP bar and buff panel current
+    state.growths = data.growths; state.timeWarps = data.timeWarps;
+    refreshPlugins();
     $('wsTotalRate').textContent = Math.round(state.crystalsPerSecond * 60 * 100) / 100 + '/min';
     if (data.companionDroid && data.companionBuffType) {
       const companion = data.companionDroid;
@@ -2434,6 +2705,7 @@ async function refreshWorkshop() {
     state.padLevel = data.padLevel;
     state.timeWarps = data.timeWarps;
     $('autoReleaseToggle').checked = !!data.autoReleaseDuplicates;
+    state.autoReleaseDuplicates = !!data.autoReleaseDuplicates;
     $('autoReleaseVariantsToggle').checked = !!data.autoReleaseIncludeVariants;
     state.growths = data.growths;
     state.repairKits = data.repairKits;
@@ -2682,6 +2954,9 @@ function buildDroidRow(droid) {
       : '';
 
     const levelBtnLabel = droid.nextLevelCost === null ? 'MAX' : `Lv Up (${levelCostLabel(droid)})`;
+    // A fainted droid can't be levelled or released until it's repaired
+    // — showing those buttons invites an action that will just fail.
+    const isFainted = Boolean(droid.fainted);
     const repairBtn = droid.fainted
       ? `<button class="repair-row-btn" style="margin-top:4px; width:auto; padding:4px 8px; font-size:9px; color:#3a2e00; background:#ffcf5c; border-color:#ffcf5c; font-weight:600;"><img src="/assets/battle/repairkit.png" style="width:12px; height:12px; vertical-align:middle; margin-right:3px;" onerror="this.remove();">Repair</button>`
       : '';
@@ -2702,8 +2977,10 @@ function buildDroidRow(droid) {
         ${variantTag ? `<div style="margin-top:2px;">${variantTag}</div>` : ''}
       </div>
       <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;">
-        <button class="level-up-btn" style="margin-top:0; width:auto; padding:4px 8px; font-size:9px;" ${droid.nextLevelCost === null ? 'disabled' : ''}>${levelBtnLabel}</button>
-        <button class="release-btn" style="margin-top:0; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Release (${Math.floor((droid.captureCost||0)*1.5)}✦)</button>
+        ${isFainted
+          ? '<span style="font-size:9px; color:var(--danger);">💀 Fainted — repair with a Repair Kit first</span>'
+          : `<button class="level-up-btn" style="margin-top:0; width:auto; padding:4px 8px; font-size:9px;" ${droid.nextLevelCost === null ? 'disabled' : ''}>${levelBtnLabel}</button>
+             <button class="release-btn" style="margin-top:0; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Release (${Math.floor((droid.captureCost||0)*1.5)}✦)</button>`}
         ${repairBtn}
       </div>
     `;
@@ -2729,6 +3006,7 @@ function buildDroidRow(droid) {
     row.querySelectorAll('.droid-info-click').forEach((el) => { el.onclick = () => showStatsModal(droid); });
 
     const levelBtn = row.querySelector('.level-up-btn');
+    if (!levelBtn) return row; // fainted: no action buttons rendered
     if (droid.nextLevelCost !== null) {
       levelBtn.onclick = async () => {
         try {
@@ -3183,7 +3461,10 @@ function renderCompanion() {
         <div style="color:var(--text-dim); font-size:9px; margin-top:3px;">${buffLabel}</div>
         ${activationHTML}
         <div class="tc-actions">
+          <button class="companion-stats-btn ghost">Stats</button>
+          <button class="companion-levelup-btn" ${c.nextLevelCost === null ? 'disabled' : ''}>${c.nextLevelCost === null ? 'MAX' : `Lv Up (${levelCostLabel(c)})`}</button>
           <button class="unequip-companion-btn">Unequip</button>
+          <button class="companion-release-btn" style="color:var(--danger); border-color:var(--danger);">Release</button>
         </div>
       </div>
     `;
@@ -3192,6 +3473,35 @@ function renderCompanion() {
         await api('POST', '/companion/unassign', { playerId: state.playerId });
         await refreshWorkshop();
       } catch (e) {}
+    };
+    // Tapping the card or Stats opens the same modal every other droid
+    // uses, so attachments, buddy status and mastery are reachable here
+    // too rather than only from the Warehouse.
+    el.querySelector('.companion-stats-btn').onclick = () => showStatsModal(c);
+    el.querySelector('.trade-card').style.cursor = 'pointer';
+    el.querySelector('.trade-card').onclick = (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      showStatsModal(c);
+    };
+    const cLevelBtn = el.querySelector('.companion-levelup-btn');
+    if (c.nextLevelCost !== null) {
+      cLevelBtn.onclick = async () => {
+        try {
+          await api('POST', `/droids/${c.id}/level-up`, { playerId: state.playerId });
+          await refreshWorkshop();
+        } catch (err) { showGuildResultPopup(false, (err && err.message) || 'Could not level up.'); }
+      };
+    }
+    el.querySelector('.companion-release-btn').onclick = async () => {
+      // Companions are rare and the buff is lost with them, so this
+      // warning names the droid and the refund explicitly.
+      const refund = Math.floor((c.captureCost || 0) * 1.5);
+      if (!confirm(`Release ${c.speciesName} (Lv ${c.level})?\n\nYou will lose its companion buff permanently and it will be removed from your collection.\n\nYou get ${refund} crystals back.\n\nThis cannot be undone.`)) return;
+      try {
+        await api('POST', `/droids/${c.id}/release`, { playerId: state.playerId });
+        showGuildResultPopup(true, `${c.speciesName} released — ${refund} crystals refunded.`);
+        await refreshWorkshop();
+      } catch (err) { showGuildResultPopup(false, (err && err.message) || 'Could not release that droid.'); }
     };
     const activateBtn = el.querySelector('.activate-buff-btn');
     if (activateBtn) {
@@ -3252,19 +3562,33 @@ function renderShop() {
   const outfitsDetails = document.createElement('details');
   outfitsDetails.open = false;
   outfitsDetails.style.marginTop = '14px';
-  outfitsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Outfits <span style="color:var(--text-dim);">(${outfitItems.length})</span></summary>`;
-  outfitItems.forEach((item) => {
-    const owned = (state.ownedOutfits || []).includes(item.outfitId);
-    outfitsDetails.appendChild(buildShopRow(item, owned ? 'Owned' : `Buy — ${item.cost}✦`, owned));
-  });
+  outfitsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Outfits <span style="color:var(--text-dim);">(${outfitItems.filter((i) => !(state.ownedOutfits || []).includes(i.outfitId)).length} available)</span></summary>`;
+  // Owned outfits are hidden rather than shown greyed out — a shop
+  // cluttered with things you already have makes the new items harder
+  // to spot. They're still visible in the Wardrobe.
+  const unownedOutfits = outfitItems.filter((item) => !(state.ownedOutfits || []).includes(item.outfitId));
+  unownedOutfits.forEach((item) => outfitsDetails.appendChild(buildShopRow(item, `Buy — ${item.cost}✦`, false)));
+  if (!unownedOutfits.length) {
+    const done = document.createElement('div');
+    done.className = 'empty';
+    done.textContent = 'You own every outfit — see them in your Wardrobe';
+    outfitsDetails.appendChild(done);
+  }
   list.appendChild(outfitsDetails);
 
   const cosmeticsDetails = document.createElement('details');
   cosmeticsDetails.open = false;
   cosmeticsDetails.style.marginTop = '14px';
-  cosmeticsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Cosmetics <span style="color:var(--text-dim);">(${(state.cosmeticsCatalog || []).length})</span></summary>`;
-  (state.cosmeticsCatalog || []).forEach((c) => {
-    const owned = (state.cosmetics || []).includes(c.id);
+  cosmeticsDetails.innerHTML = `<summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:4px 0; border-bottom:1px dashed var(--line); margin-bottom:6px;">Cosmetics <span style="color:var(--text-dim);">(${(state.cosmeticsCatalog || []).filter((c) => !(state.cosmetics || []).includes(c.id)).length} available)</span></summary>`;
+  const unownedCosmetics = (state.cosmeticsCatalog || []).filter((c) => !(state.cosmetics || []).includes(c.id));
+  if (!unownedCosmetics.length) {
+    const done = document.createElement('div');
+    done.className = 'empty';
+    done.textContent = 'Nothing left to buy here';
+    cosmeticsDetails.appendChild(done);
+  }
+  unownedCosmetics.forEach((c) => {
+    const owned = false;
     const row = document.createElement('div');
     row.className = 'droid-row';
     row.innerHTML = `
@@ -3290,7 +3614,7 @@ function showOutfitLargeView(outfitId, name) {
   const overlay = $('captureResultOverlay');
   const box = $('captureResultBox');
   box.innerHTML = `
-    <div style="width:160px; height:160px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; font-size:80px;"><img src="/assets/outfits/${outfitId}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></div>
+    <div style="width:min(78vw,300px); height:min(78vw,300px); margin:0 auto 10px; display:flex; align-items:center; justify-content:center; font-size:120px;"><img src="/assets/outfits/${outfitId}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></div>
     <div class="mb-title" style="color:#fff; text-transform:capitalize;">${name || outfitId}</div>
     <button class="primary mb-close">Close</button>
   `;
@@ -3302,9 +3626,14 @@ function buildShopRow(item, label, owned = false) {
   const row = document.createElement('div');
   row.className = 'droid-row';
   row.style.flexWrap = 'wrap';
+  // Material rows now carry the same icon the Inventory uses, so the
+  // two screens are visually consistent.
+  const matKey = item.grants ? Object.keys(item.grants)[0] : null;
+  const matIcon = matKey && materialInfoCache && materialInfoCache[matKey] ? materialInfoCache[matKey].icon : null;
   const thumb = item.type === 'outfit'
-    ? `<span class="outfit-thumb-click" data-outfit="${item.outfitId}" data-name="${item.name}" style="width:22px; height:22px; flex-shrink:0; display:inline-block; cursor:pointer;"><img src="/assets/outfits/${item.outfitId}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></span>`
-    : '';
+    ? `<span class="outfit-thumb-click" data-outfit="${item.outfitId}" data-name="${item.name}" style="width:34px; height:34px; flex-shrink:0; display:inline-block; cursor:pointer;"><img src="/assets/outfits/${item.outfitId}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></span>`
+    : (matIcon ? `<span style="width:26px; flex-shrink:0; font-size:16px; text-align:center;">${matIcon}</span>`
+               : `<span style="width:26px; flex-shrink:0;"><img src="/assets/materials/${(matKey||'').toLowerCase()}.png" style="width:22px;height:22px;object-fit:contain;" onerror="this.parentElement.textContent='📦';"></span>`);
   const isMaterial = item.type === 'material' && !owned;
   const qtyControls = isMaterial ? `
     <div style="display:flex; align-items:center; gap:6px; width:100%; margin-top:4px;">
@@ -3528,7 +3857,7 @@ function renderOutfitSection() {
   const equipped = state.outfit || 'basic';
   display.innerHTML = `
     <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
-      <span style="width:88px; height:88px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:48px; cursor:pointer;" id="outfitBigDisplay" onclick="showOutfitLargeView('${equipped}', '${equipped}')"><img src="/assets/outfits/${equipped}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></span>
+      <span style="width:130px; height:130px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:48px; cursor:pointer;" id="outfitBigDisplay" onclick="showOutfitLargeView('${equipped}', '${equipped}')"><img src="/assets/outfits/${equipped}.png" style="width:100%; height:100%; object-fit:contain;" onerror="this.parentElement.innerHTML='👤';"></span>
       <span style="font-size:9px; color:var(--text-dim); text-transform:capitalize;">${equipped}</span>
     </div>
   `;
@@ -3541,9 +3870,13 @@ function renderOutfitSection() {
   options.innerHTML = '';
   owned.forEach((outfitId) => {
     const btn = document.createElement('button');
-    btn.style.cssText = 'margin-top:4px; margin-right:4px; width:auto; padding:4px 8px; font-size:9px; text-transform:capitalize;';
+    btn.className = 'outfit-opt' + (outfitId === state.outfit ? ' selected' : '');
+    btn.style.cssText = 'margin-top:4px; margin-right:4px; width:auto; padding:5px 10px; font-size:9px; text-transform:capitalize;';
     btn.textContent = outfitId;
-    btn.disabled = outfitId === state.outfit;
+    // Equipped outfit is highlighted, not greyed out — a disabled button
+    // reads as "unavailable", which is the opposite of what's true.
+    btn.disabled = false;
+    if (outfitId === state.outfit) btn.onclick = () => showOutfitLargeView(outfitId, outfitId);
     if (outfitId !== state.outfit) {
       btn.onclick = async () => {
         try {
@@ -3590,10 +3923,11 @@ function renderTeamPicker() {
           <input type="checkbox" class="battle-team-cb" data-id="${d.id}" ${selectedBattleTeam.has(d.id) ? 'checked' : ''}>
           <span style="width:16px; height:16px; border-radius:50%; background:${RARITY_COLOR[d.rarity]}; flex-shrink:0;"></span>
           <span style="flex:1; line-height:1.5;">
-            ${d.speciesName} Lv${d.level}<br>
+            ${d.speciesName} Lv${d.level}${d.variant !== 'standard'
+              ? ` <span class="variant-dot ${d.variant} caught" title="${d.variant}" style="display:inline-block; vertical-align:middle; margin-left:3px;"></span>`
+              : ''}<br>
             <span style="color:var(--text-dim);">HP ${d.currentHp}/${d.hp} · ATK ${d.attack}</span>
           </span>
-          ${d.variant !== 'standard' ? `<span class="variant-dot ${d.variant} caught" title="${d.variant}" style="flex-shrink:0; margin-left:auto;"></span>` : ''}
         </label>`;
       }).join('')}
     </details>
@@ -4024,14 +4358,16 @@ function renderActiveBattle(battle) {
   }
 
   if (myTurn && battle.status === 'active') {
-    el.querySelector('#btnBattleAttack').onclick = async () => {
+    const atkBtn = el.querySelector('#btnBattleAttack');
+    atkBtn.onclick = () => guardedAction('battle-' + battle.id, async () => {
+      atkBtn.disabled = true;
       try {
         await api('POST', `/battles/${battle.id}/attack`, { playerId: state.playerId });
         await refreshWorkshop(); // droid HP changed, refresh state.droids too
         await showActiveBattle(battle.id);
         await refreshBattles();
-      } catch (e) {}
-    };
+      } catch (e) { atkBtn.disabled = false; }
+    });
   }
 }
 
@@ -4107,7 +4443,7 @@ function renderGroupTitanBattle(battle) {
   }
 
   if (myTurn && battle.status === 'active') {
-    el.querySelector('#btnGroupTitanAttack').onclick = async () => {
+    el.querySelector('#btnGroupTitanAttack').onclick = () => guardedAction('group-' + battle.id, async () => {
       try {
         // Apex encounters share this view but have their own endpoint —
         // the two systems are deliberately separate server-side.
@@ -4117,7 +4453,7 @@ function renderGroupTitanBattle(battle) {
         await showActiveBattle(battle.id);
         await refreshBattles();
       } catch (e) {}
-    };
+    });
   }
 }
 
@@ -4230,12 +4566,25 @@ async function renderGuild() {
             ${row.rebootCount ? ` · ♻ RB${row.rebootCount}` : ''}${row.highestMastery ? ` · ★${row.highestMastery}` : ''}
           </div>
         </span>
-        <span class="stat-val">${row.percentComplete}%<br><span style="font-size:8px; color:var(--text-dim);">Lv ${row.playerLevel || 0}</span></span>
+        <span class="stat-val">${(row.caught || 0).toLocaleString()}<br><span style="font-size:8px; color:var(--text-dim);">caught · Lv ${row.playerLevel || 0}</span></span>
       </div>
     `).join('') || '<div class="empty">No members yet</div>';
 
     await refreshGuildChat();
   } catch (e) {}
+}
+
+// Appends one message to the chat log without a refetch.
+function appendGuildMessage(m) {
+  const el = $('guildChat');
+  if (!el) return;
+  if (el.querySelector('.empty')) el.innerHTML = '';
+  const mine = m.playerId === state.playerId;
+  const div = document.createElement('div');
+  div.className = 'gc-msg';
+  div.innerHTML = `<span class="gc-who" style="color:${mine ? 'var(--cyan)' : 'var(--text-dim)'};">${mine ? 'You' : escapeHtml(m.username || 'Someone')}</span> <span class="gc-body">${escapeHtml(m.text)}</span>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
 }
 
 async function refreshGuildChat() {
@@ -4383,6 +4732,11 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('manualCoordsPanel', 'manualcoords');
   applyPanelBackground('adminLogPanel', 'adminlog');
   applyPanelBackground('adminGiftPanel', 'admingift');
+  applyPanelBackground('achievementsPanel', 'achievements');
+  applyPanelBackground('casinoPanel', 'casino');
+  applyPanelBackground('buildFortPanel', 'buildfort');
+  applyPanelBackground('territoryPanel', 'territory');
+  applyPanelBackground('siegePanel', 'siege');
   applyPanelBackground('broodChamberPanel', 'broodchamber', 'astral');
   applyPanelBackground('genesisBaysPanel', 'genesisbays', 'astral');
   applyPanelBackground('broodMergePanel', 'broodmerge', 'astral');
@@ -4747,10 +5101,11 @@ function showDexDetailModal(s) {
   box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
 }
 
-const EVENT_DECK_LABELS = { solar: '☀ Summer Dex', superhero: '🦸 Superhero Dex' }; // maps collection -> display name; add more as new event collections launch
+const EVENT_DECK_LABELS = { solar: '☀ Summer Dex', superhero: '🦸 Superhero Dex', apex: '⬢ Apex Dex' }; // maps collection -> display name; add more as new event collections launch
 const EVENT_DECK_COLORS = {
   solar: { active: 'linear-gradient(90deg,#ff9a3d,#ffcf5c)', activeText: '#3a1e00', border: '#ff9a3d' },
   superhero: { active: '#3d6bff', activeText: '#fff', border: '#3d6bff' },
+  apex: { active: 'linear-gradient(90deg,#ff2d3f,#ff6b76)', activeText: '#fff', border: '#ff2d3f' },
 };
 
 function renderEventDex(entries) {
@@ -5405,6 +5760,24 @@ async function checkGiftInbox() {
   } catch (e) {}
 }
 
+$('btnUseGrowth').onclick = async () => {
+  try {
+    const r = await api('POST', '/player/use-growth', { playerId: state.playerId });
+    showGuildResultPopup(true, `🌱 Growth installed — capture zone +${Math.round((r.zoneMultiplier - 1) * 100)}% for 15 minutes.`);
+    await refreshWorkshop();
+    await refreshPlugins();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not install Growth.'); }
+};
+
+$('btnUseTimeWarp').onclick = async () => {
+  try {
+    const r = await api('POST', '/player/use-time-warp', { playerId: state.playerId });
+    showGuildResultPopup(true, `⏳ Time Warp installed — marker slowed to ${Math.round(r.speedMultiplier * 100)}% for 15 minutes.`);
+    await refreshWorkshop();
+    await refreshPlugins();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not install Time Warp.'); }
+};
+
 $('btnToggleCosmeticSets').onclick = () => toggleCosmeticSets();
 $('btnLoadAdminLog').onclick = loadAdminLog;
 $('btnOpenGift').onclick = openGiftBuilder;
@@ -5418,10 +5791,601 @@ $('btnGiftSelectAll').onclick = () => {
 };
 
 // ============================================================
+// FORTS
+// ============================================================
+
+let nearbyFortsCache = [];
+
+// Called after every scan so the map and the Build button reflect the
+// position that was actually scanned (which may be a coordinate
+// override or a Joy Stick position, not the device GPS).
+async function refreshNearbyForts(lat, lng) {
+  if (!state.playerId || lat == null) return;
+  try {
+    const d = await api('GET', `/forts/nearby?lat=${lat}&lng=${lng}&radius=1500&playerId=${state.playerId}`);
+    nearbyFortsCache = d.forts || [];
+    renderNearbyForts();
+    renderFortMarkers();
+  } catch (e) {}
+}
+
+function renderNearbyForts() {
+  const el = $('nearbyFortsList');
+  if (!el) return;
+  el.innerHTML = nearbyFortsCache.length
+    ? nearbyFortsCache.map((f) => `
+        <div class="fort-row ${f.isOwn ? '' : 'enemy'}">
+          <span>🏰</span>
+          <span class="fr-name">${escapeHtml(f.name)}<br>
+            <span style="color:var(--text-dim); font-size:8px;">${escapeHtml(f.guildName)} · ${f.activeDroids}/${f.droidSlots} droids · shield ${f.shieldPercent}%</span>
+          </span>
+          <span style="color:var(--text-dim); font-size:9px;">${f.distanceMeters}m</span>
+        </div>`).join('')
+    : '<div style="color:var(--text-dim);">No Forts within 1.5km</div>';
+}
+
+let fortMarkers = [];
+function renderFortMarkers() {
+  if (typeof L === 'undefined' || !locationMap) return;
+  fortMarkers.forEach((m) => { try { locationMap.removeLayer(m); } catch (e) {} });
+  fortMarkers = [];
+  nearbyFortsCache.forEach((f) => {
+    const colour = f.isOwn ? '#2a9d4a' : '#e8615f';
+    const icon = L.divIcon({
+      className: 'fort-map-marker',
+      html: `<div style="font-size:22px; line-height:1; filter:drop-shadow(0 0 4px ${colour});">🏰</div>`,
+      iconSize: [26, 26],
+    });
+    const m = L.marker([f.lat, f.lng], { icon }).addTo(locationMap);
+    m.bindPopup(`<strong>🏰 ${escapeHtml(f.name)}</strong><br>${escapeHtml(f.guildName)}<br>
+      ${f.activeDroids}/${f.droidSlots} droids · shield ${f.shieldPercent}%<br>
+      <span style="color:${f.isOwn ? '#2a9d4a' : '#e8615f'};">${f.isOwn ? 'Your guild' : 'Rival guild'}</span>
+      ${!f.isOwn && f.inRange && !f.underAttack ? `<br><button onclick="initiateSiege(${f.id}, '${escapeHtml(f.name).replace(/'/g, "\\'")}')" style="margin-top:6px; width:auto; padding:5px 9px; font-size:9px; background:#e8615f; border:1px solid #e8615f; color:#fff; border-radius:3px;">⚔️ Initiate Take Over</button>` : ''}
+      ${!f.isOwn && f.underAttack ? '<br><span style="color:var(--amber); font-size:9px;">Already under attack</span>' : ''}
+      ${!f.isOwn && !f.inRange ? '<br><span style="color:var(--text-dim); font-size:9px;">Move within 40m to attack</span>' : ''}`);
+    fortMarkers.push(m);
+  });
+}
+
+// ---- build ----
+async function updateBuildFortButton() {
+  const btn = $('btnBuildFort');
+  const note = $('buildFortNote');
+  if (!btn || !state.playerId) return;
+  try {
+    const t = await api('GET', `/forts/territory/${state.playerId}`);
+    state.territory = t;
+
+    if (!t.hasGuild) {
+      btn.disabled = true;
+      note.textContent = 'You need to be in a guild to build a Fort.';
+      return;
+    }
+    // Building is a real-location action, so the Joy Stick locks it out.
+    if (joystickState && joystickState.active) {
+      btn.disabled = true;
+      note.textContent = '🕹️ Not available while the Joy Stick is running.';
+      return;
+    }
+    if (t.built >= t.maxSelfBuilt) {
+      btn.disabled = true;
+      note.textContent = `Your guild holds the maximum of ${t.maxSelfBuilt} self-built Forts.`;
+      return;
+    }
+    btn.disabled = false;
+    note.textContent = `${t.buildCost.toLocaleString()}✦ or 1 Fort Token${t.fortTokens ? ` (you have ${t.fortTokens})` : ''} · needs ${t.minDroidsOnBuild} droids`;
+  } catch (e) {}
+}
+
+$('btnBuildFort').onclick = async () => {
+  if (!state.playerId) return;
+  if (state.lastLat == null) { showGuildResultPopup(false, 'Run a scan first so the game knows where you are.'); return; }
+  const t = state.territory;
+  if (!t || !t.hasGuild) { showGuildResultPopup(false, 'You need to be in a guild to build a Fort.'); return; }
+
+  let candidates = [];
+  try { candidates = (await api('GET', `/forts/candidates/${state.playerId}`)).droids; } catch (e) { return; }
+  if (candidates.length < t.minDroidsOnBuild) {
+    showGuildResultPopup(false, `You need at least ${t.minDroidsOnBuild} free droids to garrison.\n\nDroids in workshop slots, your companion and your buddy can't be used.`);
+    return;
+  }
+  showFortBuildPicker(candidates, t);
+};
+
+function showFortBuildPicker(candidates, t) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const picked = new Set();
+  const canToken = t.fortTokens > 0;
+
+  const draw = () => {
+    const enough = picked.size >= t.minDroidsOnBuild;
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">🏰 Build a Fort</div>
+      <div class="mb-detail">Pinned to your current position. Garrisoned droids can't farm, battle or merge until withdrawn.</div>
+      <label style="margin-top:10px;">Fort name</label>
+      <input type="text" id="fortNameInput" maxlength="40" placeholder="North Gate">
+      <label style="margin-top:10px;">Garrison — pick at least ${t.minDroidsOnBuild} <span style="color:var(--cyan);">(${picked.size} selected)</span></label>
+      <div style="max-height:190px; overflow-y:auto; text-align:left;">
+        ${candidates.map((d) => `
+          <div class="merge-pick ${picked.has(d.id) ? 'selected' : ''}" data-id="${d.id}">
+            <span class="mp-name">${escapeHtml(d.speciesName)} <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span></span>
+            <span style="color:var(--text-dim); font-size:9px;">Lv ${d.level} · ${d.hp}HP</span>
+          </div>`).join('')}
+      </div>
+      <button id="fortPayCrystals" class="fort-orange" style="margin-top:12px;" ${enough ? '' : 'disabled'}>Build — ${t.buildCost.toLocaleString()}✦</button>
+      ${canToken ? `<button id="fortPayToken" class="fort-orange" style="margin-top:6px;" ${enough ? '' : 'disabled'}>Build — 1 Fort Token</button>` : ''}
+      <button id="fortCancel" class="ghost" style="margin-top:6px;">Cancel</button>`;
+
+    box.querySelectorAll('.merge-pick').forEach((row) => {
+      row.onclick = () => {
+        const id = Number(row.dataset.id);
+        if (picked.has(id)) picked.delete(id);
+        else picked.add(id);
+        const nameVal = box.querySelector('#fortNameInput').value;
+        draw();
+        box.querySelector('#fortNameInput').value = nameVal;
+      };
+    });
+    const go = async (payWith) => {
+      const name = box.querySelector('#fortNameInput').value.trim();
+      try {
+        const r = await api('POST', '/forts/build', {
+          playerId: state.playerId, lat: state.lastLat, lng: state.lastLng,
+          name, payWith, droidIds: [...picked],
+        });
+        overlay.style.display = 'none';
+        showGuildResultPopup(true, `🏰 ${r.fort.name} built! ${r.fort.droidCount} droids garrisoned.`);
+        await refreshWorkshop();
+        await refreshNearbyForts(state.lastLat, state.lastLng);
+        await refreshTerritory();
+        await updateBuildFortButton();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not build that Fort.'); }
+    };
+    const cb = box.querySelector('#fortPayCrystals');
+    if (cb) cb.onclick = () => go('crystals');
+    const tb = box.querySelector('#fortPayToken');
+    if (tb) tb.onclick = () => go('token');
+    box.querySelector('#fortCancel').onclick = () => { overlay.style.display = 'none'; };
+  };
+  draw();
+  overlay.style.display = 'flex';
+}
+
+// ---- territory ----
+async function refreshTerritory() {
+  if (!state.playerId) return;
+  try {
+    const t = await api('GET', `/forts/territory/${state.playerId}`);
+    state.territory = t;
+    const el = $('territoryList');
+    $('territoryCount').textContent = t.hasGuild ? `— ${t.built} built / ${t.captured} captured` : '';
+
+    if (!t.hasGuild) { el.innerHTML = '<div class="empty">Join a guild to hold territory</div>'; return; }
+    if (!t.forts.length) { el.innerHTML = '<div class="empty">No Forts yet — build one from the Override tab</div>'; return; }
+
+    el.innerHTML = t.forts.map((f) => `
+      <div class="fort-card ${f.captured ? 'captured' : 'own'}">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <strong style="font-size:11px; color:#fff;">🏰 ${escapeHtml(f.name)}</strong>
+          <span style="font-size:8px; color:var(--text-dim);">${f.captured ? 'CAPTURED' : 'BUILT'} · Lv ${f.level}</span>
+          <span style="margin-left:auto; font-size:9px; color:var(--text-dim);">${f.activeDroids}/${f.droidSlots}</span>
+        </div>
+        <div style="font-size:9px; color:var(--text-dim); margin-top:3px;">Shield ${f.shieldPercent}% · Token rewards ${f.tokenDaysLeft}d left · ${f.upgradeSlotCount} upgrade slots</div>
+        <div class="fort-bar"><div style="width:${f.shieldPercent}%;"></div></div>
+        <div style="margin-top:6px;">
+          ${f.garrison.map((d) => `<span class="garrison-chip ${d.fainted ? 'fainted' : ''}">${escapeHtml(d.speciesName)} L${d.level}${d.fainted ? ' 💀' : ''}${d.ownerId === state.playerId ? ` <button class="fort-withdraw" data-fort="${f.id}" data-droid="${d.id}" style="width:auto;margin:0;padding:0 3px;font-size:8px;background:none;border:none;color:var(--danger);">✕</button>` : ''}</span>`).join('')
+            || '<span style="font-size:9px; color:var(--text-dim);">No droids garrisoned</span>'}
+        </div>
+        <button class="fort-reinforce ghost" data-fort="${f.id}" style="margin-top:8px; font-size:9px; padding:6px;">Add droids</button>
+      </div>`).join('');
+
+    el.querySelectorAll('.fort-withdraw').forEach((b) => {
+      b.onclick = async (e) => {
+        e.stopPropagation();
+        try {
+          await api('POST', `/forts/${b.dataset.fort}/withdraw`, { playerId: state.playerId, droidId: Number(b.dataset.droid) });
+          await refreshTerritory();
+          await refreshWorkshop();
+        } catch (err) { showGuildResultPopup(false, (err && err.message) || 'Could not withdraw.'); }
+      };
+    });
+    el.querySelectorAll('.fort-reinforce').forEach((b) => {
+      b.onclick = async () => {
+        let candidates = [];
+        try { candidates = (await api('GET', `/forts/candidates/${state.playerId}`)).droids; } catch (e) { return; }
+        if (!candidates.length) { showGuildResultPopup(false, 'You have no free droids to send.'); return; }
+        showFortReinforcePicker(Number(b.dataset.fort), candidates);
+      };
+    });
+  } catch (e) {}
+}
+
+function showFortReinforcePicker(fortId, candidates) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const picked = new Set();
+  const draw = () => {
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">Reinforce Fort</div>
+      <div class="mb-detail">Guild members can send droids from anywhere — you don't need to be at the Fort.</div>
+      <div style="max-height:220px; overflow-y:auto; text-align:left; margin-top:8px;">
+        ${candidates.map((d) => `
+          <div class="merge-pick ${picked.has(d.id) ? 'selected' : ''}" data-id="${d.id}">
+            <span class="mp-name">${escapeHtml(d.speciesName)} <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span></span>
+            <span style="color:var(--text-dim); font-size:9px;">Lv ${d.level} · ${d.hp}HP</span>
+          </div>`).join('')}
+      </div>
+      <button id="fortSend" class="primary" style="margin-top:12px;" ${picked.size ? '' : 'disabled'}>Send ${picked.size || ''} droid${picked.size === 1 ? '' : 's'}</button>
+      <button id="fortCancel2" class="ghost" style="margin-top:6px;">Cancel</button>`;
+    box.querySelectorAll('.merge-pick').forEach((row) => {
+      row.onclick = () => {
+        const id = Number(row.dataset.id);
+        if (picked.has(id)) picked.delete(id); else picked.add(id);
+        draw();
+      };
+    });
+    box.querySelector('#fortSend').onclick = async () => {
+      try {
+        await api('POST', `/forts/${fortId}/assign`, { playerId: state.playerId, droidIds: [...picked] });
+        overlay.style.display = 'none';
+        showGuildResultPopup(true, 'Droids sent to the Fort.');
+        await refreshTerritory();
+        await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not send those droids.'); }
+    };
+    box.querySelector('#fortCancel2').onclick = () => { overlay.style.display = 'none'; };
+  };
+  draw();
+  overlay.style.display = 'flex';
+}
+
+// ============================================================
+// FORT SIEGES
+// ============================================================
+
+async function refreshSieges() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/forts/sieges/${state.playerId}`);
+    state.sieges = d;
+    const all = [...d.attacking.map((s) => ({ ...s, role: 'attacking' })),
+                 ...d.defending.map((s) => ({ ...s, role: 'defending' }))];
+    const el = $('siegeList');
+    if (!all.length) { el.innerHTML = '<div class="empty">No Fort assaults running</div>'; return; }
+    el.innerHTML = all.map(renderSiegeCard).join('');
+    wireSiegeButtons();
+  } catch (e) {}
+}
+
+function renderSiegeCard(s) {
+  const atk = s.role === 'attacking';
+  // The two boxes from the spec: the droid box, and the shield box that
+  // stays LOCKED until the garrison is down.
+  return `
+    <div class="siege-card ${s.role}">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <strong style="font-size:11px; color:#fff;">🏰 ${escapeHtml(s.fortName)}</strong>
+        <span style="font-size:8px; color:${atk ? 'var(--danger)' : '#4cb8e8'};">${atk ? 'YOU ARE ATTACKING' : 'UNDER ATTACK'}</span>
+      </div>
+
+      <div class="battle-box state-${s.droidBoxState}">
+        <div class="bb-head">Garrison
+          <span class="bb-state ${s.droidBoxState}">${s.droidBoxState === 'safe' ? 'DOWN' : 'ATTACK'}</span>
+        </div>
+        ${s.defenders.map((d) => `
+          <div class="def-row ${d.fainted ? 'down' : ''}">
+            <span class="dr-name">${escapeHtml(d.speciesName)} L${d.level}${d.fainted ? ' 💀' : ''}</span>
+            <span class="def-hp"><div style="width:${d.hp ? Math.round((d.currentHp / d.hp) * 100) : 0}%;"></div></span>
+            <span style="width:52px; text-align:right; color:var(--text-dim);">${d.currentHp}/${d.hp}</span>
+            ${!atk && d.fainted ? `<button class="siege-revive" data-fort="${s.fortId}" data-droid="${d.id}" style="width:auto;margin:0;padding:3px 6px;font-size:8px;">Revive ${(s.reviveCost/1000)}k</button>` : ''}
+          </div>`).join('')}
+        ${atk && s.droidBoxState === 'attack' ? (
+          s.sortieInProgress
+            ? (s.sortie.playerId === state.playerId
+                ? `<button class="siege-attack" data-fort="${s.fortId}" style="margin-top:8px; background:var(--danger); border-color:var(--danger); color:#fff; font-weight:700;">ATTACK (turn ${s.sortie.turn})</button>`
+                : `<div style="font-size:9px; color:var(--amber); margin-top:6px;">${escapeHtml(s.sortie.username)} is attacking — wait for their sortie to end</div>`)
+            : `<button class="siege-sortie" data-fort="${s.fortId}" style="margin-top:8px;">Send Attack — ${s.attackCost.toLocaleString()}✦</button>`
+        ) : ''}
+      </div>
+
+      <div class="battle-box state-${s.shieldBoxState}">
+        <div class="bb-head">Fort Shield
+          <span class="bb-state ${s.shieldBoxState}">${s.shieldBoxState === 'locked' ? 'LOCKED' : s.shieldBoxState === 'breached' ? 'BREACHED' : 'ATTACK'}</span>
+        </div>
+        <div style="font-size:9px; color:var(--text-dim);">${s.shield.toLocaleString()} / ${s.maxShield.toLocaleString()} (${s.shieldPercent}%)</div>
+        <div class="fort-bar"><div style="width:${s.shieldPercent}%;"></div></div>
+        ${s.shieldBoxState === 'locked' ? '<div style="font-size:9px; color:var(--text-dim); margin-top:6px;">Defeat every garrison droid to unlock.</div>' : ''}
+        ${atk && s.shieldBoxState === 'attack' ? `<button class="siege-shield" data-fort="${s.fortId}" style="margin-top:8px; background:var(--amber); border-color:var(--amber); color:#201002; font-weight:700;">Strike Shield — ${s.attackCost.toLocaleString()}✦</button>` : ''}
+        ${atk && s.shieldBoxState === 'breached' ? `<button class="siege-capture" data-fort="${s.fortId}" style="margin-top:8px; background:#2a9d4a; border-color:#2a9d4a; color:#fff; font-weight:800;">CLAIM FORT</button>` : ''}
+        ${!atk && s.shieldPercent < 100 ? `<button class="siege-repair" data-fort="${s.fortId}" style="margin-top:8px;">Repair Shield — ${(s.shieldRepairCost/1000)}k✦</button>` : ''}
+      </div>
+
+      ${s.log.length ? `<div style="margin-top:8px;">${s.log.slice(-4).reverse().map((l) => `
+        <div style="font-size:8px; color:var(--text-dim); padding:1px 0;">
+          ${l.revived ? '🛠️ A defender was revived — shield locked again'
+            : l.shieldDamage ? `💥 Shield -${l.shieldDamage.toLocaleString()}${l.upgradeDestroyed ? ` · ${l.upgradeDestroyed} destroyed` : ''}${l.breached ? ' · BREACHED' : ''}`
+            : `${escapeHtml(l.attackerName || '')} hit ${escapeHtml(l.defenderName || '')} for ${l.damage}${l.defenderDown ? ' 💀' : ''}${l.counterDamage ? ` (countered ${l.counterDamage})` : ''}`}
+        </div>`).join('')}</div>` : ''}
+    </div>`;
+}
+
+function wireSiegeButtons() {
+  const el = $('siegeList');
+  const needTeam = () => {
+    if (!selectedBattleTeam || selectedBattleTeam.size !== 4) {
+      showGuildResultPopup(false, 'Pick a battle team of 4 droids on the Battles tab first.');
+      return null;
+    }
+    return [...selectedBattleTeam];
+  };
+
+  el.querySelectorAll('.siege-sortie').forEach((b) => {
+    b.onclick = () => guardedAction('sortie-' + b.dataset.fort, async () => {
+      const team = needTeam(); if (!team) return;
+      try { await api('POST', `/forts/${b.dataset.fort}/sortie`, { playerId: state.playerId, teamDroidIds: team }); await refreshSieges(); await refreshWorkshop(); }
+      catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not start that attack.'); }
+    });
+  });
+  el.querySelectorAll('.siege-attack').forEach((b) => {
+    b.onclick = () => guardedAction('siegeatk-' + b.dataset.fort, async () => {
+      try { await api('POST', `/forts/${b.dataset.fort}/attack`, { playerId: state.playerId }); await refreshSieges(); await refreshWorkshop(); }
+      catch (e) { showGuildResultPopup(false, (e && e.message) || 'Attack failed.'); }
+    });
+  });
+  el.querySelectorAll('.siege-shield').forEach((b) => {
+    b.onclick = () => guardedAction('shield-' + b.dataset.fort, async () => {
+      const team = needTeam(); if (!team) return;
+      try {
+        const r = await api('POST', `/forts/${b.dataset.fort}/shield-attack`, { playerId: state.playerId, teamDroidIds: team });
+        if (r.lastAction && r.lastAction.upgradeDestroyed) showGuildResultPopup(true, `💥 Destroyed a Fort upgrade: ${r.lastAction.upgradeDestroyed}`);
+        await refreshSieges(); await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Shield strike failed.'); }
+    });
+  });
+  el.querySelectorAll('.siege-revive').forEach((b) => {
+    b.onclick = async () => {
+      if (!confirm(`Revive this defender? It costs crystals and will lock the shield again.`)) return;
+      try { await api('POST', `/forts/${b.dataset.fort}/revive`, { playerId: state.playerId, droidId: Number(b.dataset.droid) }); await refreshSieges(); await refreshWorkshop(); }
+      catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not revive.'); }
+    };
+  });
+  el.querySelectorAll('.siege-repair').forEach((b) => {
+    b.onclick = async () => {
+      if (!confirm('Repair the Fort shield to full? Any guild member can pay.')) return;
+      try { await api('POST', `/forts/${b.dataset.fort}/repair-shield`, { playerId: state.playerId }); await refreshSieges(); await refreshWorkshop(); }
+      catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not repair.'); }
+    };
+  });
+  el.querySelectorAll('.siege-capture').forEach((b) => {
+    b.onclick = async () => {
+      if (state.lastLat == null) { showGuildResultPopup(false, 'Scan first — you must be at the Fort to claim it.'); return; }
+      let candidates = [];
+      try { candidates = (await api('GET', `/forts/candidates/${state.playerId}`)).droids; } catch (e) { return; }
+      if (!candidates.length) { showGuildResultPopup(false, 'You need at least one free droid to hold the Fort.'); return; }
+      showCapturePicker(Number(b.dataset.fort), candidates);
+    };
+  });
+}
+
+function showCapturePicker(fortId, candidates) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const picked = new Set();
+  const draw = () => {
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">🏰 Claim the Fort</div>
+      <div class="mb-detail">You must be within 40m. Each droid costs 1,000✦ to install.</div>
+      <div style="max-height:200px; overflow-y:auto; text-align:left; margin-top:8px;">
+        ${candidates.map((d) => `
+          <div class="merge-pick ${picked.has(d.id) ? 'selected' : ''}" data-id="${d.id}">
+            <span class="mp-name">${escapeHtml(d.speciesName)}</span>
+            <span style="color:var(--text-dim); font-size:9px;">Lv ${d.level}</span>
+          </div>`).join('')}
+      </div>
+      <button id="capGo" class="primary" style="margin-top:12px;" ${picked.size ? '' : 'disabled'}>Claim with ${picked.size} droid${picked.size === 1 ? '' : 's'} — ${(picked.size * 1000).toLocaleString()}✦</button>
+      <button id="capCancel" class="ghost" style="margin-top:6px;">Cancel</button>`;
+    box.querySelectorAll('.merge-pick').forEach((r) => {
+      r.onclick = () => { const id = Number(r.dataset.id); if (picked.has(id)) picked.delete(id); else picked.add(id); draw(); };
+    });
+    box.querySelector('#capGo').onclick = async () => {
+      try {
+        const r = await api('POST', `/forts/${fortId}/capture`, {
+          playerId: state.playerId, droidIds: [...picked], lat: state.lastLat, lng: state.lastLng,
+        });
+        overlay.style.display = 'none';
+        showGuildResultPopup(true, `🏰 ${r.fort.name} is yours! Level reset to 1 with the take-over upgrade slot unlocked.`);
+        await refreshSieges(); await refreshTerritory(); await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not claim that Fort.'); }
+    };
+    box.querySelector('#capCancel').onclick = () => { overlay.style.display = 'none'; };
+  };
+  draw();
+  overlay.style.display = 'flex';
+}
+
+// Initiating happens from the map, where the Fort marker is. Leaflet
+// popups render outside the script scope, so this has to be reachable
+// from an inline onclick — hence the explicit window assignment below.
+async function initiateSiege(fortId, fortName) {
+  if (!selectedBattleTeam || selectedBattleTeam.size !== 4) {
+    showGuildResultPopup(false, 'Pick a battle team of 4 droids on the Battles tab first.');
+    return;
+  }
+  if (!confirm(`Start an assault on ${fortName}?\n\nCosts 500 crystals, then 1,000 per attack.\nThe defending guild will be notified immediately.`)) return;
+  try {
+    await api('POST', `/forts/${fortId}/initiate`, {
+      playerId: state.playerId, teamDroidIds: [...selectedBattleTeam],
+      lat: state.lastLat, lng: state.lastLng,
+    });
+    showGuildResultPopup(true, '⚔️ Assault started — continue from the Guild tab.');
+    await refreshSieges();
+    await refreshWorkshop();
+    switchTab('guilds');
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not start that assault.'); }
+}
+
+window.initiateSiege = initiateSiege;
+
+// ============================================================
+// CASINO — The Spark Lounge
+// ============================================================
+
+async function refreshCasino() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/casino/${state.playerId}`);
+    state.casino = d;
+    const btn = $('btnDailySpin');
+    if (d.available) {
+      btn.disabled = false;
+      btn.textContent = 'Spin';
+      $('dailySpinStatus').textContent = 'Your free spin is ready.';
+    } else {
+      btn.disabled = true;
+      const h = Math.floor(d.msRemaining / 3600000);
+      const m = Math.floor((d.msRemaining % 3600000) / 60000);
+      btn.textContent = 'Spun today';
+      $('dailySpinStatus').textContent = `Next free spin in ${h}h ${m}m.`;
+    }
+  } catch (e) {}
+}
+
+$('btnDailySpin').onclick = () => guardedAction('spin', async () => {
+  try {
+    const r = await api('POST', '/casino/spin', { playerId: state.playerId });
+    const extras = Object.entries(r.materials || {}).map(([k, v]) => `${v} ${k}`).join(', ');
+    showGuildResultPopup(true, `🎡 ${r.prize}!${extras ? `\n(${extras})` : ''}`);
+    await refreshCasino();
+    await refreshWorkshop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not spin.'); }
+});
+
+document.querySelectorAll('.rl-bet').forEach((b) => {
+  b.onclick = () => guardedAction('roulette', async () => {
+    const amount = Math.floor(Number($('rouletteBet').value) || 0);
+    const betType = b.dataset.type;
+    const betValue = betType === 'number' ? Number($('rouletteNumber').value) : null;
+    if (betType === 'number' && (betValue === null || Number.isNaN(betValue))) {
+      showGuildResultPopup(false, 'Pick a number from 0 to 36 first.');
+      return;
+    }
+    try {
+      const r = await api('POST', '/casino/roulette', { playerId: state.playerId, betType, betValue, amount });
+      const colourDot = r.colour === 'red' ? '🔴' : r.colour === 'black' ? '⚫' : '🟢';
+      $('rouletteResult').innerHTML = `${colourDot} <strong>${r.result}</strong> — `
+        + (r.won
+            ? `<span class="casino-win">Won ${r.winnings.toLocaleString()}✦ (+${r.net.toLocaleString()})</span>`
+            : `<span class="casino-lose">Lost ${r.bet.toLocaleString()}✦</span>`);
+      await refreshWorkshop();
+    } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Bet failed.'); }
+  });
+});
+
+function renderBlackjack(r) {
+  const el = $('blackjackResult');
+  const playing = r.status === 'playing';
+  el.innerHTML = `
+    <div style="font-size:9px; color:var(--text-dim);">Dealer${r.dealerTotal !== null ? ` — ${r.dealerTotal}` : ''}</div>
+    <div class="bj-cards">${r.dealerCards.join(' ')}</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-top:6px;">You — ${r.playerTotal}</div>
+    <div class="bj-cards">${r.playerCards.join(' ')}</div>
+    ${playing
+      ? `<div style="display:flex; gap:6px; margin-top:8px;">
+           <button id="btnBjHit" style="flex:1; margin-top:0;">Hit</button>
+           <button id="btnBjStand" class="ghost" style="flex:1; margin-top:0;">Stand</button>
+         </div>`
+      : `<div style="margin-top:8px; text-align:center;" class="${r.winnings > r.bet ? 'casino-win' : r.status === 'push' ? '' : 'casino-lose'}">
+           ${{ blackjack: '♠ BLACKJACK!', win: 'You win', push: 'Push — bet returned', lose: 'Dealer wins', bust: 'Bust' }[r.status] || r.status}
+           ${r.net !== 0 ? ` (${r.net > 0 ? '+' : ''}${r.net.toLocaleString()}✦)` : ''}
+         </div>`}`;
+
+  if (playing) {
+    $('btnBjHit').onclick = () => guardedAction('bj', async () => {
+      renderBlackjack(await api('POST', '/casino/blackjack/hit', { playerId: state.playerId }));
+      await refreshWorkshop();
+    });
+    $('btnBjStand').onclick = () => guardedAction('bj', async () => {
+      renderBlackjack(await api('POST', '/casino/blackjack/stand', { playerId: state.playerId }));
+      await refreshWorkshop();
+    });
+  }
+  $('blackjackTable').style.display = playing ? 'none' : 'block';
+}
+
+$('btnBlackjackDeal').onclick = () => guardedAction('bj', async () => {
+  const amount = Math.floor(Number($('blackjackBet').value) || 0);
+  try {
+    renderBlackjack(await api('POST', '/casino/blackjack/deal', { playerId: state.playerId, amount }));
+    await refreshWorkshop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not deal.'); }
+});
+
+// ============================================================
+// ACHIEVEMENTS
+// ============================================================
+
+let achFilter = 'all';
+
+async function refreshAchievements() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/achievements/${state.playerId}`);
+    state.achievements = d;
+
+    $('achSummary').textContent = `${d.earnedTiers}/${d.totalTiers} tiers · ${d.completedCount}/${d.totalCount} completed`;
+
+    const FILTERS = [
+      { key: 'all', label: 'All' },
+      { key: 'inprogress', label: 'In Progress' },
+      { key: 'earned', label: 'Earned' },
+      { key: 'complete', label: 'Completed' },
+      { key: 'locked', label: 'Not Started' },
+    ];
+    $('achFilterBar').innerHTML = FILTERS.map((f) =>
+      `<button class="ach-filter ${achFilter === f.key ? 'active' : ''}" data-key="${f.key}">${f.label}</button>`
+    ).join('');
+    $('achFilterBar').querySelectorAll('.ach-filter').forEach((b) => {
+      b.onclick = () => { achFilter = b.dataset.key; refreshAchievements(); };
+    });
+
+    const rows = d.achievements.filter((a) => {
+      if (achFilter === 'earned') return a.tier >= 0;
+      if (achFilter === 'complete') return a.tier === 3;
+      if (achFilter === 'locked') return a.tier < 0 && a.value === 0;
+      if (achFilter === 'inprogress') return a.tier < 3 && a.value > 0;
+      return true;
+    });
+
+    $('achList').innerHTML = rows.length ? rows.map((a) => {
+      const tierClass = a.tierName || '';
+      const target = a.nextThreshold;
+      return `<div class="ach-row ${a.pending ? 'pending' : ''}">
+        <img class="ach-icon ${tierClass}" src="/assets/achievements/${a.icon}" onerror="this.style.visibility='hidden';">
+        <div class="ach-body">
+          <div class="ach-name">${a.name}
+            ${a.tierName ? `<span class="ach-tier-tag ${a.tierName}">${a.tierName}</span>` : ''}
+            ${a.pending ? '<span style="font-size:8px; color:var(--amber);">COMING SOON</span>' : ''}
+          </div>
+          <div class="ach-desc">${a.description}</div>
+          <div class="ach-bar"><div class="ach-fill ${a.tier === 3 ? 'gem' : ''}" style="width:${a.percentToNext}%;"></div></div>
+          <div class="ach-meta">
+            <span>${target ? `${a.value.toLocaleString()} / ${target.toLocaleString()}` : `${a.value.toLocaleString()} — complete`}</span>
+            <span>${a.earnedBuff ? `+${(a.earnedBuff * 100).toFixed(1)}% ${a.buffType.replace(/([A-Z])/g, ' $1')}` : `+${(a.buffPercent * 100).toFixed(1)}% per tier`}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty">Nothing here yet</div>';
+  } catch (e) {}
+}
+
+// ============================================================
 // BROOD CHAMBER
 // ============================================================
 
 let broodSelection = new Set();
+let broodFilter = 'all';
+let broodSearch = '';
 
 function broodMs(ms) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -5451,6 +6415,8 @@ async function refreshBrood() {
     state.brood = d;
 
     $('broodMergeCost').textContent = d.mergeCost.toLocaleString();
+    const warn = $('broodAutoReleaseWarn');
+    if (warn) warn.style.display = state.autoReleaseDuplicates ? 'block' : 'none';
     $('broodBayCount').textContent = `— ${d.bayCount}/${d.maxBays} owned`;
 
     $('broodKeeperSlot').innerHTML = d.keeper.unlocked
@@ -5501,19 +6467,42 @@ function renderBroodPicker() {
   if (!el) return;
   // Only offer droids that are actually mergeable — hiding the ones the
   // server would reject saves a round trip and an error popup.
-  const eligible = (state.droids || []).filter((d) =>
+  let eligible = (state.droids || []).filter((d) =>
     !d.workshopSlotId && d.rarity !== 'apex' && d.id !== state.buddyDroidId
   );
+  // The merge list can run to hundreds of droids, so it needs the same
+  // filtering the Dex has. Filter state lives outside this function so
+  // it survives re-renders after each selection.
+  if (broodFilter !== 'all') eligible = eligible.filter((d) => d.rarity === broodFilter);
+  if (broodSearch) {
+    const q = broodSearch.toLowerCase();
+    eligible = eligible.filter((d) => d.speciesName.toLowerCase().includes(q));
+  }
+  const all = (state.droids || []).filter((d) => !d.workshopSlotId && d.rarity !== 'apex' && d.id !== state.buddyDroidId);
+  const counts = {};
+  all.forEach((d) => { counts[d.rarity] = (counts[d.rarity] || 0) + 1; });
+  const filterBar = `
+    <div style="display:flex; gap:6px; margin-bottom:6px;">
+      <input type="text" id="broodSearch" placeholder="Search…" value="${broodSearch}" style="flex:1; margin-top:0; font-size:9px; padding:6px;">
+    </div>
+    <div class="dex-filter-bar">
+      ${['all', 'common', 'uncommon', 'rare', 'legendary', 'cosmic', 'galactic']
+        .filter((k) => k === 'all' || counts[k])
+        .map((k) => `<button class="dex-filter ${broodFilter === k ? 'active' : ''}" data-key="${k}">${k} <span style="opacity:0.6;">${k === 'all' ? all.length : counts[k]}</span></button>`).join('')}
+    </div>`;
+
   if (!eligible.length) {
-    el.innerHTML = '<div class="empty">No mergeable droids — unassign one from a workshop slot first</div>';
+    el.innerHTML = filterBar + '<div class="empty">No droids match — clear the filter, or unassign one from a workshop slot</div>';
+    wireBroodFilters(el);
     return;
   }
-  el.innerHTML = eligible.map((d) => `
+  el.innerHTML = filterBar + eligible.map((d) => `
     <div class="merge-pick ${broodSelection.has(d.id) ? 'selected' : ''}" data-id="${d.id}">
       <span class="mp-name">${d.speciesName} <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span></span>
       <span style="color:var(--text-dim); font-size:9px;">Lv ${d.level}${d.variant !== 'standard' ? ' · ' + d.variant : ''}</span>
     </div>`).join('');
 
+  wireBroodFilters(el);
   el.querySelectorAll('.merge-pick').forEach((row) => {
     row.onclick = () => {
       const id = Number(row.dataset.id);
@@ -5528,6 +6517,23 @@ function renderBroodPicker() {
       renderBroodPicker();
     };
   });
+}
+
+function wireBroodFilters(el) {
+  el.querySelectorAll('.dex-filter').forEach((b) => {
+    b.onclick = () => { broodFilter = b.dataset.key; renderBroodPicker(); };
+  });
+  const search = el.querySelector('#broodSearch');
+  if (search) {
+    search.oninput = () => {
+      broodSearch = search.value;
+      renderBroodPicker();
+      // Re-rendering replaces the input, so focus has to be restored or
+      // typing a second character is impossible.
+      const again = $('broodSearch');
+      if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); }
+    };
+  }
 }
 
 $('btnBuyBay').onclick = async () => {
@@ -5585,6 +6591,30 @@ function openLiveStream() {
     showGuildResultPopup(false, 'Your live challenge was declined.');
   });
   liveStream.addEventListener('live:expired', () => refreshLivePvp());
+
+  // Guild chat arrives over the same stream — appended in place rather
+  // than re-fetching, so it lands instantly and doesn't clear the input.
+  ['fort:attacked', 'fort:garrison-down', 'fort:breached', 'fort:repelled', 'fort:revived', 'fort:lost'].forEach((ev) => {
+    liveStream.addEventListener(ev, (e) => {
+      const d = JSON.parse(e.data);
+      const msg = {
+        'fort:attacked': `⚔️ ${d.fortName} is under attack!`,
+        'fort:garrison-down': `💀 ${d.fortName}'s garrison has fallen — the shield is exposed`,
+        'fort:breached': `🚨 ${d.fortName}'s shield is down!`,
+        'fort:repelled': `🛡️ An attack on ${d.fortName} was repelled`,
+        'fort:revived': `🛠️ A defender at ${d.fortName} was revived`,
+        'fort:lost': `🏳️ ${d.fortName} has been captured`,
+      }[ev];
+      showGuildResultPopup(ev === 'fort:repelled', msg);
+      refreshSieges();
+    });
+  });
+
+  liveStream.addEventListener('guild:chat', (e) => {
+    const d = JSON.parse(e.data);
+    if (!state.guildId || state.guildId !== d.guildId) return;
+    appendGuildMessage(d.message);
+  });
   liveStream.addEventListener('live:start', (e) => {
     liveState = JSON.parse(e.data);
     renderLiveBattle();
@@ -5824,6 +6854,89 @@ function startLiveTurnTicker() {
 // v0.4 UI — levels, re-boot, buffs, cosmetics, attachments
 // ============================================================
 
+// Version is read from the server so it can never drift from
+// package.json again — it was previously a hardcoded string that nobody
+// remembered to bump.
+async function loadAppVersion() {
+  const el = $('appVersion');
+  if (!el) return;
+  try {
+    const d = await api('GET', '/version');
+    el.textContent = 'v' + d.version;
+  } catch (e) { el.textContent = ''; }
+}
+
+// ---- Control Pad plug-ins ----
+// ---- material info popup ----
+// "Where do I get this?" — the single most common beta question.
+let materialInfoCache = null;
+
+async function showMaterialInfo(key) {
+  if (!materialInfoCache) {
+    try { materialInfoCache = (await api('GET', '/materials/info')).info; }
+    catch (e) { return; }
+  }
+  const m = materialInfoCache[key];
+  if (!m) return;
+  const owned = (state[key] != null ? state[key] : 0);
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">${m.icon}</div>
+    <div class="mb-title" style="color:#fff;">${m.name}</div>
+    <div class="mb-detail">You have <strong style="color:var(--cyan);">${owned}</strong></div>
+    <div style="text-align:left; margin-top:12px; font-size:10px;">
+      <div style="font-size:8px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:4px;">Where to find it</div>
+      ${m.sources.map((src) => `<div style="color:#fff; padding:2px 0;">• ${src}</div>`).join('')}
+      <div style="font-size:8px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:10px 0 4px;">What it's for</div>
+      <div style="color:var(--text-dim);">${m.use}</div>
+    </div>
+    <button id="matInfoClose" class="ghost" style="margin-top:14px;">Close</button>`;
+  overlay.style.display = 'flex';
+  box.querySelector('#matInfoClose').onclick = () => { overlay.style.display = 'none'; };
+}
+
+function wireMaterialRows() {
+  document.querySelectorAll('.mat-row').forEach((row) => {
+    row.style.cursor = 'pointer';
+    row.onclick = () => showMaterialInfo(row.dataset.mat);
+  });
+}
+
+async function refreshPlugins() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/plugins/${state.playerId}`);
+    state.plugins = d;
+    const growthBtn = $('btnUseGrowth');
+    const twBtn = $('btnUseTimeWarp');
+    if (!growthBtn) return;
+
+    const owned = { growths: state.growths || 0, timeWarps: state.timeWarps || 0 };
+    $('growthSub').textContent = d.growth
+      ? mmss(d.growthEndsAt - Date.now()) + ' left'
+      : `${owned.growths} owned`;
+    $('timeWarpSub').textContent = d.timeWarp
+      ? mmss(d.timeWarpEndsAt - Date.now()) + ' left'
+      : `${owned.timeWarps} owned`;
+
+    growthBtn.classList.toggle('active', d.growth);
+    twBtn.classList.toggle('active', d.timeWarp);
+    growthBtn.disabled = d.growth || owned.growths < 1;
+    twBtn.disabled = d.timeWarp || owned.timeWarps < 1;
+
+    const bits = [];
+    if (d.growth) bits.push(`Growth active — capture zone +${Math.round((d.zoneMultiplier - 1) * 100)}%`);
+    if (d.timeWarp) bits.push(`Time Warp active — marker at ${Math.round(d.speedMultiplier * 100)}% speed`);
+    $('pluginStatus').textContent = bits.join(' · ');
+  } catch (e) {}
+}
+
+function mmss(ms) {
+  const t = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+}
+
 async function refreshLevels() {
   if (!state.playerId) return;
   try {
@@ -5837,13 +6950,9 @@ async function refreshLevels() {
 
     // Milestone badges. Art is optional — a numbered circle shows until
     // assets/levels/lv0NN.png exists.
-    $('plBadges').innerHTML = [5, 10, 15, 20].map((lv) => {
-      const earned = (d.unlockedLevelBadges || []).includes(lv);
-      const file = 'lv' + String(lv).padStart(3, '0') + '.png';
-      return `<div class="level-badge ${earned ? 'earned' : ''}" title="Level ${lv}">
-        <img src="/assets/levels/${file}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.replaceWith(document.createTextNode('${lv}'));">
-      </div>`;
-    }).join('');
+    // Badge tray is rendered separately from /badges so it shows the
+    // FULL ladder greyed out, not just the four milestones.
+    renderBadgeTray();
 
     $('plNextReward').textContent = d.nextRewardLevel
       ? `Next reward at Level ${d.nextRewardLevel}`
@@ -5896,22 +7005,79 @@ async function confirmReboot() {
   }
 }
 
+let badgeFilter = 'level';
+
+async function renderBadgeTray() {
+  const el = $('plBadges');
+  if (!el || !state.playerId) return;
+  try {
+    const d = await api('GET', `/badges/${state.playerId}`);
+    state.badges = d;
+    const groups = [
+      { key: 'level', label: 'Levels' },
+      { key: 'reboot', label: 'Re-Boots' },
+      { key: 'achievement', label: 'Achievements' },
+    ];
+    const rows = d.badges.filter((b) => b.type === badgeFilter);
+    const earnedCount = d.badges.filter((b) => b.type === badgeFilter && b.earned).length;
+
+    el.innerHTML = `
+      <div class="badge-tabs">
+        ${groups.map((g) => `<button class="badge-tab ${badgeFilter === g.key ? 'active' : ''}" data-key="${g.key}">${g.label}</button>`).join('')}
+      </div>
+      <div style="font-size:9px; color:var(--text-dim); margin:4px 0;">${earnedCount}/${rows.length} unlocked — tap an unlocked badge to use it as your player icon</div>
+      <div class="badge-grid">
+        ${rows.map((b) => `
+          <div class="badge-cell ${b.earned ? 'earned' : 'locked'} ${d.selectedBadgeId === b.id ? 'selected' : ''}"
+               data-id="${b.id}" data-earned="${b.earned}" title="${b.label} — ${b.requirement}">
+            <img src="/assets/${b.folder}/${b.icon}" onerror="this.style.visibility='hidden';">
+            <div class="badge-cap">${b.label.replace('Level ', 'L').replace('Re-Boot ', 'RB')}</div>
+          </div>`).join('')}
+      </div>`;
+
+    el.querySelectorAll('.badge-tab').forEach((t) => {
+      t.onclick = () => { badgeFilter = t.dataset.key; renderBadgeTray(); };
+    });
+    el.querySelectorAll('.badge-cell').forEach((c) => {
+      c.onclick = async () => {
+        if (c.dataset.earned !== 'true') {
+          const b = d.badges.find((x) => x.id === c.dataset.id);
+          showGuildResultPopup(false, `${b.label} is locked.\n\n${b.requirement}`);
+          return;
+        }
+        try {
+          await api('POST', '/badges/select', { playerId: state.playerId, badgeId: c.dataset.id });
+          await renderBadgeTray();
+          showGuildResultPopup(true, 'Player icon updated.');
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not set that badge.'); }
+      };
+    });
+  } catch (e) {}
+}
+
 async function refreshBuffs() {
   if (!state.playerId) return;
   try {
     const d = await api('GET', `/buffs/${state.playerId}`);
+    // Buffs render as icon badges rather than a text table.
+    const BUFF_ICON = {
+      hp: '❤️', attack: '⚔️', catchRate: '🎯', crystalRate: '💎',
+      materialReward: '📦', variantOdds: '✨', minigameOdds: '🎮',
+      evolutionCost: '🧬', shopCost: '🏷️', hatchSpeed: '🥚',
+    };
     const rows = Object.entries(d.totals)
       .filter(([, v]) => v !== 1)
       .map(([k, v]) => {
         const pct = Math.round((v - 1) * 1000) / 10;
         const capped = d.capped[k];
-        return `<div class="stat-row">
-          <span class="stat-label">${k.replace(/([A-Z])/g, ' $1')}</span>
-          <span class="stat-val" style="color:${capped ? 'var(--amber)' : 'var(--cyan)'};">${pct > 0 ? '+' : ''}${pct}%${capped ? ' (max)' : ''}</span>
+        return `<div class="buff-badge ${capped ? 'capped' : ''}" title="${k.replace(/([A-Z])/g, ' $1')}${capped ? ' (at maximum)' : ''}">
+          <span class="bb-icon">${BUFF_ICON[k] || '⭐'}</span>
+          <span class="bb-val">${pct > 0 ? '+' : ''}${pct}%</span>
         </div>`;
       });
     $('buffsBody').innerHTML = rows.length
-      ? rows.join('') + `<div style="font-size:9px; color:var(--text-dim); margin-top:6px;">From: ${Object.keys(d.perSource).join(', ') || 'nothing yet'}</div>`
+      ? `<div class="buff-badge-row">${rows.join('')}</div>`
+        + `<div style="font-size:8px; color:var(--text-dim); margin-top:6px;">From: ${Object.keys(d.perSource).join(', ') || 'nothing yet'}</div>`
       : '<div class="empty">No buffs yet</div>';
   } catch (e) {}
 }
@@ -5986,18 +7152,71 @@ async function refreshCosmeticSets() {
         </div>
       </details>`).join('');
 
+    // Tapping a piece opens a large detail view rather than equipping
+    // straight away — the art is the point, and a locked piece needs to
+    // explain how to get it.
     $('cosSetList').querySelectorAll('.ward-piece').forEach((el) => {
-      el.onclick = async () => {
-        if (el.dataset.locked === 'true') { showGuildResultPopup(false, `Needs ${d.requiredRebootsForGalactic} Re-Boots to equip.`); return; }
-        if (el.dataset.owned !== 'true') { showGuildResultPopup(false, "You don't own that piece yet."); return; }
-        try {
-          await api('POST', '/cosmetics2/equip', { playerId: state.playerId, pieceId: el.dataset.id });
-          await refreshCosmeticSets();
-          refreshBuffs();
-        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not equip that.'); }
+      el.onclick = () => {
+        const piece = allPieces.find((pp) => pp.id === el.dataset.id);
+        const set = d.sets.find((st) => st.id === piece.setId);
+        showCosmeticDetail(piece, set, d);
       };
     });
   } catch (e) {}
+}
+
+function showCosmeticDetail(piece, set, summary) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const locked = set.locked;
+  const owned = piece.owned;
+  const statLabel = piece.buffType === 'hp' ? 'HP' : 'Attack';
+
+  // Where to get it — depends entirely on why it isn't available.
+  let howTo = '';
+  if (!owned) {
+    howTo = set.rarity === 'galactic'
+      ? `Drops from the Depot, but very rarely. Galactic pieces also need ${summary.requiredRebootsForGalactic} Re-Boots before they can be worn.`
+      : `Drops from the Depot. ${set.rarity.charAt(0).toUpperCase() + set.rarity.slice(1)} pieces appear ${
+          { common: 'often', uncommon: 'fairly often', rare: 'occasionally', legendary: 'rarely' }[set.rarity] || 'sometimes'
+        }.`;
+  } else if (locked) {
+    howTo = `You own this, but Galactic sets need ${summary.requiredRebootsForGalactic} Re-Boots to equip. You have ${summary.rebootCount}.`;
+  }
+
+  box.innerHTML = `
+    <div style="width:min(70vw,240px); height:min(70vw,240px); margin:0 auto 10px; display:flex; align-items:center; justify-content:center;">
+      <img src="/assets/cosmetics/${piece.icon}"
+           style="width:100%; height:100%; object-fit:contain; ${owned && !locked ? '' : 'filter:grayscale(1); opacity:0.4;'}"
+           onerror="this.parentElement.innerHTML='<div style=\'font-size:70px;opacity:0.3;\'>👕</div>';">
+    </div>
+    <div class="mb-title" style="color:#fff;">${piece.name}</div>
+    <div class="mb-detail">
+      <span class="spawn-rarity ${set.rarity}">${set.rarity}</span> · ${set.name} set · ${piece.slot}
+    </div>
+    <div class="mb-detail" style="color:var(--cyan); font-weight:700;">+${Math.round(piece.percent * 100)}% ${statLabel}</div>
+    <div class="mb-detail" style="font-size:9px;">Wear all 4 pieces of this set for a further +${summary.setBonusPercent}% to both.</div>
+    ${howTo ? `<div style="margin-top:10px; padding:8px; border:1px dashed var(--line); border-radius:4px; font-size:9px; color:var(--text-dim);">${howTo}</div>` : ''}
+    ${owned && !locked && !piece.equipped ? '<button id="cosDetailEquip" class="primary" style="margin-top:12px;">Equip</button>' : ''}
+    ${piece.equipped ? '<button id="cosDetailUnequip" style="margin-top:12px; color:var(--danger); border-color:var(--danger);">Remove</button>' : ''}
+    <button id="cosDetailClose" class="ghost" style="margin-top:6px;">Close</button>`;
+  overlay.style.display = 'flex';
+
+  const eq = box.querySelector('#cosDetailEquip');
+  if (eq) eq.onclick = async () => {
+    try {
+      await api('POST', '/cosmetics2/equip', { playerId: state.playerId, pieceId: piece.id });
+      overlay.style.display = 'none';
+      await refreshCosmeticSets();
+      refreshBuffs();
+    } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not equip that.'); }
+  };
+  const un = box.querySelector('#cosDetailUnequip');
+  if (un) un.onclick = async () => {
+    overlay.style.display = 'none';
+    await unequipCosmetic(piece.slot);
+  };
+  box.querySelector('#cosDetailClose').onclick = () => { overlay.style.display = 'none'; };
 }
 
 async function unequipCosmetic(slot) {
@@ -6543,17 +7762,34 @@ $('btnPlayFactory').onclick = async () => {
   const result = await playCircleMinigame();
   try {
     const data = await api('POST', '/factory/attempt', { playerId: state.playerId, hit: result.hit, attemptDurationMs: result.attemptDurationMs });
-    if (data.hit) {
-      log('SYS', 'Egg won! Assign it to a Processor slot to start incubating.');
-    } else {
-      log('SYS', 'Missed — 100 crystals spent, no egg this time.', true);
-    }
+    // The outcome only appeared in the log feed before, which is easy to
+    // miss right after a minigame — it now gets a popup like every other
+    // minigame result.
+    showFactoryResultPopup(data.hit);
     await refreshWorkshop();
     await refreshFactory();
   } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'That attempt failed.');
     await refreshFactory();
   }
 };
+
+function showFactoryResultPopup(hit) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = hit ? `
+    <div class="mb-icon">🥚</div>
+    <div class="mb-title success">Egg won!</div>
+    <div class="mb-detail">Assign it to a Processor slot to start incubating.</div>
+    <button class="primary mb-close">Nice</button>`
+  : `
+    <div class="mb-icon">💨</div>
+    <div class="mb-title" style="color:var(--danger);">Missed</div>
+    <div class="mb-detail">100 crystals spent, no egg this time.</div>
+    <button class="ghost mb-close">Try again</button>`;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+}
 
 function renderEggList() {
   const el = $('eggList');
@@ -6677,7 +7913,6 @@ function showPrototypeResultPopup(droid) {
   const rarityBorderColor = { common: 'var(--common)', uncommon: 'var(--uncommon)', rare: 'var(--rare)', legendary: 'var(--legendary)', cosmic: '#ff9df0' }[droid.rarity] || 'var(--line)';
   box.innerHTML = `
     <div id="prototypeResultIcon" style="width:64px; height:64px; margin:0 auto 8px; border-radius:8px; border:3px solid ${rarityBorderColor}; box-shadow:0 0 10px ${rarityBorderColor}; display:flex; align-items:center; justify-content:center; overflow:hidden;"></div>
-    <div class="mb-icon">🐣</div>
     <div class="mb-title success">Prototype Collected!</div>
     <div class="mb-detail">${droid.speciesName} <span class="spawn-rarity ${droid.rarity}">${droid.rarity}</span></div>
     <div class="mb-detail" style="color:var(--text-dim);">Added to Storage</div>

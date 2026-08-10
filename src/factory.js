@@ -8,6 +8,7 @@
 
 const db = require('./db');
 const levels = require('./levels');
+const ach = require('./achievements');
 
 class FactoryError extends Error {
   constructor(code, message) {
@@ -109,6 +110,7 @@ function collectPrototype(playerId, slotId) {
   }
 
   levels.awardXp(playerId, 'hatch');
+  ach.track(playerId, 'eggsHatched');
 
   const rarity = db.rollPrototypeRarity();
   const candidates = db.eligiblePrototypeSpecies(rarity);

@@ -202,6 +202,7 @@ function merge(playerId, droidIdA, droidIdB) {
     if (d.workshopSlotId) throw new BroodError('IN_WORKSHOP', 'Remove the droid from its workshop slot first');
     if (player.companionDroidId === d.id) throw new BroodError('IS_COMPANION', 'That droid is your active companion');
     if (player.buddyDroidId === d.id) throw new BroodError('IS_BUDDY', 'That droid is your mastery buddy');
+    if (d.fortId) throw new BroodError('IN_FORT', 'That droid is garrisoned in a Fort — withdraw it first');
   });
 
   const speciesA = db.droidSpecies.find((s) => s.id === a.speciesId);

@@ -93,8 +93,39 @@ const DROP_WEIGHT = {
   galactic: 1.5,   // "Hardly ever seen"
 };
 
+// Legacy cosmetics from the original COSMETICS_CATALOG in db.js.
+//
+// Beta Crown predates the set system, and equipping it wrote to the OLD
+// player.cosmetics list, which the new Outfit box never reads — so it
+// vanished. Bringing legacy items in as their own pseudo-set means they
+// occupy a real slot and render like everything else.
+//
+// They carry 0% buff by design ("no effect - just shows you were here
+// for the beta"), so they can't be an accidental power source.
+const LEGACY_SET = { id: 'legacy', name: 'Legacy', prefix: '', rarity: 'legendary', alignment: 'light' };
+const LEGACY_PIECES = [
+  { id: 'beta_crown', name: 'Beta Crown', slot: 'head', icon: 'beta_crown.png', percent: 0 },
+];
+
 function buildCatalog() {
   const out = [];
+  LEGACY_PIECES.forEach((lp) => {
+    out.push({
+      id: lp.id,
+      name: lp.name,
+      setId: LEGACY_SET.id,
+      setName: LEGACY_SET.name,
+      slot: lp.slot,
+      rarity: LEGACY_SET.rarity,
+      alignment: LEGACY_SET.alignment,
+      buffType: SLOT_BUFF[lp.slot],
+      percent: lp.percent,
+      icon: lp.icon,
+      requiresReboots: 0,
+      dropWeight: 0, // never dropped from the Depot — shop/beta only
+      legacy: true,
+    });
+  });
   SETS.forEach((set) => {
     SLOTS.forEach((slot) => {
       const names = PIECE_NAMES[set.id] || {};
@@ -118,6 +149,7 @@ function buildCatalog() {
 }
 
 const COSMETIC_PIECES = buildCatalog();
+const LEGACY_PIECE_IDS = new Set(LEGACY_PIECES.map((p) => p.id));
 
 function pieceById(id) {
   return COSMETIC_PIECES.find((p) => p.id === id) || null;
@@ -130,8 +162,20 @@ class CosmeticError extends Error {
   }
 }
 
+// Ownership lives in TWO places: the new ownedCosmeticPieces list, and
+// the legacy player.cosmetics array that the original shop still writes
+// to. A player who bought the Beta Crown through the old shop route owns
+// it in the legacy list only — which is why it appeared unowned to the
+// new Outfit box. Merging on read means both paths work and no
+// migration step is needed.
 function ownedList(player) {
-  return player.ownedCosmeticPieces || (player.ownedCosmeticPieces = []);
+  if (!player.ownedCosmeticPieces) player.ownedCosmeticPieces = [];
+  (player.cosmetics || []).forEach((id) => {
+    if (pieceById(id) && !player.ownedCosmeticPieces.includes(id)) {
+      player.ownedCosmeticPieces.push(id);
+    }
+  });
+  return player.ownedCosmeticPieces;
 }
 
 function equippedMap(player) {
@@ -221,13 +265,14 @@ function playerBuffSet(player) {
 
 // Weighted random piece, for Depot drops.
 function rollDepotCosmetic() {
-  const total = COSMETIC_PIECES.reduce((a, p) => a + p.dropWeight, 0);
+  const droppable = COSMETIC_PIECES.filter((p) => p.dropWeight > 0);
+  const total = droppable.reduce((a, p) => a + p.dropWeight, 0);
   let roll = Math.random() * total;
-  for (const piece of COSMETIC_PIECES) {
+  for (const piece of droppable) {
     roll -= piece.dropWeight;
     if (roll <= 0) return piece;
   }
-  return COSMETIC_PIECES[COSMETIC_PIECES.length - 1];
+  return droppable[droppable.length - 1];
 }
 
 // Player-aware version of rollDepotCosmetic.
@@ -274,7 +319,7 @@ function summaryFor(playerId) {
     galacticUnlocked: (player.rebootCount || 0) >= REQUIRED_REBOOTS_FOR_GALACTIC,
     requiredRebootsForGalactic: REQUIRED_REBOOTS_FOR_GALACTIC,
     totals: { hpPercent: Math.round(buffSet.hp * 1000) / 10, attackPercent: Math.round(buffSet.attack * 1000) / 10 },
-    sets: SETS.map((set) => {
+    sets: [LEGACY_SET, ...SETS].map((set) => {
       const pieces = COSMETIC_PIECES.filter((p) => p.setId === set.id);
       return {
         ...set,
@@ -294,6 +339,7 @@ function summaryFor(playerId) {
 
 module.exports = {
   COSMETIC_PIECES,
+  LEGACY_PIECE_IDS,
   SETS,
   SLOTS,
   SLOT_BUFF,

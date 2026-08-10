@@ -132,7 +132,10 @@ function awardTitanExtras(player, titanDef, allWinnerIds) {
 // own placeholder number, easy to retune once you've seen it in play.
 const SCAFFITAN_CAPTURE_CHANCE = 0.08;
 const TITAN_ENTRY_FEE = 1000;
-const TITAN_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours, per confirmed spec
+// Titan cooldown removed on request — the entry fee is now the only
+// limiter. Left as a constant at 0 rather than deleted so the guard
+// code stays intact and it can be reinstated with one number.
+const TITAN_COOLDOWN_MS = 0;
 const TITAN_REWARDS = { repairKits: 1, beacons: 1, paint: 5, novaChips: 5 }; // confirmed spec
 
 // No PVP-specific reward was ever specified — only the Titan battle
@@ -190,6 +193,9 @@ function validateTeam(playerId, droidIds) {
   const droids = droidIds.map((id) => {
     const droid = db.ownedDroids.get(id);
     if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
+    // Garrisoned droids are defending a Fort and can't also be on an
+    // attacking team.
+    if (droid.fortId) throw new Error('One of those droids is garrisoned in a Fort — withdraw it first');
     return droid;
   });
   const faintedOnEntry = droids.filter(isFainted);
@@ -494,6 +500,9 @@ function attackGroupTitan(battleId, playerId) {
       const p = db.players.get(pid);
       levels.awardXp(pid, 'battleWin');
       p.battlesWon = (p.battlesWon || 0) + 1;
+      ach.track(pid, 'battlesWon');
+      p.battleWinStreak = (p.battleWinStreak || 0) + 1;
+      ach.track(pid, 'battleWinStreak', p.battleWinStreak, 'max');
       p.paint = (p.paint || 0) + TITAN_REWARDS.paint;
       p.novaChips = (p.novaChips || 0) + TITAN_REWARDS.novaChips;
       p.repairKits = (p.repairKits || 0) + TITAN_REWARDS.repairKits;

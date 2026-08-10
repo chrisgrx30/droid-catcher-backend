@@ -24,6 +24,11 @@ const livepvpModule = require('./livepvp');
 const masteryModule = require('./mastery');
 const adminModule = require('./admin');
 const broodModule = require('./broodchamber');
+const achievementsModule = require('./achievements');
+const casinoModule = require('./casino');
+const forgeModule = require('./forge');
+const fortsModule = require('./forts');
+const fortBattleModule = require('./fortbattle');
 const workshopModule = require('./workshop');
 const battleModule = require('./battle');
 const factoryModule = require('./factory');
@@ -72,6 +77,8 @@ const EXTRA_ASSET_DIRS = {
   levels:       path.join(__dirname, '..', 'assets', 'levels'),
   materials:    path.join(__dirname, '..', 'assets', 'materials'),
   astral:       path.join(__dirname, '..', 'assets', 'astral'),
+  forge:        path.join(__dirname, '..', 'assets', 'forge'),
+  guild:        path.join(__dirname, '..', 'assets', 'guild'),
 };
 const IMAGE_MIME_TYPES = {
   '.png': 'image/png',
@@ -1249,6 +1256,12 @@ const server = http.createServer(async (req, res) => {
       const { playerId, text } = await readBody(req);
       try {
         const message = db.postGuildMessage(playerId, guildId, text);
+        // Push to every guild member with an open stream, so chat is
+        // instant instead of waiting for the next poll.
+        const guild = db.guilds.get(guildId);
+        if (guild) {
+          realtimeModule.toPlayers(guild.memberIds, 'guild:chat', { guildId, message });
+        }
         return sendJson(res, 201, { message });
       } catch (e) {
         return sendJson(res, 409, { error: 'CHAT_ERROR', message: e.message });
@@ -1517,6 +1530,224 @@ const server = http.createServer(async (req, res) => {
       catch (e) { return sendJson(res, 400, { error: 'GIFT_ERROR', message: e.message }); }
     }
 
+    // GET /version -> read straight from package.json so the UI can
+    // never show a stale hardcoded version again.
+    if (req.method === 'GET' && pathname === '/version') {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+        return sendJson(res, 200, { version: pkg.version, name: pkg.name });
+      } catch (e) {
+        return sendJson(res, 200, { version: 'unknown' });
+      }
+    }
+
+    // GET /materials/info -> player-facing "where do I get this?" text
+    if (req.method === 'GET' && pathname === '/materials/info') {
+      return sendJson(res, 200, { info: db.MATERIAL_INFO });
+    }
+
+    // ---- FORTS ----
+    // GET /forts/territory/:playerId -> this guild's Forts
+    if (req.method === 'GET' && pathname.match(/^\/forts\/territory\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[3]);
+      try { return sendJson(res, 200, fortsModule.territoryFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+
+    // GET /forts/nearby?lat=&lng=&radius=&playerId= -> map markers
+    if (req.method === 'GET' && pathname === '/forts/nearby') {
+      const lat = Number(searchParams.get('lat'));
+      const lng = Number(searchParams.get('lng'));
+      const radius = Number(searchParams.get('radius')) || 1000;
+      const playerId = Number(searchParams.get('playerId'));
+      const player = playerId ? db.players.get(playerId) : null;
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return sendJson(res, 400, { error: 'BAD_POSITION', message: 'lat and lng required' });
+      }
+      return sendJson(res, 200, { forts: fortsModule.nearbyForts(lat, lng, radius, player ? player.guildId : null) });
+    }
+
+    // GET /forts/candidates/:playerId -> droids free to garrison
+    if (req.method === 'GET' && pathname.match(/^\/forts\/candidates\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[3]);
+      return sendJson(res, 200, { droids: fortsModule.garrisonCandidates(playerId) });
+    }
+
+    // POST /forts/build { playerId, lat, lng, name, payWith, droidIds }
+    // Build and garrison in ONE call: the spec requires 2 droids on
+    // creation, and splitting it would allow an empty Fort to exist if
+    // the second call failed.
+    if (req.method === 'POST' && pathname === '/forts/build') {
+      const { playerId, lat, lng, name, payWith, droidIds } = await readBody(req);
+      if (!Array.isArray(droidIds) || droidIds.length < fortsModule.MIN_DROIDS_ON_BUILD) {
+        return sendJson(res, 400, { error: 'NEED_DROIDS', message: `You must garrison at least ${fortsModule.MIN_DROIDS_ON_BUILD} droids when building a Fort` });
+      }
+      try {
+        const fort = fortsModule.build(playerId, Number(lat), Number(lng), name, payWith);
+        try {
+          fortsModule.assignDroids(playerId, fort.id, droidIds, true, Number(lat), Number(lng));
+        } catch (assignErr) {
+          // Roll the build back so a failed garrison can't leave an empty
+          // Fort standing and the crystals spent.
+          fortsModule.forts.delete(fort.id);
+          const p = db.players.get(playerId);
+          if (p && payWith === 'token') p.fortTokens += 1;
+          else if (p) p.crystalBalance += fortsModule.BUILD_COST_CRYSTALS;
+          throw assignErr;
+        }
+        return sendJson(res, 201, { fort: fortsModule.fortView(fort, fort.guildId) });
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message });
+      }
+    }
+
+    // POST /forts/:id/assign { playerId, droidIds }  (guildmates, any distance)
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/assign$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, droidIds } = await readBody(req);
+      try {
+        const fort = fortsModule.assignDroids(playerId, fortId, droidIds, false);
+        return sendJson(res, 200, { fort: fortsModule.fortView(fort, fort.guildId) });
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message });
+      }
+    }
+
+    // POST /forts/:id/withdraw { playerId, droidId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/withdraw$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, droidId } = await readBody(req);
+      try {
+        const fort = fortsModule.withdrawDroid(playerId, fortId, droidId);
+        return sendJson(res, 200, { fort: fortsModule.fortView(fort, fort.guildId) });
+      } catch (e) {
+        return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message });
+      }
+    }
+
+    // ---- FORT SIEGES ----
+    // GET /forts/:id/siege?playerId=
+    if (req.method === 'GET' && pathname.match(/^\/forts\/\d+\/siege$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const player = db.players.get(Number(searchParams.get('playerId')));
+      try { return sendJson(res, 200, fortBattleModule.siegeFor(fortId, player ? player.guildId : null)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // GET /forts/sieges/:playerId -> everything this guild is involved in
+    if (req.method === 'GET' && pathname.match(/^\/forts\/sieges\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[3]);
+      return sendJson(res, 200, fortBattleModule.siegesForPlayer(playerId));
+    }
+
+    // POST /forts/:id/initiate { playerId, teamDroidIds, lat, lng }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/initiate$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, teamDroidIds, lat, lng } = await readBody(req);
+      try { return sendJson(res, 200, fortBattleModule.initiate(fortId, playerId, teamDroidIds, Number(lat), Number(lng))); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/sortie { playerId, teamDroidIds }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/sortie$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, teamDroidIds } = await readBody(req);
+      try { return sendJson(res, 200, fortBattleModule.startSortie(fortId, playerId, teamDroidIds)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/attack { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/attack$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, fortBattleModule.attack(fortId, playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/shield-attack { playerId, teamDroidIds }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/shield-attack$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, teamDroidIds } = await readBody(req);
+      try { return sendJson(res, 200, fortBattleModule.attackShield(fortId, playerId, teamDroidIds)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/revive { playerId, droidId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/revive$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, droidId } = await readBody(req);
+      try { return sendJson(res, 200, fortBattleModule.reviveDroid(fortId, playerId, droidId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/repair-shield { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/repair-shield$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, fortBattleModule.repairShield(fortId, playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/capture { playerId, droidIds, lat, lng }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/capture$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, droidIds, lat, lng } = await readBody(req);
+      try { return sendJson(res, 200, fortBattleModule.capture(fortId, playerId, droidIds, Number(lat), Number(lng))); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // ---- THE FORGE (guild minigame) ----
+    if (req.method === 'GET' && pathname.match(/^\/forge\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, forgeModule.summaryFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORGE_ERROR', message: e.message }); }
+    }
+    // POST /forge/attempt { playerId, stages: [a,b,c], totalDurationMs }
+    if (req.method === 'POST' && pathname === '/forge/attempt') {
+      const { playerId, stages, totalDurationMs } = await readBody(req);
+      try { return sendJson(res, 200, forgeModule.attemptForge(playerId, stages, totalDurationMs)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORGE_ERROR', message: e.message }); }
+    }
+
+    // ---- CASINO (The Spark Lounge) ----
+    if (req.method === 'GET' && pathname.match(/^\/casino\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, casinoModule.spinStatus(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/casino/roulette') {
+      const { playerId, betType, betValue, amount } = await readBody(req);
+      try { return sendJson(res, 200, casinoModule.playRoulette(playerId, betType, betValue, amount)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/casino/blackjack/deal') {
+      const { playerId, amount } = await readBody(req);
+      try { return sendJson(res, 200, casinoModule.blackjackDeal(playerId, amount)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/casino/blackjack/hit') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, casinoModule.blackjackHit(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/casino/blackjack/stand') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, casinoModule.blackjackStand(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/casino/spin') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, casinoModule.dailySpin(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+
+    // ---- ACHIEVEMENTS ----
+    if (req.method === 'GET' && pathname.match(/^\/achievements\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, achievementsModule.statusFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: 'ACHIEVEMENT_ERROR', message: e.message }); }
+    }
+
     // ---- BROOD CHAMBER ----
     if (req.method === 'GET' && pathname.match(/^\/brood\/\d+$/)) {
       const playerId = Number(pathname.split('/')[2]);
@@ -1543,6 +1774,20 @@ const server = http.createServer(async (req, res) => {
       const { playerId } = await readBody(req);
       try { return sendJson(res, 200, broodModule.buyBay(playerId)); }
       catch (e) { return sendJson(res, 400, { error: e.code || 'BROOD_ERROR', message: e.message }); }
+    }
+
+    // GET /badges/:playerId -> every badge, earned or not
+    if (req.method === 'GET' && pathname.match(/^\/badges\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, levelsModule.allBadgesFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'BADGE_ERROR', message: e.message }); }
+    }
+
+    // POST /badges/select { playerId, badgeId }
+    if (req.method === 'POST' && pathname === '/badges/select') {
+      const { playerId, badgeId } = await readBody(req);
+      try { return sendJson(res, 200, levelsModule.setPlayerBadge(playerId, badgeId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'BADGE_ERROR', message: e.message }); }
     }
 
     // ---- BUDDY MASTERY ----

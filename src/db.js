@@ -319,36 +319,36 @@ const droidSpecies = [
   // Alignments are split evenly light/dark so Apex works with the
   // existing alignment-based buffs, art tinting and marker colours
   // without any special-casing.
-  { id: id(), name: 'Voltrix',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Chronobot',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Gravitus',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Mutatron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Forgeback',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Orbitron',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Magnetor',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Mirrord',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Synaptix',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Mythron',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Verdant-01',   alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Specter-7',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Jestrix',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Corsair-X',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Frostbyte',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Heliarch',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Scrapjack',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Nurturon',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Assembler-X',  alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Evolux',       alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Reflector',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Null',         alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Lunaris',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Cometron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Omen',         alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Sonatron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Polaris',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Furnace',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Tidal-X',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
-  { id: id(), name: 'Regent',       alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, ...statsFor('apex') },
+  { id: id(), name: 'Voltrix',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Chronobot',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Gravitus',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Mutatron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Forgeback',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Orbitron',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Magnetor',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Mirrord',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Synaptix',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Mythron',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Verdant-01',   alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Specter-7',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Jestrix',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Corsair-X',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Frostbyte',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Heliarch',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Scrapjack',    alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Nurturon',     alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Assembler-X',  alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Evolux',       alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Reflector',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Null',         alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Lunaris',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Cometron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Omen',         alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Sonatron',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Polaris',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Furnace',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Tidal-X',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  { id: id(), name: 'Regent',       alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
 ];
 
 // Leafkin -> Bushy is the first (and template) evolution pair. Keyed by
@@ -632,6 +632,20 @@ function eventTargetKey({ speciesIds = [], collection = null, rarity = null }) {
 const SOLAR_GRANT_WEIGHT_BY_RARITY = { common: 15, uncommon: 6.25, rare: 3, legendary: 0.75 };
 
 function createEvent({ name, mode = 'boost', speciesIds = [], collection = null, rarity = null, spawnWeightMultiplier = 2, grantWeights = null, startTime, endTime, cooldownMs = null }) {
+  // A grant event with no grantWeights grants NOTHING — every species
+  // gets 0 added, so a zero-base-weight collection still never spawns.
+  // The Summer Event button sent speciesIds but no weights, which is why
+  // it appeared to run for 7 days without a single Solar droid.
+  //
+  // Defaulting from SOLAR_GRANT_WEIGHT_BY_RARITY makes any grant event
+  // work out of the box; an explicit grantWeights map still wins.
+  if (mode === 'grant' && !grantWeights && speciesIds.length) {
+    grantWeights = {};
+    speciesIds.forEach((sid) => {
+      const sp = droidSpecies.find((x) => x.id === sid);
+      if (sp) grantWeights[sid] = SOLAR_GRANT_WEIGHT_BY_RARITY[sp.rarity] ?? 1;
+    });
+  }
   const targetKey = eventTargetKey({ speciesIds, collection, rarity });
   const effectiveCooldown = cooldownMs != null ? cooldownMs : EVENT_COOLDOWN_MS;
   const lastLaunch = lastEventLaunchByTarget.get(targetKey);
@@ -839,6 +853,7 @@ const TRADEABLE_MATERIALS = [
   { key: 'titanTokens', name: 'Titan Tokens' },
   { key: 'guildTokens', name: 'Guild Tokens' },
   { key: 'joyCoins', name: 'Joy Coins' },
+  { key: 'fortTokens', name: 'Fort Tokens' },
 ];
 
 // ---- Smuggler's Trade ----
@@ -877,6 +892,32 @@ function smugglerTrade(playerId, itemId) {
     },
   };
 }
+
+
+// ---- where materials come from ----
+// Player-facing "how do I get this?" text. Kept next to
+// TRADEABLE_MATERIALS so a new material can't be added without an
+// obvious place to describe it. Shown when a player taps an item in
+// their Inventory.
+const MATERIAL_INFO = {
+  paint:        { icon: '🎨', name: 'Paint',         sources: ['Random drop when catching a droid', 'Depot visits', 'Titan battle rewards'], use: 'Repaints a Rusty droid into a Funky colour variant.' },
+  novaChips:    { icon: '🔷', name: 'Nova Chips',    sources: ['Random drop when catching a droid', 'Depot visits', 'Releasing droids'], use: 'Used in evolutions and some workshop upgrades.' },
+  beacons:      { icon: '📡', name: 'Beacons',       sources: ['Shop', 'Titan battle rewards'], use: 'Boosts rare spawn rates in your area for 30 minutes. Stacks up to 4.' },
+  augmentCores: { icon: '⚙️', name: 'Augment Cores', sources: ['Depot visits (10% chance)'], use: 'Battle equipment — not yet in use, coming in a future update.' },
+  lightStones:  { icon: '☀️', name: 'Light Stones',  sources: ['Chain drops from Light-aligned droids', "Smuggler's Trade — 100 Lume Cells"], use: 'Evolves Light-side droids.' },
+  darkCrystals: { icon: '🌑', name: 'Dark Crystals', sources: ['Chain drops from Dark-aligned droids', "Smuggler's Trade — 100 Zombie Juice"], use: 'Evolves Dark-side droids.' },
+  padRam:       { icon: '🧠', name: 'Pad RAM',       sources: ['Shop'], use: 'Required to upgrade the Control Pad past certain levels.' },
+  repairKits:   { icon: '🔧', name: 'Repair Kits',   sources: ['Shop', 'Titan and Apex battle rewards'], use: 'Heals a fainted droid so it can battle again.' },
+  timeWarps:    { icon: '⏳', name: 'Time Warps',    sources: ['Shop'], use: 'Control Pad plug-in — slows the capture minigame marker for 15 minutes.' },
+  growths:      { icon: '🌱', name: 'Growths',       sources: ['Shop'], use: 'Control Pad plug-in — widens the capture zone for 15 minutes.' },
+  energyTubes:  { icon: '🔋', name: 'Energy Tubes',  sources: ['Titan battle rewards (2-4 per win)'], use: 'Feeds the Scaffitan mastery chain.' },
+  zombieJuice:  { icon: '🧪', name: 'Zombie Juice',  sources: ['Releasing Void Zombie droids', 'Defeating Voidlord (3-8)'], use: "Evolves the Void Zombie line. 100 trades for a Dark Crystal at the Smuggler." },
+  lumeCells:    { icon: '💡', name: 'Lume Cells',    sources: ['Releasing Lumen Sentinel droids', 'Defeating Luminarch (3-8)'], use: "Evolves the Lumen Sentinel line. 100 trades for a Light Stone at the Smuggler." },
+  apexCubes:    { icon: '⬢', name: 'Apex Cubes',     sources: ['Any Apex capture attempt — win OR lose (1-5)', 'Defeating an Apex in battle', 'Releasing an Apex droid'], use: 'The only way to level an Apex droid. Level 2 costs 10.' },
+  titanTokens:  { icon: '🏆', name: 'Titan Tokens',  sources: ['8% chance on any Titan victory', 'Shop — 1,000,000 crystals'], use: 'Activates the Joy Stick for 10 minutes.' },
+  guildTokens:  { icon: '🛡️', name: 'Guild Tokens',  sources: ['Beating a Titan or Apex alongside a guildmate', 'Shop — 1,000,000 crystals'], use: 'Activates the Joy Stick for 10 minutes.' },
+  joyCoins:     { icon: '🕹️', name: 'Joy Coins',     sources: ['Shop — 1,000,000 crystals'], use: 'Activates the Joy Stick for 10 minutes. Purchase-only.' },
+};
 
 const SHOP_CATALOG = [
   { id: 'paint', name: 'Paint', cost: 150, type: 'material', grants: { paint: 1 } },
@@ -1115,8 +1156,43 @@ const DEPOT_AUGMENT_CORE_CHANCE = 0.10;
 // visiting every hour sees roughly one cosmetic every 12 visits and one
 // attachment every 14. Slow enough that a full 4-piece set is a real
 // chase, fast enough that it happens.
+const MAX_BEACON_STACK = 4;
 const DEPOT_COSMETIC_CHANCE = 0.08;
 const DEPOT_ATTACHMENT_CHANCE = 0.07;
+
+
+// ---- daily activity + lifetime totals ----
+// Called from touchActivity() below on any meaningful action, so daily
+// streak achievements don't need a hook at every call site.
+//
+// Days are UTC calendar days. A player crossing midnight mid-session
+// gets both days counted, which is the generous reading and the one
+// that won't feel unfair.
+function recordDailyActivity(player) {
+  const ach = require('./achievements');
+  const today = new Date().toISOString().slice(0, 10);
+  if (player.lastActiveDay === today) return;
+
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  player.consecutiveActiveDays = player.lastActiveDay === yesterday
+    ? (player.consecutiveActiveDays || 0) + 1
+    : 1;
+  player.lastActiveDay = today;
+  player.uniqueActiveDays = (player.uniqueActiveDays || 0) + 1;
+
+  ach.track(player.id, 'uniqueActiveDays', player.uniqueActiveDays, 'max');
+  ach.track(player.id, 'consecutiveDays', player.consecutiveActiveDays, 'max');
+  ach.track(player.id, 'catchStreakDays', player.consecutiveActiveDays, 'max');
+}
+
+// Lifetime crystal totals for A027 / A028. Derived by walking the
+// transaction log rather than kept as a separate counter, so they can't
+// drift out of sync with the actual ledger.
+function recordCrystalFlow(playerId, amount) {
+  const ach = require('./achievements');
+  if (amount > 0) ach.track(playerId, 'lifetimeCrystalsEarned', amount);
+  else if (amount < 0) ach.track(playerId, 'lifetimeCrystalsSpent', -amount);
+}
 
 function attemptDepot(playerId, closeness, attemptDurationMs) {
   const player = players.get(playerId);
@@ -1178,6 +1254,13 @@ function attemptDepot(playerId, closeness, attemptDurationMs) {
 
   player.depotCooldownUntil = now + DEPOT_COOLDOWN_MS;
 
+  const ach = require('./achievements');
+  ach.track(playerId, 'depotVisits');
+  const rewardCount = (gotPaint ? 1 : 0) + (gotNovaChip ? 1 : 0) + (gotAugmentCore ? 1 : 0)
+    + (cosmeticDrop && !cosmeticDrop.duplicate ? 1 : 0) + (attachmentDrop ? 1 : 0);
+  if (rewardCount) ach.track(playerId, 'depotRewards', rewardCount);
+  ach.track(playerId, 'minigamesCompleted');
+
   return {
     crystalsEarned,
     gotPaint,
@@ -1219,11 +1302,27 @@ function activateBeacon(playerId) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
   const now = Date.now();
-  if (player.beaconActiveUntil && now < player.beaconActiveUntil) throw new Error('A Beacon is already active');
+  // Beacons STACK rather than blocking: each one extends the active
+  // window by another 30 minutes, up to 4 stacked (2 hours total).
+  // Previously a second activation was rejected outright.
   if (player.beacons < 1) throw new Error('No Beacons owned — buy one first');
+  // Confirmed cap: at most 4 beacons can be stacked at once.
+  const activeMs = player.beaconActiveUntil && now < player.beaconActiveUntil
+    ? player.beaconActiveUntil - now
+    : 0;
+  const stacked = Math.ceil(activeMs / BEACON_DURATION_MS);
+  if (stacked >= MAX_BEACON_STACK) {
+    throw new Error(`You already have ${MAX_BEACON_STACK} Beacons stacked (${Math.ceil(activeMs / 60000)} minutes) — that's the maximum`);
+  }
   player.beacons -= 1;
-  player.beaconActiveUntil = now + BEACON_DURATION_MS;
-  return { beacons: player.beacons, beaconActiveUntil: player.beaconActiveUntil };
+  // Extend from the existing expiry, not from now, so stacking adds time.
+  player.beaconActiveUntil = Math.max(now, player.beaconActiveUntil || 0) + BEACON_DURATION_MS;
+  return {
+    beacons: player.beacons,
+    beaconActiveUntil: player.beaconActiveUntil,
+    stacked: stacked + 1,
+    maxStack: MAX_BEACON_STACK,
+  };
 }
 
 function isBeaconActive(playerId, now = Date.now()) {
@@ -1535,6 +1634,8 @@ function playerLeaderboardStats(playerId) {
     playerLevel: player.playerLevel || 0,
     rebootCount: player.rebootCount || 0,
     highestMastery: owned.reduce((max, d) => Math.max(max, d.masteryLevel || 0), 0),
+    badgeIcon: player.playerBadgeIcon || null,
+    badgeFolder: player.playerBadgeFolder || null,
   };
 }
 
@@ -1575,6 +1676,19 @@ const MAX_DROID_WISHES = 4;
 // Species IDs a player is currently wishing for. Used by spawns.js to
 // flag matching droids on the map with a star, so a player doesn't walk
 // past the exact droid they've been asking for.
+// Called on a successful capture: clears any matching wish so a caught
+// droid doesn't sit on the wish list forever.
+function fulfilWishesForSpecies(playerId, speciesId) {
+  const cleared = [];
+  for (const [id, w] of wishlist.entries()) {
+    if (w.playerId === playerId && w.wishType === 'droid' && w.speciesId === speciesId && !w.fulfilled) {
+      wishlist.delete(id);
+      cleared.push(id);
+    }
+  }
+  return cleared;
+}
+
 function wishedSpeciesIds(playerId) {
   const out = new Set();
   for (const w of wishlist.values()) {
@@ -1784,6 +1898,27 @@ const spawns = new Map(); // id -> row
 const captureAttempts = [];
 const crystalTransactions = [];
 
+// Lifetime crystal achievements (A027 Crystal Miner / A028 Crystal
+// Spender) need every crystal movement, and pushes happen from seven
+// places in this file plus capture.js, workshop.js, battle.js,
+// joystick.js, levels.js and broodchamber.js.
+//
+// Rather than patch a dozen call sites — and rely on nobody forgetting
+// the next one — the ledger's push is wrapped once here. Every
+// transaction, wherever it originates, is counted exactly once.
+const _rawTxPush = crystalTransactions.push.bind(crystalTransactions);
+crystalTransactions.push = function trackedPush(...entries) {
+  entries.forEach((entry) => {
+    if (!entry || typeof entry.amount !== 'number' || !entry.playerId) return;
+    try {
+      recordCrystalFlow(entry.playerId, entry.amount);
+      const player = players.get(entry.playerId);
+      if (player) recordDailyActivity(player);
+    } catch (e) { /* achievements must never break a transaction */ }
+  });
+  return _rawTxPush(...entries);
+};
+
 // ---- auth (username + PIN, cross-device login) ----
 // Deliberately simple ("soft") for a closed friends beta: PIN stored in
 // plain text, no hashing/salting. Fine for trusted testers with no
@@ -1859,6 +1994,20 @@ function createPlayer(username, pin) {
     achievementBuffs: {},
     // attachmentId -> count owned (equipped units stay counted here)
     attachments: {},
+    fortTokens: 0,
+    forgeItems: {},
+    forgeCooldownUntil: null,
+    dailySpinUntil: null,
+    playerBadgeId: null,
+    playerBadgeIcon: null,
+    playerBadgeFolder: null,
+    lastActiveDay: null,
+    consecutiveActiveDays: 0,
+    uniqueActiveDays: 0,
+    captureStreak: 0,
+    battleWinStreak: 0,
+    achievementProgress: {},
+    achievementsUnlocked: {},
     genesisBays: [],
     chamberKeeperDroidId: null,
     battlesPlayed: 0,
@@ -2156,6 +2305,7 @@ function exportState() {
     // Admin audit log. Unlike presence (deliberately transient), this
     // MUST survive a redeploy — an audit log that resets on every push
     // would be worthless.
+    forts: require('./forts').exportForts(),
     adminLog: require('./admin').adminLog.slice(-2000),
     adminUsers: [...require('./admin').adminUsers.values()],
   };
@@ -2165,6 +2315,7 @@ function importState(state) {
   if (!state) return;
   // Restore the admin log first so anything logged during import is
   // appended rather than overwritten.
+  try { require('./forts').importForts(state.forts); } catch (e) {}
   try {
     const admin = require('./admin');
     admin.adminLog.length = 0;
@@ -2253,6 +2404,20 @@ function importState(state) {
     achievementBuffs: {},
     // attachmentId -> count owned (equipped units stay counted here)
     attachments: {},
+    fortTokens: 0,
+    forgeItems: {},
+    forgeCooldownUntil: null,
+    dailySpinUntil: null,
+    playerBadgeId: null,
+    playerBadgeIcon: null,
+    playerBadgeFolder: null,
+    lastActiveDay: null,
+    consecutiveActiveDays: 0,
+    uniqueActiveDays: 0,
+    captureStreak: 0,
+    battleWinStreak: 0,
+    achievementProgress: {},
+    achievementsUnlocked: {},
     genesisBays: [],
     chamberKeeperDroidId: null,
     battlesPlayed: 0,
@@ -2356,6 +2521,7 @@ module.exports = {
   SMUGGLER_TRADE,
   smugglerTrade,
   TRADEABLE_MATERIALS,
+  MATERIAL_INFO,
   buyShopItem,
   buyShopBasket,
   equipOutfit,
@@ -2420,9 +2586,12 @@ module.exports = {
   DEPOT_ATTACHMENT_CHANCE,
   DEPOT_COOLDOWN_MS,
   attemptDepot,
+  recordDailyActivity,
+  recordCrystalFlow,
   wishlist,
   createWish,
   wishedSpeciesIds,
+  fulfilWishesForSpecies,
   MAX_DROID_WISHES,
   listWishes,
   cancelWish,

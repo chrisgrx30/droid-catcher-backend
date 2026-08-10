@@ -6,6 +6,7 @@
 
 const db = require('./db');
 const levels = require('./levels');
+const ach = require('./achievements');
 const buffs = require('./buffs');
 const attachments = require('./attachments');
 const mastery = require('./mastery');
@@ -263,9 +264,13 @@ function settleEarnings(playerId, now = Date.now()) {
 // Assign a droid to a workshop slot — settles first so rate changes only
 // apply going forward, never retroactively.
 function assignDroidToSlot(playerId, droidId, slotId) {
+  // A garrisoned droid can't also farm — that's the cost of holding
+  // territory. Checked here as well as in forts.js so neither system
+  // can be bypassed by going through the other.
   settleEarnings(playerId); // lock in earnings under the OLD configuration first
 
   const droid = db.ownedDroids.get(droidId);
+  if (droid && droid.fortId) throw new Error('That droid is garrisoned in a Fort — withdraw it from the Guild tab first');
   const slot = db.workshopSlots.get(slotId);
   if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
   if (!slot || slot.playerId !== playerId) throw new Error('Slot not found for player');
@@ -493,6 +498,10 @@ function cleanupExistingDuplicates(playerId) {
 }
 
 function releaseDroid(playerId, droidId) {
+  {
+    const d = db.ownedDroids.get(droidId);
+    if (d && d.fortId) throw new Error('That droid is garrisoned in a Fort — withdraw it before releasing');
+  }
   const settled = settleEarnings(playerId);
   const player = db.players.get(playerId);
   const droid = db.ownedDroids.get(droidId);
@@ -663,6 +672,7 @@ function evolveSpecies(playerId, droidId) {
   db.markDexSeen(playerId, evolution.evolvesTo, droid.variant);
 
   levels.awardXp(playerId, 'evolve');
+  ach.track(playerId, 'evolutionsCompleted');
   return { droid: enrichDroid(droid), novaChips: player.novaChips, crystalBalance: player.crystalBalance };
 }
 

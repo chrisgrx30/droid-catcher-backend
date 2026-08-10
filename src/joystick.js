@@ -27,7 +27,7 @@ const MINUTES_PER_TOKEN = 10;
 const MAX_TOKENS_PER_SESSION = 6;        // 6 x 10min = 60min ceiling
 const PULSE_COST_CRYSTALS = 500;
 const COOLDOWN_MS = 60 * 60 * 1000;      // 1h after a session ends, however long it ran
-const MAX_SPEED_KPH = 7;
+const MAX_SPEED_KPH = 12;
 const MAX_SPEED_MPS = (MAX_SPEED_KPH * 1000) / 3600; // ~1.944 m/s
 // Movement is checked against elapsed time since the last accepted move.
 // A little slack absorbs network jitter and the client's own tick rate

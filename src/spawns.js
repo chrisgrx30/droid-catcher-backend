@@ -225,6 +225,12 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
   // Looked up once per scan rather than per spawn.
 
   const wishedIds = playerId ? db.wishedSpeciesIds(playerId) : new Set();
+  const caughtSpeciesIds = new Set();
+  if (playerId) {
+    try {
+      db.getDex(playerId).entries.forEach((e) => { if (e.caught) caughtSpeciesIds.add(e.speciesId || e.id); });
+    } catch (e) {}
+  }
 
   const results = [];
   for (const spawn of db.spawns.values()) {
@@ -258,6 +264,11 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
         // Star this spawn if it's a species the player has on their
         // wish list — so a wanted droid can't be walked past unnoticed.
         onWishlist: wishedIds.has(species.id),
+        // Map legend data: whether this is an event-exclusive species,
+        // and whether the player has already caught it. Both drive
+        // marker decorations so the map is readable at a glance.
+        isEvent: Boolean(species.eventOnly),
+        alreadyCaught: caughtSpeciesIds.has(species.id),
         boostSource: spawn.boostSource,
       });
     }
@@ -268,6 +279,14 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
     // Sent to the client so the map ring and the "move closer" copy stay
     // in sync with the server automatically when this value is tuned.
     captureRadiusMeters: CAPTURE_RADIUS_METERS,
+    // Local time AT THE SCANNED LONGITUDE, not the device clock. Every
+    // time-gated collection (football weekends, Void Zombies, Lumen
+    // Sentinels, day/night bias) is computed from this — so when a
+    // manual coordinate override is active, the windows follow the
+    // OVERRIDE's local time, not the player's. Surfacing it makes that
+    // visible instead of looking like a spawn bug.
+    localDayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][estimateLocalDay(lng)],
+    localHour: Math.round(estimateLocalHour(lng) * 10) / 10,
     timeOfDay: isDaytime(lng) ? 'day' : 'night',
     estimatedLocalHour: Math.round(estimateLocalHour(lng) * 10) / 10,
     activeEvents: db.listActiveEvents(),

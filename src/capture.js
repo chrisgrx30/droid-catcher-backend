@@ -7,6 +7,7 @@
 const db = require('./db');
 const joystick = require('./joystick');
 const levels = require('./levels');
+const ach = require('./achievements');
 const buffs = require('./buffs');
 const geo = require('./geo');
 const workshop = require('./workshop');
@@ -151,6 +152,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   // a 2% base capture rate, paying out only on success would mean a
   // player could burn an entire 30-minute Apex Hunt and end with nothing
   // at all — so the encounter itself is what pays, not the catch.
+  let wishlistCleared = false;
   let apexCubesDropped = 0;
   if (db.isApexSpecies(species)) {
     apexCubesDropped = db.rollApexCubeDrop();
@@ -177,9 +179,47 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     };
     db.ownedDroids.set(newDroid.id, newDroid);
     db.markDexSeen(playerId, species.id, spawn.variant);
+    // Catching a wished-for droid clears it from the wish list.
+    const wishesCleared = db.fulfilWishesForSpecies(playerId, species.id);
+    if (wishesCleared.length) wishlistCleared = true;
     // XP for a completed, valid action only — a failed attempt awards
     // nothing, so XP can't be farmed by spamming captures.
     levels.awardXp(playerId, 'capture');
+
+    // ---- achievement tracking ----
+    // Everything a successful capture can advance, in one place so the
+    // list is auditable rather than scattered through the function.
+    const dexAfter = db.getDex(playerId);
+    const caughtEntries = dexAfter.entries.filter((e) => e.caught);
+    ach.track(playerId, 'totalCaught');
+    ach.track(playerId, 'uniqueDroids', caughtEntries.length, 'max');
+    ach.track(playerId, 'uniqueSpecies', caughtEntries.length, 'max');
+    ach.track(playerId, 'uniqueDark', caughtEntries.filter((e) => e.alignment === 'dark').length, 'max');
+    ach.track(playerId, 'uniqueLight', caughtEntries.filter((e) => e.alignment === 'light').length, 'max');
+    ach.track(playerId, 'raritiesDiscovered', new Set(caughtEntries.map((e) => e.rarity)).size, 'max');
+    ach.track(playerId, 'dexPercent', dexAfter.percentComplete || 0, 'max');
+    ach.track(playerId, 'balancedCatches');
+
+    if (['rare', 'legendary', 'cosmic', 'galactic', 'apex'].includes(species.rarity)) ach.track(playerId, 'rarePlusCaught');
+    if (species.rarity === 'legendary') ach.track(playerId, 'legendaryCaught');
+    if (species.rarity === 'cosmic') ach.track(playerId, 'cosmicCaught');
+    if (species.rarity === 'galactic') ach.track(playerId, 'galacticCaught');
+    if (spawn.variant !== 'standard') {
+      ach.track(playerId, 'uniqueVariants');
+      if (spawn.variant === 'platinum') ach.track(playerId, 'platinumCaught');
+    }
+    if (species.collection && /event|solar|summer|football|void_zombie|lumen_sentinel|apex/.test(species.collection)) {
+      ach.track(playerId, 'eventDroidsCaught');
+      ach.track(playerId, 'uniqueEventDroids');
+    }
+    ach.track(playerId, 'maxDroidsOwned', [...db.ownedDroids.values()].filter((d) => d.playerId === playerId).length, 'max');
+    // Perfect capture = a full-accuracy pad hit.
+    if (padAccuracy >= 0.999) ach.track(playerId, 'perfectCaptures');
+    if (attemptDurationMs && attemptDurationMs < 1200) ach.track(playerId, 'fastCaptures');
+    try {
+      const isDay = require('./spawns').isDaytime(playerLng);
+      ach.track(playerId, isDay ? 'dayCatches' : 'nightCatches');
+    } catch (e) {}
 
     gotPaint = Math.random() < PAINT_DROP_CHANCE;
     if (gotPaint) player.paint += 1;
@@ -254,6 +294,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     buffsApplied,
     isApex: db.isApexSpecies(species),
     viaJoystick,
+    wishlistCleared,
     apexCubesDropped,
     apexCubes: player.apexCubes || 0,
   };
