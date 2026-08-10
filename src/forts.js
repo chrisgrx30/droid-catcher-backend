@@ -216,7 +216,17 @@ function fortView(fort, viewerGuildId = null, workshop = null) {
     maxShield: fort.maxShield,
     shieldPercent: fort.maxShield ? Math.round((fort.shield / fort.maxShield) * 100) : 0,
     upgradeSlotCount: fort.upgradeSlotCount,
-    upgradeSlots: fort.upgradeSlots,
+    upgradeSlots: (fort.upgradeSlots || []).map((sl, i) => {
+      let item = null;
+      if (sl && sl.itemId) {
+        try { item = require('./forge').BY_ID[sl.itemId] || null; } catch (e) {}
+      }
+      return { index: i, itemId: sl ? sl.itemId : null, takeoverSlot: Boolean(sl && sl.takeoverSlot), item };
+    }),
+    maxLevel: MAX_FORT_LEVEL,
+    nextLevel: nextLevelFor(fort),
+    tokenRate: fort.tokenRate || 1,
+    defenderBonus: fort.defenderBonus || 0,
     underAttack: Boolean(fort.underAttack),
     tokenRewardUntil: fort.tokenRewardUntil,
     tokenDaysLeft: Math.max(0, Math.ceil((fort.tokenRewardUntil - Date.now()) / (24 * 60 * 60 * 1000))),
@@ -272,6 +282,170 @@ function garrisonCandidates(playerId) {
     .sort((a, b) => b.level - a.level);
 }
 
+
+// ============================================================
+// FORT LEVELLING (1 -> 13)
+// ============================================================
+// Paid for in Guild Tokens. The reward at each level comes straight
+// from the supplied table:
+//
+//   upgradeSlot  — one more slot for a Forge item
+//   droidSlot    — one more garrison space
+//   shield       — +2% max shield
+//   defender     — +2% defending droid stats
+//   tokenRate    — daily Guild Token payout becomes N (does NOT stack;
+//                  it REPLACES the previous rate, per the spec note)
+//
+// Level 13 is the capstone: double shield AND 5x tokens.
+const FORT_LEVELS = [
+  { level: 2,  cost: 100, reward: 'upgradeSlot', label: 'Fort upgrade slot x1' },
+  { level: 3,  cost: 150, reward: 'droidSlot',   label: 'New droid slot' },
+  { level: 4,  cost: 200, reward: 'shield',      value: 0.02, label: '+2% shield health' },
+  { level: 5,  cost: 250, reward: 'defender',    value: 0.02, label: '+2% defending droid stats' },
+  { level: 6,  cost: 300, reward: 'upgradeSlot', tokenRate: 2, label: 'Fort upgrade slot x1 & 2x tokens/day' },
+  { level: 7,  cost: 350, reward: 'droidSlot',   label: 'New droid slot' },
+  { level: 8,  cost: 400, reward: 'shield',      value: 0.02, label: '+2% shield health' },
+  { level: 9,  cost: 450, reward: 'defender',    value: 0.02, label: '+2% defending droid stats' },
+  { level: 10, cost: 500, reward: 'upgradeSlot', tokenRate: 3, label: 'Fort upgrade slot & 3x tokens/day' },
+  { level: 11, cost: 550, reward: 'droidSlot',   label: 'New droid slot' },
+  { level: 12, cost: 600, reward: 'shield',      value: 0.02, label: '+2% shield health' },
+  { level: 13, cost: 650, reward: 'capstone',    tokenRate: 5, label: 'Double shield & 5x tokens/day' },
+];
+const MAX_FORT_LEVEL = 13;
+
+function nextLevelFor(fort) {
+  return FORT_LEVELS.find((l) => l.level === (fort.level || 1) + 1) || null;
+}
+
+// Guild Tokens are held by PLAYERS, not the guild, so levelling is
+// crowd-funded: whoever presses the button pays. The spec's "all guild
+// members can pay into this pot" is satisfied by anyone being able to
+// take the next level.
+function levelUpFort(playerId, fortId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new FortError('NO_PLAYER', 'Player not found');
+  const fort = forts.get(fortId);
+  if (!fort) throw new FortError('NO_FORT', 'Fort not found');
+  if (fort.guildId !== player.guildId) throw new FortError('NOT_YOUR_FORT', 'That Fort belongs to another guild');
+  if (fort.underAttack) throw new FortError('UNDER_ATTACK', "You can't upgrade a Fort while it's under attack");
+
+  const next = nextLevelFor(fort);
+  if (!next) throw new FortError('MAX_LEVEL', `That Fort is already at the maximum level ${MAX_FORT_LEVEL}`);
+  if ((player.guildTokens || 0) < next.cost) {
+    throw new FortError('NOT_ENOUGH_TOKENS', `Level ${next.level} costs ${next.cost} Guild Tokens — you have ${player.guildTokens || 0}`);
+  }
+
+  player.guildTokens -= next.cost;
+  fort.level = next.level;
+
+  switch (next.reward) {
+    case 'upgradeSlot':
+      fort.upgradeSlots = fort.upgradeSlots || [];
+      fort.upgradeSlots.push({ index: fort.upgradeSlots.length, itemId: null, fittedAt: null });
+      fort.upgradeSlotCount = fort.upgradeSlots.length;
+      break;
+    case 'droidSlot':
+      fort.droidSlots += 1;
+      break;
+    case 'shield': {
+      // Percentage of the BASE shield so repeated upgrades stay linear
+      // rather than compounding into an unbreakable wall.
+      const added = Math.round(BASE_SHIELD * next.value);
+      fort.maxShield += added;
+      fort.shield += added;
+      break;
+    }
+    case 'defender':
+      fort.defenderBonus = (fort.defenderBonus || 0) + next.value;
+      break;
+    case 'capstone':
+      fort.maxShield *= 2;
+      fort.shield = fort.maxShield;
+      break;
+    default: break;
+  }
+
+  // Token rate REPLACES rather than stacks, per the spec's note.
+  if (next.tokenRate) fort.tokenRate = next.tokenRate;
+
+  return fortView(fort, player.guildId);
+}
+
+// ---- upgrade slots ----
+function fitUpgrade(playerId, fortId, slotIndex, itemId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new FortError('NO_PLAYER', 'Player not found');
+  const fort = forts.get(fortId);
+  if (!fort) throw new FortError('NO_FORT', 'Fort not found');
+  if (fort.guildId !== player.guildId) throw new FortError('NOT_YOUR_FORT', 'That Fort belongs to another guild');
+
+  const slot = (fort.upgradeSlots || [])[slotIndex];
+  if (!slot) throw new FortError('NO_SLOT', 'That upgrade slot does not exist yet — level the Fort to unlock more');
+  if (slot.itemId) throw new FortError('SLOT_FILLED', 'That slot already holds an upgrade');
+
+  const forge = require('./forge');
+  const item = forge.BY_ID[itemId];
+  if (!item) throw new FortError('NO_ITEM', 'Unknown Forge item');
+  // Apex consumables are battle items, not fort fittings.
+  if (item.kind !== 'fort') throw new FortError('WRONG_KIND', `${item.name} is an Apex battle item, not a Fort upgrade`);
+
+  forge.consume(playerId, itemId, 1);
+  slot.itemId = itemId;
+  slot.fittedAt = Date.now();
+  slot.fittedBy = playerId;
+  return fortView(fort, player.guildId);
+}
+
+// ---- daily Guild Token payout ----
+// Paid once per UTC day to every member of the holding guild, and only
+// while the Fort's reward window is open. Computed lazily on read
+// rather than by a scheduler, so it still pays out correctly after
+// Render has had the instance asleep.
+function claimDailyTokens(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new FortError('NO_PLAYER', 'Player not found');
+  if (!player.guildId) throw new FortError('NO_GUILD', 'You are not in a guild');
+
+  const today = new Date().toISOString().slice(0, 10);
+  const now = Date.now();
+  let granted = 0;
+  const fromForts = [];
+
+  guildFortsOf(player.guildId).forEach((fort) => {
+    if (now > fort.tokenRewardUntil) return; // window expired, needs extending
+    fort.tokenClaims = fort.tokenClaims || {};
+    if (fort.tokenClaims[playerId] === today) return; // already claimed today
+    const rate = fort.tokenRate || 1;
+    fort.tokenClaims[playerId] = today;
+    granted += rate;
+    fromForts.push({ fortId: fort.id, name: fort.name, tokens: rate });
+  });
+
+  if (!granted) {
+    throw new FortError('NOTHING_TO_CLAIM', "You've already claimed today, or your Forts' reward windows have expired");
+  }
+  player.guildTokens = (player.guildTokens || 0) + granted;
+  return { granted, fromForts, guildTokens: player.guildTokens };
+}
+
+// Extending the reward window — 100,000 crystals for another 7 days.
+function extendTokenWindow(playerId, fortId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new FortError('NO_PLAYER', 'Player not found');
+  const fort = forts.get(fortId);
+  if (!fort) throw new FortError('NO_FORT', 'Fort not found');
+  if (fort.guildId !== player.guildId) throw new FortError('NOT_YOUR_FORT', 'That Fort belongs to another guild');
+  if ((player.crystalBalance || 0) < TOKEN_EXTEND_COST) {
+    throw new FortError('NOT_ENOUGH_CRYSTALS', `Extending costs ${TOKEN_EXTEND_COST.toLocaleString()} crystals — any guild member can pay`);
+  }
+  player.crystalBalance -= TOKEN_EXTEND_COST;
+  db.crystalTransactions.push({ id: db.nextId(), playerId, amount: -TOKEN_EXTEND_COST, source: 'fort_token_extend', createdAt: Date.now() });
+  // Extend from the later of now or the existing expiry, so paying early
+  // never loses days.
+  fort.tokenRewardUntil = Math.max(Date.now(), fort.tokenRewardUntil) + TOKEN_REWARD_DAYS * 24 * 60 * 60 * 1000;
+  return fortView(fort, player.guildId);
+}
+
 // ---- persistence ----
 function exportForts() {
   return [...forts.values()];
@@ -301,6 +475,13 @@ module.exports = {
   territoryFor,
   garrisonCandidates,
   guildFortsOf,
+  FORT_LEVELS,
+  MAX_FORT_LEVEL,
+  nextLevelFor,
+  levelUpFort,
+  fitUpgrade,
+  claimDailyTokens,
+  extendTokenWindow,
   exportForts,
   importForts,
   FortError,

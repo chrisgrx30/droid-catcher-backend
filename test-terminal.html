@@ -364,6 +364,23 @@
   }
   .out-of-reach-toggle .oor-caret { float: right; }
 
+  /* ---- forge minigame ---- */
+  .forge-track { position: relative; height: 26px; border: 1px solid var(--line); border-radius: 4px; background: linear-gradient(90deg,#2a1400,#5a2a00,#2a1400); overflow: hidden; margin-top: 6px; }
+  .forge-zone { position: absolute; top: 0; bottom: 0; background: rgba(255,180,60,0.45); border-left: 1px solid #ffb43c; border-right: 1px solid #ffb43c; }
+  .forge-marker { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff; box-shadow: 0 0 8px #fff; }
+  .armoury-cell { border: 1px solid var(--line); border-radius: 4px; padding: 4px; text-align: center; background: var(--panel-raised); position: relative; }
+  .armoury-cell img { width: 100%; height: 44px; object-fit: contain; }
+  .armoury-cell.none img { filter: grayscale(1); opacity: 0.25; }
+  .armoury-cell .ac-qty { position: absolute; top: 2px; right: 4px; font-size: 9px; font-weight: 800; color: var(--cyan); text-shadow: 0 0 3px #000; }
+  .armoury-cell .ac-name { font-size: 7px; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .upg-slot { display: inline-block; width: 44px; height: 44px; border: 1px dashed var(--line); border-radius: 4px; margin: 3px 3px 0 0; text-align: center; line-height: 42px; font-size: 8px; color: var(--text-dim); cursor: pointer; vertical-align: top; }
+  .upg-slot.filled { border-style: solid; border-color: var(--cyan); line-height: normal; }
+  .upg-slot img { width: 100%; height: 100%; object-fit: contain; }
+  .guild-badge-cell { width: 44px; border: 1px solid var(--line); border-radius: 4px; padding: 2px; cursor: pointer; }
+  .guild-badge-cell img { width: 100%; height: 40px; object-fit: contain; }
+  .guild-badge-cell.locked img { filter: grayscale(1); opacity: 0.25; }
+  .guild-badge-cell.shown { border-color: var(--amber); box-shadow: 0 0 8px rgba(232,169,79,0.5); }
+
   /* ---- fort sieges ---- */
   .siege-card { border: 1px solid var(--line); border-radius: 4px; padding: 10px; margin-top: 8px; background: var(--panel-raised); }
   .siege-card.attacking { border-color: var(--danger); }
@@ -1282,6 +1299,30 @@
     </div>
   </div>
 
+  <div class="panel" id="guildProgressPanel">
+    <div class="panel-title">🛡️ Guild Level <span id="guildLevelTag" style="color:var(--cyan); font-weight:400; text-transform:none; font-size:10px;"></span></div>
+    <div id="guildBadgeStrip" style="display:flex; gap:5px; flex-wrap:wrap; margin:8px 0;"></div>
+    <div class="xp-bar"><div class="xp-fill" id="guildCoinFill"></div></div>
+    <div id="guildCoinText" style="font-size:9px; color:var(--text-dim); margin-top:4px;">—</div>
+    <button id="btnGuildCheckIn" style="margin-top:8px;">Check In — 1,000✦</button>
+  </div>
+
+  <div class="panel" id="armouryPanel" style="margin-top:16px;">
+    <div class="panel-title">⚒️ Armoury <span id="armouryCount" style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;"></span></div>
+    <div id="forgePanel" style="border:1px solid var(--line); border-radius:4px; padding:10px; background:var(--panel-raised);">
+      <div class="cb-title">The Forge</div>
+      <div style="font-size:9px; color:var(--text-dim);">Three stages — heat, fold, quench. All three must land.</div>
+      <div id="forgeStatus" style="font-size:9px; color:var(--text-dim); margin-top:4px;">—</div>
+      <div id="forgeStage" style="display:none; margin-top:8px;">
+        <div style="font-size:10px; color:#fff; text-align:center;" id="forgeStageName">HEAT</div>
+        <div class="forge-track" id="forgeTrack"><div class="forge-zone" id="forgeZone"></div><div class="forge-marker" id="forgeMarker"></div></div>
+        <button id="btnForgeStrike" style="margin-top:6px;">STRIKE</button>
+      </div>
+      <button id="btnForgeStart" class="primary" style="margin-top:8px;">Start Forging — 2,500✦</button>
+    </div>
+    <div id="armouryGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:6px; margin-top:10px;"></div>
+  </div>
+
   <div class="panel" id="siegePanel" style="margin-top:16px;">
     <div class="panel-title">⚔️ Fort Assaults</div>
     <div id="siegeList"><div class="empty">No Fort assaults running</div></div>
@@ -1289,6 +1330,7 @@
 
   <div class="panel" id="territoryPanel" style="margin-top:16px;">
     <div class="panel-title">🏰 Territory <span id="territoryCount" style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;"></span></div>
+    <button id="btnClaimTokens" style="margin-bottom:8px; font-size:10px;">🛡️ Claim Daily Guild Tokens</button>
     <div id="territoryList"><div class="empty">Join a guild to hold territory</div></div>
   </div>
 
@@ -1755,7 +1797,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     if (btn.dataset.tab === 'brood') { refreshMastery().then(refreshBrood); }
     if (btn.dataset.tab === 'achievements') refreshAchievements();
     if (btn.dataset.tab === 'social') refreshCasino();
-    if (btn.dataset.tab === 'guilds') { refreshTerritory(); refreshSieges(); }
+    if (btn.dataset.tab === 'guilds') { refreshTerritory(); refreshSieges(); refreshGuildProgress(); refreshArmoury(); }
     if (btn.dataset.tab === 'capture' && locationMap) {
       setTimeout(() => locationMap.invalidateSize(), 50);
     }
@@ -1903,14 +1945,13 @@ function highlightSpawnCard(spawnId) {
 // Written each build round — a short, plain-language summary of what
 // just shipped. Update this string when packaging a new release.
 const HOME_CHANGELOG = `
-  <p><strong>Latest update — v0.7.0:</strong></p>
+  <p><strong>Latest update — v0.8.2: FORTS</strong></p>
   <ul style="margin:6px 0 0; padding-left:18px;">
-    <li><strong>🎰 The Spark Lounge</strong> — Roulette, Blackjack and a free Daily Spin, in the Trading tab.</li>
-    <li><strong>Tap any material</strong> in your Inventory to see exactly where it drops and what it's for.</li>
-    <li><strong>Wardrobe detail view</strong> — tap a cosmetic for a large image, its stats, and how to get it.</li>
-    <li><strong>Guild chat is now instant</strong> — messages arrive the moment they're sent.</li>
-    <li><strong>Companion</strong> — level up, view stats and release straight from the Companion tab.</li>
-    <li>Shop hides what you already own, and the Summer Event actually spawns Summer droids now.</li>
+    <li><strong>🏰 Build Forts</strong> at real map locations. Garrison droids, hold territory, see rival Forts on your map.</li>
+    <li><strong>⚔️ Take rival Forts</strong> — grind the garrison down, then break the shield. Defenders don't heal on their own.</li>
+    <li><strong>Fort levelling to 13</strong> with Guild Tokens — more droid slots, stronger shields, upgrade slots and bigger daily token payouts.</li>
+    <li><strong>⚒️ The Forge</strong> — a three-stage guild minigame producing 21 upgrade items for your Forts and Apex battles.</li>
+    <li><strong>🛡️ Guild levelling</strong> — check in daily to level your guild to 10 and unlock guild badges.</li>
   </ul>
 `;
 
@@ -4737,6 +4778,8 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('buildFortPanel', 'buildfort');
   applyPanelBackground('territoryPanel', 'territory');
   applyPanelBackground('siegePanel', 'siege');
+  applyPanelBackground('guildProgressPanel', 'guildlevel');
+  applyPanelBackground('armouryPanel', 'armoury');
   applyPanelBackground('broodChamberPanel', 'broodchamber', 'astral');
   applyPanelBackground('genesisBaysPanel', 'genesisbays', 'astral');
   applyPanelBackground('broodMergePanel', 'broodmerge', 'astral');
@@ -5977,7 +6020,20 @@ async function refreshTerritory() {
           ${f.garrison.map((d) => `<span class="garrison-chip ${d.fainted ? 'fainted' : ''}">${escapeHtml(d.speciesName)} L${d.level}${d.fainted ? ' 💀' : ''}${d.ownerId === state.playerId ? ` <button class="fort-withdraw" data-fort="${f.id}" data-droid="${d.id}" style="width:auto;margin:0;padding:0 3px;font-size:8px;background:none;border:none;color:var(--danger);">✕</button>` : ''}</span>`).join('')
             || '<span style="font-size:9px; color:var(--text-dim);">No droids garrisoned</span>'}
         </div>
-        <button class="fort-reinforce ghost" data-fort="${f.id}" style="margin-top:8px; font-size:9px; padding:6px;">Add droids</button>
+        <div style="margin-top:8px;">
+          <div style="font-size:8px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim);">Upgrade slots</div>
+          ${(f.upgradeSlots || []).length
+            ? f.upgradeSlots.map((sl) => sl.item
+                ? `<span class="upg-slot filled" title="${escapeHtml(sl.item.name)} — ${escapeHtml(sl.item.description)}"><img src="/assets/${sl.item.folder}/${sl.item.icon}" onerror="this.style.visibility='hidden';"></span>`
+                : `<span class="upg-slot fort-slot-empty" data-fort="${f.id}" data-slot="${sl.index}" title="Empty — tap to fit">+</span>`).join('')
+            : '<div style="font-size:9px; color:var(--text-dim);">None yet — level the Fort to unlock slots</div>'}
+        </div>
+        <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+          <button class="fort-reinforce ghost" data-fort="${f.id}" style="width:auto; margin-top:0; font-size:9px; padding:6px 10px;">Add droids</button>
+          ${f.nextLevel ? `<button class="fort-levelup" data-fort="${f.id}" style="width:auto; margin-top:0; font-size:9px; padding:6px 10px; background:#8b6de0; border-color:#8b6de0; color:#fff;">Level ${f.nextLevel.level} — ${f.nextLevel.cost} GT</button>` : '<span style="font-size:9px; color:var(--cyan);">MAX LEVEL</span>'}
+          ${f.tokenDaysLeft <= 2 ? `<button class="fort-extend" data-fort="${f.id}" style="width:auto; margin-top:0; font-size:9px; padding:6px 10px; background:var(--amber); border-color:var(--amber); color:#201002;">Extend 7d — 100k✦</button>` : ''}
+        </div>
+        ${f.nextLevel ? `<div style="font-size:8px; color:var(--text-dim); margin-top:4px;">Next: ${escapeHtml(f.nextLevel.label)}</div>` : ''}
       </div>`).join('');
 
     el.querySelectorAll('.fort-withdraw').forEach((b) => {
@@ -5988,6 +6044,25 @@ async function refreshTerritory() {
           await refreshTerritory();
           await refreshWorkshop();
         } catch (err) { showGuildResultPopup(false, (err && err.message) || 'Could not withdraw.'); }
+      };
+    });
+    el.querySelectorAll('.fort-slot-empty').forEach((b) => {
+      b.onclick = () => showUpgradeSlotPicker(Number(b.dataset.fort), Number(b.dataset.slot));
+    });
+    el.querySelectorAll('.fort-levelup').forEach((b) => {
+      b.onclick = () => guardedAction('fortlvl-' + b.dataset.fort, async () => {
+        try {
+          const r = await api('POST', `/forts/${b.dataset.fort}/level-up`, { playerId: state.playerId });
+          showGuildResultPopup(true, `🏰 Fort is now level ${r.fort.level}.`);
+          await refreshTerritory(); await refreshWorkshop();
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not level up.'); }
+      });
+    });
+    el.querySelectorAll('.fort-extend').forEach((b) => {
+      b.onclick = async () => {
+        if (!confirm('Extend this Fort\'s token rewards by 7 days for 100,000 crystals?')) return;
+        try { await api('POST', `/forts/${b.dataset.fort}/extend-tokens`, { playerId: state.playerId }); await refreshTerritory(); await refreshWorkshop(); }
+        catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not extend.'); }
       };
     });
     el.querySelectorAll('.fort-reinforce').forEach((b) => {
@@ -6038,6 +6113,198 @@ function showFortReinforcePicker(fortId, candidates) {
   };
   draw();
   overlay.style.display = 'flex';
+}
+
+// ============================================================
+// GUILD LEVEL, ARMOURY, THE FORGE, FORT UPGRADES
+// ============================================================
+
+async function refreshGuildProgress() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/guild-progress/${state.playerId}`);
+    state.guildProgress = d;
+    if (!d.hasGuild) {
+      $('guildLevelTag').textContent = '';
+      $('guildBadgeStrip').innerHTML = '';
+      $('guildCoinText').textContent = 'Join a guild to start levelling.';
+      $('btnGuildCheckIn').disabled = true;
+      return;
+    }
+    $('guildLevelTag').textContent = `Level ${d.level} / ${d.maxLevel}`;
+    const pct = d.coinsToNext ? Math.min(100, Math.round((d.coins / d.coinsToNext) * 100)) : 100;
+    $('guildCoinFill').style.width = pct + '%';
+    $('guildCoinText').textContent = d.coinsToNext
+      ? `${d.coins} / ${d.coinsToNext} check-in coins to level ${d.level + 1}`
+      : `Maximum guild level reached — ${d.coins} coins banked`;
+
+    // Full badge ladder, greyed until earned. Only the leader can set
+    // the displayed one, so everyone else gets a look-but-don't-touch.
+    $('guildBadgeStrip').innerHTML = d.badges.map((b) => `
+      <div class="guild-badge-cell ${b.earned ? '' : 'locked'} ${d.displayBadge === b.level ? 'shown' : ''}"
+           data-level="${b.level}" data-earned="${b.earned}" title="Guild level ${b.level}">
+        <img src="/assets/guild/${b.icon}" onerror="this.style.visibility='hidden';">
+      </div>`).join('');
+    $('guildBadgeStrip').querySelectorAll('.guild-badge-cell').forEach((c) => {
+      c.onclick = async () => {
+        if (!d.isLeader) { showGuildResultPopup(false, 'Only the guild leader can set the guild badge.'); return; }
+        if (c.dataset.earned !== 'true') { showGuildResultPopup(false, `Your guild hasn't reached level ${c.dataset.level} yet.`); return; }
+        try {
+          await api('POST', '/guild-badge', { playerId: state.playerId, level: Number(c.dataset.level) });
+          await refreshGuildProgress();
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not set that badge.'); }
+      };
+    });
+
+    $('btnGuildCheckIn').disabled = d.checkedInToday;
+    $('btnGuildCheckIn').textContent = d.checkedInToday
+      ? 'Checked in today ✓'
+      : `Check In — ${d.checkInCost.toLocaleString()}✦`;
+  } catch (e) {}
+}
+
+$('btnClaimTokens').onclick = () => guardedAction('claimtok', async () => {
+  try {
+    const r = await api('POST', '/forts/claim-tokens', { playerId: state.playerId });
+    showGuildResultPopup(true, `🛡️ Claimed ${r.granted} Guild Token${r.granted === 1 ? '' : 's'} from ${r.fromForts.length} Fort(s).`);
+    await refreshWorkshop(); await refreshTerritory();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Nothing to claim.'); }
+});
+
+$('btnGuildCheckIn').onclick = () => guardedAction('checkin', async () => {
+  try {
+    const r = await api('POST', '/guild-checkin', { playerId: state.playerId });
+    showGuildResultPopup(true, r.levelsGained.length
+      ? `🛡️ Guild reached level ${r.guildLevel}! New badge unlocked.`
+      : `Checked in — ${r.coins}/${r.coinsToNext} coins to the next guild level.`);
+    await refreshGuildProgress();
+    await refreshWorkshop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not check in.'); }
+});
+
+// ---- armoury ----
+async function refreshArmoury() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/forge/${state.playerId}`);
+    state.forge = d;
+    $('armouryCount').textContent = `— ${d.totalOwned} item${d.totalOwned === 1 ? '' : 's'}`;
+    // Every item shows at all times with a quantity, per the spec.
+    $('armouryGrid').innerHTML = d.armoury.map((i) => `
+      <div class="armoury-cell ${i.owned ? '' : 'none'}" title="${escapeHtml(i.name)} — ${escapeHtml(i.description)}">
+        <img src="/assets/${i.folder}/${i.icon}" onerror="this.style.visibility='hidden';">
+        <span class="ac-qty">${i.owned}</span>
+        <div class="ac-name">${escapeHtml(i.name)}</div>
+      </div>`).join('');
+
+    $('forgeStatus').textContent = !d.hasGuild
+      ? 'The Forge is a guild facility — join a guild first.'
+      : d.onCooldown
+        ? `Cooling — ${Math.ceil(d.cooldownMsRemaining / 60000)} min left`
+        : `Ready · ${d.cost.toLocaleString()}✦ per attempt`;
+    $('btnForgeStart').disabled = !d.hasGuild || d.onCooldown;
+  } catch (e) {}
+}
+
+// ---- the forge minigame ----
+// Three stages. Each is a moving marker over a shrinking target zone;
+// where you stop it becomes that stage's accuracy, and the server rolls
+// each stage independently. All three must pass.
+let forgeRun = null;
+
+$('btnForgeStart').onclick = () => {
+  if (!state.forge || !state.forge.hasGuild) { showGuildResultPopup(false, 'Join a guild to use the Forge.'); return; }
+  forgeRun = { stages: [], index: 0, startedAt: Date.now() };
+  $('forgeStage').style.display = 'block';
+  $('btnForgeStart').style.display = 'none';
+  runForgeStage();
+};
+
+function runForgeStage() {
+  const names = state.forge.stages;
+  const i = forgeRun.index;
+  $('forgeStageName').textContent = names[i].toUpperCase() + ` (${i + 1}/${names.length})`;
+
+  // Each stage is narrower and faster than the last — the sequence gets
+  // harder as it goes rather than being three identical taps.
+  const width = [26, 18, 12][i];
+  const speed = [1.4, 1.9, 2.5][i];
+  const zoneLeft = 12 + Math.random() * (76 - width);
+  $('forgeZone').style.left = zoneLeft + '%';
+  $('forgeZone').style.width = width + '%';
+
+  let pos = 0;
+  let dir = 1;
+  const marker = $('forgeMarker');
+  if (forgeRun.timer) clearInterval(forgeRun.timer);
+  forgeRun.timer = setInterval(() => {
+    pos += dir * speed;
+    if (pos >= 100) { pos = 100; dir = -1; }
+    if (pos <= 0) { pos = 0; dir = 1; }
+    marker.style.left = pos + '%';
+  }, 16);
+
+  $('btnForgeStrike').onclick = () => {
+    clearInterval(forgeRun.timer);
+    const centre = zoneLeft + width / 2;
+    const distance = Math.abs(pos - centre);
+    // Dead centre = 1.0, edge of the zone = ~0.5, outside falls away fast.
+    const accuracy = Math.max(0, 1 - (distance / (width / 2)) * 0.5);
+    forgeRun.stages.push(Math.min(1, accuracy));
+    forgeRun.index++;
+    if (forgeRun.index < state.forge.stages.length) runForgeStage();
+    else finishForge();
+  };
+}
+
+async function finishForge() {
+  $('forgeStage').style.display = 'none';
+  $('btnForgeStart').style.display = 'block';
+  try {
+    const r = await api('POST', '/forge/attempt', {
+      playerId: state.playerId,
+      stages: forgeRun.stages,
+      totalDurationMs: Date.now() - forgeRun.startedAt,
+    });
+    const detail = r.stages.map((s) => `${s.stage} ${s.passed ? '✓' : '✗'}`).join(' · ');
+    showGuildResultPopup(r.success, r.success
+      ? `⚒️ Forged ${r.item.name}!\n${r.item.description}\n\n${detail}`
+      : `The forge failed.\n\n${detail}`);
+    await refreshArmoury();
+    await refreshWorkshop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Forge attempt failed.'); }
+  forgeRun = null;
+}
+
+// ---- fort upgrade slots ----
+function showUpgradeSlotPicker(fortId, slotIndex) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const owned = (state.forge ? state.forge.armoury : []).filter((i) => i.owned > 0 && i.kind === 'fort');
+  box.innerHTML = `
+    <div class="mb-title" style="color:#fff;">Fort Upgrade Slot ${slotIndex + 1}</div>
+    <div class="mb-detail">Only Fort fittings can go here — Apex battle items can't be slotted.</div>
+    ${owned.length ? `
+      <div style="max-height:210px; overflow-y:auto; text-align:left; margin-top:8px;">
+        ${owned.map((i) => `
+          <div class="merge-pick" data-id="${i.id}">
+            <span class="mp-name">${escapeHtml(i.name)} <span style="color:var(--text-dim); font-size:8px;">${escapeHtml(i.description)}</span></span>
+            <span style="color:var(--cyan); font-size:9px;">x${i.owned}</span>
+          </div>`).join('')}
+      </div>` : '<div class="empty">No Fort fittings yet — make some in the Forge</div>'}
+    <button id="upgCancel" class="ghost" style="margin-top:12px;">Cancel</button>`;
+  overlay.style.display = 'flex';
+  box.querySelectorAll('.merge-pick').forEach((row) => {
+    row.onclick = async () => {
+      try {
+        await api('POST', `/forts/${fortId}/fit-upgrade`, { playerId: state.playerId, slotIndex, itemId: row.dataset.id });
+        overlay.style.display = 'none';
+        showGuildResultPopup(true, 'Upgrade fitted to the Fort.');
+        await refreshTerritory(); await refreshArmoury();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not fit that upgrade.'); }
+    };
+  });
+  box.querySelector('#upgCancel').onclick = () => { overlay.style.display = 'none'; };
 }
 
 // ============================================================

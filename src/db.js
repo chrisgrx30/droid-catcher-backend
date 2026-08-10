@@ -1663,6 +1663,110 @@ function getGuildLeaderboard(guildId) {
   return presence.decorate(rows);
 }
 
+
+// ---- guild check-in + guild levelling ----
+// 1,000 crystals per check-in, once per player per UTC day. Check-in
+// coins accumulate on the GUILD, so levelling is a collective effort
+// rather than something one rich player can rush.
+//
+// Curve continues the shape of the first step (20 coins for level 1),
+// rising ~45% per level, so level 10 is a long-term guild goal rather
+// than a week's work.
+const GUILD_CHECKIN_COST = 1000;
+const GUILD_LEVEL_COINS = [20, 29, 42, 61, 88, 128, 185, 268, 389, 564];
+const MAX_GUILD_LEVEL = 10;
+
+function guildCoinsForLevel(level) {
+  return GUILD_LEVEL_COINS[level] ?? null; // coins needed to go from `level` to level+1
+}
+
+function guildCheckIn(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!player.guildId) throw new Error('You are not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (!guild) throw new Error('Guild not found');
+
+  const today = new Date().toISOString().slice(0, 10);
+  guild.checkIns = guild.checkIns || {};
+  if (guild.checkIns[playerId] === today) {
+    throw new Error("You've already checked in today — come back tomorrow");
+  }
+  if ((player.crystalBalance || 0) < GUILD_CHECKIN_COST) {
+    throw new Error(`Checking in costs ${GUILD_CHECKIN_COST.toLocaleString()} crystals`);
+  }
+
+  player.crystalBalance -= GUILD_CHECKIN_COST;
+  crystalTransactions.push({ id: id(), playerId, amount: -GUILD_CHECKIN_COST, source: 'guild_checkin', createdAt: Date.now() });
+  guild.checkIns[playerId] = today;
+  guild.checkInCoins = (guild.checkInCoins || 0) + 1;
+  guild.level = guild.level || 0;
+
+  const levelsGained = [];
+  let need = guildCoinsForLevel(guild.level);
+  while (need !== null && guild.checkInCoins >= need && guild.level < MAX_GUILD_LEVEL) {
+    guild.checkInCoins -= need;
+    guild.level += 1;
+    levelsGained.push(guild.level);
+    guild.unlockedBadges = guild.unlockedBadges || [];
+    if (!guild.unlockedBadges.includes(guild.level)) guild.unlockedBadges.push(guild.level);
+    need = guildCoinsForLevel(guild.level);
+  }
+
+  return {
+    guildLevel: guild.level,
+    coins: guild.checkInCoins,
+    coinsToNext: guildCoinsForLevel(guild.level),
+    levelsGained,
+    unlockedBadges: guild.unlockedBadges || [],
+    crystalBalance: Math.floor(player.crystalBalance),
+  };
+}
+
+function guildProgress(playerId) {
+  const player = players.get(playerId);
+  if (!player || !player.guildId) return { hasGuild: false };
+  const guild = guilds.get(player.guildId);
+  if (!guild) return { hasGuild: false };
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    hasGuild: true,
+    guildId: guild.id,
+    guildName: guild.name,
+    level: guild.level || 0,
+    maxLevel: MAX_GUILD_LEVEL,
+    coins: guild.checkInCoins || 0,
+    coinsToNext: guildCoinsForLevel(guild.level || 0),
+    checkedInToday: (guild.checkIns || {})[playerId] === today,
+    checkInCost: GUILD_CHECKIN_COST,
+    unlockedBadges: guild.unlockedBadges || [],
+    displayBadge: guild.displayBadge || null,
+    isLeader: guild.creatorId === playerId,
+    // Every badge, earned or not, so the UI can grey out the ladder.
+    badges: Array.from({ length: MAX_GUILD_LEVEL }, (_, i) => ({
+      level: i + 1,
+      icon: 'guild' + String(i + 1).padStart(3, '0') + '.png',
+      earned: (guild.level || 0) >= i + 1,
+    })),
+  };
+}
+
+// Only the leader picks the guild's displayed badge.
+function setGuildBadge(playerId, level) {
+  const player = players.get(playerId);
+  if (!player || !player.guildId) throw new Error('You are not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (!guild) throw new Error('Guild not found');
+  if (guild.creatorId !== playerId) throw new Error('Only the guild leader can set the guild badge');
+  if (level === null) { guild.displayBadge = null; return guildProgress(playerId); }
+  const lv = Math.floor(Number(level));
+  if (!(guild.unlockedBadges || []).includes(lv)) {
+    throw new Error(`Your guild hasn't reached level ${lv} yet`);
+  }
+  guild.displayBadge = lv;
+  return guildProgress(playerId);
+}
+
 // ---- wishlist (public "looking for" board) ----
 // Visible to everyone — any player can browse what others want and offer
 // a trade. Two wish types: a specific droid (species + optional
@@ -2551,6 +2655,11 @@ module.exports = {
   postGuildMessage,
   getGuildMessages,
   getGuildLeaderboard,
+  guildCheckIn,
+  guildProgress,
+  setGuildBadge,
+  GUILD_CHECKIN_COST,
+  MAX_GUILD_LEVEL,
   playerLeaderboardStats,
   activateCompanionBuff,
   listPlayersAdmin,

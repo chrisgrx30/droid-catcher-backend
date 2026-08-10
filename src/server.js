@@ -1546,6 +1546,22 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { info: db.MATERIAL_INFO });
     }
 
+    // ---- GUILD CHECK-IN / LEVELLING ----
+    if (req.method === 'GET' && pathname.match(/^\/guild-progress\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, db.guildProgress(playerId));
+    }
+    if (req.method === 'POST' && pathname === '/guild-checkin') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, db.guildCheckIn(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: 'CHECKIN_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/guild-badge') {
+      const { playerId, level } = await readBody(req);
+      try { return sendJson(res, 200, db.setGuildBadge(playerId, level)); }
+      catch (e) { return sendJson(res, 400, { error: 'BADGE_ERROR', message: e.message }); }
+    }
+
     // ---- FORTS ----
     // GET /forts/territory/:playerId -> this guild's Forts
     if (req.method === 'GET' && pathname.match(/^\/forts\/territory\/\d+$/)) {
@@ -1623,6 +1639,37 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message });
       }
+    }
+
+    // POST /forts/:id/level-up { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/level-up$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, { fort: fortsModule.levelUpFort(playerId, fortId) }); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/fit-upgrade { playerId, slotIndex, itemId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/fit-upgrade$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, slotIndex, itemId } = await readBody(req);
+      try { return sendJson(res, 200, { fort: fortsModule.fitUpgrade(playerId, fortId, Number(slotIndex), itemId) }); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/extend-tokens { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/extend-tokens$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, { fort: fortsModule.extendTokenWindow(playerId, fortId) }); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/claim-tokens { playerId }
+    if (req.method === 'POST' && pathname === '/forts/claim-tokens') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, fortsModule.claimDailyTokens(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
     }
 
     // ---- FORT SIEGES ----

@@ -76,8 +76,10 @@ function livingDefenders(fort) {
 // upgradeSlots; this reads whatever is there so the two stages connect
 // without a rewrite.
 function fortDefenceMultipliers(fort) {
-  let hp = 1;
-  let atk = 1;
+  // Level-derived defender bonus (from the +2% rewards) applies on top
+  // of anything fitted into upgrade slots.
+  let hp = 1 + (fort.defenderBonus || 0);
+  let atk = 1 + (fort.defenderBonus || 0);
   let shield = 1;
   (fort.upgradeSlots || []).forEach((slot) => {
     if (!slot || !slot.itemId) return;
@@ -207,10 +209,15 @@ function attack(fortId, playerId) {
 
   const atkStats = workshop.enrichDroid(attacker);
   const defStats = workshop.enrichDroid(defender);
+  // Fort HP bonus raises the effective pool a defender must lose before
+  // fainting. Applied as a damage reduction rather than by rewriting the
+  // droid's stats, so the buff is local to this Fort and vanishes if the
+  // droid is withdrawn.
+  const hpSoak = mult.hp > 1 ? 1 / mult.hp : 1;
 
   // Attacker hits.
   const variance = 1 + (Math.random() * 2 - 1) * battle.DAMAGE_VARIANCE;
-  const damage = Math.max(1, Math.round(atkStats.attack * variance));
+  const damage = Math.max(1, Math.round(atkStats.attack * variance * hpSoak));
   defender.currentHpDamage = (defender.currentHpDamage || 0) + damage;
   const defenderNow = workshop.enrichDroid(defender);
   const defenderDown = defenderNow.fainted;
