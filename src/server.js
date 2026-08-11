@@ -30,6 +30,7 @@ const forgeModule = require('./forge');
 const fortsModule = require('./forts');
 const fortBattleModule = require('./fortbattle');
 const ladderModule = require('./ladder');
+const seasonModule = require('./seasonpass');
 const biomesModule = require('./biomes');
 const workshopModule = require('./workshop');
 const battleModule = require('./battle');
@@ -1594,6 +1595,59 @@ const server = http.createServer(async (req, res) => {
       const { playerId, itemKey } = await readBody(req);
       try { return sendJson(res, 200, battleModule.equipBattleItem(playerId, itemKey)); }
       catch (e) { return sendJson(res, 400, { error: 'BATTLE_ITEM_ERROR', message: e.message }); }
+    }
+
+    // ---- SEASON PASS ----
+    if (req.method === 'GET' && pathname.match(/^\/season\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, seasonModule.statusFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SEASON_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/season/unlock') {
+      const { playerId, seasonId } = await readBody(req);
+      try { return sendJson(res, 200, seasonModule.unlockPass(playerId, seasonId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SEASON_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/season/track') {
+      const { playerId, seasonId } = await readBody(req);
+      try { return sendJson(res, 200, seasonModule.selectTrack(playerId, seasonId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SEASON_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/season/claim') {
+      const { playerId, seasonId, tier } = await readBody(req);
+      try { return sendJson(res, 200, seasonModule.claimTier(playerId, seasonId, tier)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SEASON_ERROR', message: e.message }); }
+    }
+
+    // ---- SEASON PASS ADMIN ----
+    if (req.method === 'GET' && pathname === '/admin/seasons') {
+      const viewerId = Number(searchParams.get('playerId'));
+      const viewer = db.players.get(viewerId);
+      try {
+        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), ADMIN_CODES.events, 'seasons');
+        return sendJson(res, 200, { seasons: seasonModule.listSeasons() });
+      } catch (e) { return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message }); }
+    }
+    // POST /admin/seasons/activate { playerId, adminCode, seasonId, inDays, durationDays }
+    if (req.method === 'POST' && pathname === '/admin/seasons/activate') {
+      const body = await readBody(req);
+      const viewer = db.players.get(body.playerId);
+      try {
+        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, ADMIN_CODES.events, 'season_activate');
+        const r = seasonModule.activateSeason(body.seasonId, { inDays: body.inDays, durationDays: body.durationDays });
+        adminModule.record(who.playerId, who.username, 'SEASON_ACTIVATED', { seasonId: body.seasonId, inDays: body.inDays || 0, durationDays: body.durationDays || null });
+        return sendJson(res, 200, { season: { id: r.id, name: r.name, status: r.status, startsAt: r.startsAt, endsAt: r.endsAt } });
+      } catch (e) { return sendJson(res, e.code === 'ADMIN_ONLY' ? 403 : 400, { error: e.code || 'SEASON_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/admin/seasons/deactivate') {
+      const body = await readBody(req);
+      const viewer = db.players.get(body.playerId);
+      try {
+        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, ADMIN_CODES.events, 'season_deactivate');
+        const r = seasonModule.deactivateSeason(body.seasonId);
+        adminModule.record(who.playerId, who.username, 'SEASON_DEACTIVATED', { seasonId: body.seasonId });
+        return sendJson(res, 200, { season: { id: r.id, name: r.name, status: r.status } });
+      } catch (e) { return sendJson(res, e.code === 'ADMIN_ONLY' ? 403 : 400, { error: e.code || 'SEASON_ERROR', message: e.message }); }
     }
 
     // ---- WEEKLY GUILD LADDER ----

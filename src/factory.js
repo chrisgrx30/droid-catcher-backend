@@ -111,6 +111,7 @@ function collectPrototype(playerId, slotId) {
 
   levels.awardXp(playerId, 'hatch');
   require('./ladder').award(playerId, 'hatch');
+  require('./seasonpass').awardXp(playerId, 'hatch');
   ach.track(playerId, 'eggsHatched');
 
   const rarity = db.rollPrototypeRarity();

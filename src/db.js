@@ -858,6 +858,7 @@ const TRADEABLE_MATERIALS = [
   { key: 'joyCoins', name: 'Joy Coins' },
   { key: 'fortTokens', name: 'Fort Tokens' },
   { key: 'emps', name: 'EMPs' },
+  { key: 'seasonTokens', name: 'Season Pass Tokens' },
 ];
 
 // ---- Smuggler's Trade ----
@@ -2185,6 +2186,9 @@ function createPlayer(username, pin) {
     forgeItems: {},
     forgeCooldownUntil: null,
     dealerDroidId: null,
+    seasonPasses: {},
+    activeSeasonId: null,
+    seasonTokens: 0,
     equippedBattleItem: null,
     emps: 0,
     dailySpinUntil: null,
@@ -2497,6 +2501,7 @@ function exportState() {
     // would be worthless.
     forts: require('./forts').exportForts(),
     ladder: require('./ladder').exportLadder(),
+    seasons: require('./seasonpass').exportSeasons(),
     adminLog: require('./admin').adminLog.slice(-2000),
     adminUsers: [...require('./admin').adminUsers.values()],
   };
@@ -2508,6 +2513,7 @@ function importState(state) {
   // appended rather than overwritten.
   try { require('./forts').importForts(state.forts); } catch (e) {}
   try { require('./ladder').importLadder(state.ladder); } catch (e) {}
+  try { require('./seasonpass').importSeasons(state.seasons); } catch (e) {}
   try {
     const admin = require('./admin');
     admin.adminLog.length = 0;
@@ -2600,6 +2606,9 @@ function importState(state) {
     forgeItems: {},
     forgeCooldownUntil: null,
     dealerDroidId: null,
+    seasonPasses: {},
+    activeSeasonId: null,
+    seasonTokens: 0,
     equippedBattleItem: null,
     emps: 0,
     dailySpinUntil: null,

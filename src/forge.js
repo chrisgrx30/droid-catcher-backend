@@ -185,6 +185,7 @@ function attemptForge(playerId, stages, totalDurationMs) {
     item = rollItem();
     grant(playerId, item.id);
     require('./ladder').award(playerId, 'forgeSuccess');
+    require('./seasonpass').awardXp(playerId, 'forgeSuccess');
   }
 
   return {

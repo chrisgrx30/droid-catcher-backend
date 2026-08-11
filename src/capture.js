@@ -186,6 +186,7 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     // nothing, so XP can't be farmed by spamming captures.
     levels.awardXp(playerId, 'capture');
     require('./ladder').award(playerId, 'capture');
+    require('./seasonpass').awardXp(playerId, 'capture');
     if (['rare','legendary','cosmic','galactic'].includes(species.rarity)) require('./ladder').award(playerId, 'rareCapture');
     if (species.rarity === 'apex') require('./ladder').award(playerId, 'apexCapture');
 

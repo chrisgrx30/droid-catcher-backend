@@ -1,6 +1,6 @@
 {
   "name": "droid-catcher-backend",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "private": true,
   "description": "Sparkfield prototype backend + browser test terminal",
   "main": "src/server.js",

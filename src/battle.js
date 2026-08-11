@@ -502,6 +502,7 @@ function attackGroupTitan(battleId, playerId) {
       p.battlesWon = (p.battlesWon || 0) + 1;
       ach.track(pid, 'battlesWon');
       require('./ladder').award(pid, battle.isApexBattle ? 'apexWin' : 'titanWin');
+      require('./seasonpass').awardXp(pid, battle.isApexBattle ? 'apexWin' : 'titanWin');
       p.battleWinStreak = (p.battleWinStreak || 0) + 1;
       ach.track(pid, 'battleWinStreak', p.battleWinStreak, 'max');
       p.paint = (p.paint || 0) + TITAN_REWARDS.paint;

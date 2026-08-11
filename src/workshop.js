@@ -682,6 +682,7 @@ function evolveSpecies(playerId, droidId) {
 
   levels.awardXp(playerId, 'evolve');
   require('./ladder').award(playerId, 'evolve');
+  require('./seasonpass').awardXp(playerId, 'evolve');
   ach.track(playerId, 'evolutionsCompleted');
   return { droid: enrichDroid(droid), novaChips: player.novaChips, crystalBalance: player.crystalBalance };
 }
