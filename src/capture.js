@@ -185,6 +185,9 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     // XP for a completed, valid action only — a failed attempt awards
     // nothing, so XP can't be farmed by spamming captures.
     levels.awardXp(playerId, 'capture');
+    require('./ladder').award(playerId, 'capture');
+    if (['rare','legendary','cosmic','galactic'].includes(species.rarity)) require('./ladder').award(playerId, 'rareCapture');
+    if (species.rarity === 'apex') require('./ladder').award(playerId, 'apexCapture');
 
     // ---- achievement tracking ----
     // Everything a successful capture can advance, in one place so the

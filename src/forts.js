@@ -236,6 +236,7 @@ function fortView(fort, viewerGuildId = null, workshop = null) {
       return { index: i, itemId: sl ? sl.itemId : null, takeoverSlot: Boolean(sl && sl.takeoverSlot), item };
     }),
     maxLevel: MAX_FORT_LEVEL,
+    adjacency: adjacencyFor(fort),
     nextLevel: nextLevelFor(fort),
     tokenRate: fort.tokenRate || 1,
     defenderBonus: fort.defenderBonus || 0,
@@ -243,6 +244,9 @@ function fortView(fort, viewerGuildId = null, workshop = null) {
     tokenRewardUntil: fort.tokenRewardUntil,
     tokenDaysLeft: Math.max(0, Math.ceil((fort.tokenRewardUntil - Date.now()) / (24 * 60 * 60 * 1000))),
     createdAt: fort.createdAt,
+    image: fort.image || null,
+    imageBy: fort.imageBy || null,
+    imagePending: Boolean(fort.pendingImage),
   };
 }
 
@@ -458,6 +462,119 @@ function extendTokenWindow(playerId, fortId) {
   return fortView(fort, player.guildId);
 }
 
+
+// ---- adjacency bonuses ----
+// Forts held by the SAME guild within ADJACENCY_RADIUS_M of each other
+// reinforce one another. This turns territory into a shape you read on
+// a map rather than a list you hold: building your second Fort five
+// miles from the first is a different decision to building it fifty.
+//
+// Deliberately capped. Without a cap a guild would ring one city in
+// five Forts and make each unkillable, which is the opposite of what
+// contested territory should feel like.
+const ADJACENCY_RADIUS_M = 8000;        // ~5 miles
+const ADJACENCY_BONUS_PER_NEIGHBOUR = 0.06; // +6% shield and defenders
+const ADJACENCY_MAX_NEIGHBOURS = 3;
+
+function adjacencyFor(fort) {
+  let neighbours = 0;
+  for (const other of forts.values()) {
+    if (other.id === fort.id) continue;
+    if (other.guildId !== fort.guildId) continue;
+    if (geo.distanceMeters(fort.lat, fort.lng, other.lat, other.lng) <= ADJACENCY_RADIUS_M) neighbours++;
+  }
+  const counted = Math.min(neighbours, ADJACENCY_MAX_NEIGHBOURS);
+  return {
+    neighbours,
+    counted,
+    bonus: counted * ADJACENCY_BONUS_PER_NEIGHBOUR,
+    percent: Math.round(counted * ADJACENCY_BONUS_PER_NEIGHBOUR * 100),
+    radiusKm: Math.round(ADJACENCY_RADIUS_M / 1000),
+    maxNeighbours: ADJACENCY_MAX_NEIGHBOURS,
+  };
+}
+
+
+// ---- fort location photos ----
+// Players submit a photo of the real place; an admin approves it before
+// anyone else sees it. Moderation is the whole point — an unmoderated
+// image attached to a real-world coordinate is a genuine safety problem,
+// not just a quality one.
+//
+// Images are stored as data URLs on the fort record. Capped hard,
+// because these go into the Upstash snapshot and a few unbounded photos
+// would blow the save size for everyone.
+const MAX_FORT_IMAGE_CHARS = 220000; // ~160KB of base64
+
+function submitFortImage(playerId, fortId, dataUrl) {
+  const player = db.players.get(playerId);
+  if (!player) throw new FortError('NO_PLAYER', 'Player not found');
+  const fort = forts.get(fortId);
+  if (!fort) throw new FortError('NO_FORT', 'Fort not found');
+  if (fort.guildId !== player.guildId) throw new FortError('NOT_YOUR_FORT', 'That Fort belongs to another guild');
+  if (typeof dataUrl !== 'string' || !/^data:image\/(png|jpe?g|webp);base64,/.test(dataUrl)) {
+    throw new FortError('BAD_IMAGE', 'That file was not a valid image');
+  }
+  if (dataUrl.length > MAX_FORT_IMAGE_CHARS) {
+    throw new FortError('IMAGE_TOO_BIG', 'That image is too large — please use one under about 150KB');
+  }
+  fort.pendingImage = { dataUrl, submittedBy: playerId, submittedByName: player.username, submittedAt: Date.now() };
+  return { submitted: true, fortId, fortName: fort.name };
+}
+
+function pendingFortImages() {
+  const out = [];
+  for (const fort of forts.values()) {
+    if (fort.pendingImage) {
+      const guild = db.guilds.get(fort.guildId);
+      out.push({
+        fortId: fort.id,
+        fortName: fort.name,
+        guildName: guild ? guild.name : 'Unknown',
+        lat: fort.lat,
+        lng: fort.lng,
+        ...fort.pendingImage,
+      });
+    }
+  }
+  return out.sort((a, b) => a.submittedAt - b.submittedAt);
+}
+
+function reviewFortImage(fortId, approve) {
+  const fort = forts.get(fortId);
+  if (!fort) throw new FortError('NO_FORT', 'Fort not found');
+  if (!fort.pendingImage) throw new FortError('NO_PENDING', 'No image is awaiting review for that Fort');
+  const sub = fort.pendingImage;
+  fort.pendingImage = null;
+  if (approve) {
+    fort.image = sub.dataUrl;
+    fort.imageBy = sub.submittedByName;
+  }
+  return { fortId, approved: Boolean(approve), submittedBy: sub.submittedByName };
+}
+
+// Admin overview of every Fort in the world.
+function allFortsForAdmin() {
+  return [...forts.values()].map((f) => {
+    const guild = db.guilds.get(f.guildId);
+    return {
+      id: f.id, name: f.name, lat: f.lat, lng: f.lng,
+      guildName: guild ? guild.name : 'Unknown',
+      guildId: f.guildId,
+      level: f.level,
+      droidCount: (f.droidIds || []).length,
+      droidSlots: f.droidSlots,
+      shieldPercent: f.maxShield ? Math.round((f.shield / f.maxShield) * 100) : 0,
+      underAttack: Boolean(f.underAttack),
+      captured: f.foundedByGuildId !== f.guildId,
+      hasImage: Boolean(f.image),
+      pendingImage: Boolean(f.pendingImage),
+      createdAt: f.createdAt,
+      tokenDaysLeft: Math.max(0, Math.ceil((f.tokenRewardUntil - Date.now()) / 86400000)),
+    };
+  }).sort((a, b) => b.createdAt - a.createdAt);
+}
+
 // ---- persistence ----
 function exportForts() {
   return [...forts.values()];
@@ -495,6 +612,14 @@ module.exports = {
   fitUpgrade,
   claimDailyTokens,
   extendTokenWindow,
+  submitFortImage,
+  pendingFortImages,
+  reviewFortImage,
+  allFortsForAdmin,
+  MAX_FORT_IMAGE_CHARS,
+  adjacencyFor,
+  ADJACENCY_RADIUS_M,
+  ADJACENCY_BONUS_PER_NEIGHBOUR,
   exportForts,
   importForts,
   FortError,

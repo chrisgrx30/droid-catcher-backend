@@ -29,6 +29,8 @@ const casinoModule = require('./casino');
 const forgeModule = require('./forge');
 const fortsModule = require('./forts');
 const fortBattleModule = require('./fortbattle');
+const ladderModule = require('./ladder');
+const biomesModule = require('./biomes');
 const workshopModule = require('./workshop');
 const battleModule = require('./battle');
 const factoryModule = require('./factory');
@@ -1582,6 +1584,34 @@ const server = http.createServer(async (req, res) => {
       catch (e) { return sendJson(res, 400, { error: 'BADGE_ERROR', message: e.message }); }
     }
 
+    // GET /battle-items/:playerId
+    if (req.method === 'GET' && pathname.match(/^\/battle-items\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, battleModule.battleItemsFor(playerId));
+    }
+    // POST /battle-items/equip { playerId, itemKey }
+    if (req.method === 'POST' && pathname === '/battle-items/equip') {
+      const { playerId, itemKey } = await readBody(req);
+      try { return sendJson(res, 200, battleModule.equipBattleItem(playerId, itemKey)); }
+      catch (e) { return sendJson(res, 400, { error: 'BATTLE_ITEM_ERROR', message: e.message }); }
+    }
+
+    // ---- WEEKLY GUILD LADDER ----
+    if (req.method === 'GET' && pathname.match(/^\/ladder\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, ladderModule.ladderFor(playerId));
+    }
+    if (req.method === 'POST' && pathname === '/ladder/claim') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, ladderModule.claimPrize(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: 'LADDER_ERROR', message: e.message }); }
+    }
+
+    // GET /biomes -> the full biome table, for the player guide
+    if (req.method === 'GET' && pathname === '/biomes') {
+      return sendJson(res, 200, { biomes: biomesModule.BIOME_LIST });
+    }
+
     // ---- FORTS ----
     // GET /forts/territory/:playerId -> this guild's Forts
     if (req.method === 'GET' && pathname.match(/^\/forts\/territory\/\d+$/)) {
@@ -1692,6 +1722,46 @@ const server = http.createServer(async (req, res) => {
       catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
     }
 
+    // POST /forts/:id/image { playerId, dataUrl }  -> submit for review
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/image$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, dataUrl } = await readBody(req);
+      try { return sendJson(res, 200, fortsModule.submitFortImage(playerId, fortId, dataUrl)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+
+    // GET /admin/fort-images?adminCode=&playerId=  -> moderation queue
+    if (req.method === 'GET' && pathname === '/admin/fort-images') {
+      const viewerId = Number(searchParams.get('playerId'));
+      const viewer = db.players.get(viewerId);
+      try {
+        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), ADMIN_CODES.events, 'fort_images');
+        return sendJson(res, 200, { pending: fortsModule.pendingFortImages() });
+      } catch (e) { return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message }); }
+    }
+
+    // POST /admin/fort-images/review { playerId, adminCode, fortId, approve }
+    if (req.method === 'POST' && pathname === '/admin/fort-images/review') {
+      const body = await readBody(req);
+      const viewer = db.players.get(body.playerId);
+      try {
+        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, ADMIN_CODES.events, 'fort_image_review');
+        const r = fortsModule.reviewFortImage(Number(body.fortId), Boolean(body.approve));
+        adminModule.record(who.playerId, who.username, r.approved ? 'FORT_IMAGE_APPROVED' : 'FORT_IMAGE_REJECTED', { fortId: r.fortId, submittedBy: r.submittedBy });
+        return sendJson(res, 200, r);
+      } catch (e) { return sendJson(res, e.code === 'ADMIN_ONLY' ? 403 : 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+
+    // GET /admin/forts?adminCode=&playerId= -> every Fort in the world
+    if (req.method === 'GET' && pathname === '/admin/forts') {
+      const viewerId = Number(searchParams.get('playerId'));
+      const viewer = db.players.get(viewerId);
+      try {
+        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), ADMIN_CODES.events, 'fort_list');
+        return sendJson(res, 200, { forts: fortsModule.allFortsForAdmin() });
+      } catch (e) { return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message }); }
+    }
+
     // ---- FORT SIEGES ----
     // GET /forts/:id/siege?playerId=
     if (req.method === 'GET' && pathname.match(/^\/forts\/\d+\/siege$/)) {
@@ -1777,6 +1847,18 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ---- CASINO (The Spark Lounge) ----
+    if (req.method === 'GET' && pathname.match(/^\/casino\/dealer\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[3]);
+      try { return sendJson(res, 200, casinoModule.dealerStatus(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/casino/dealer') {
+      const { playerId, droidId } = await readBody(req);
+      try { return sendJson(res, 200, casinoModule.setDealer(playerId, droidId === null ? null : Number(droidId))); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+
+
     if (req.method === 'GET' && pathname.match(/^\/casino\/\d+$/)) {
       const playerId = Number(pathname.split('/')[2]);
       try { return sendJson(res, 200, casinoModule.spinStatus(playerId)); }

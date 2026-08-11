@@ -1,6 +1,7 @@
 // spawns.js
 const db = require('./db');
 const geo = require('./geo');
+const biomes = require('./biomes');
 // Read the capture radius from the module that enforces it, rather than
 // repeating the number here — otherwise the map and the server could
 // disagree about which droids are reachable.
@@ -72,7 +73,7 @@ function markCellActive(lat, lng) {
   return cell;
 }
 
-function weightedRandomSpecies(refLng, beaconActive = false) {
+function weightedRandomSpecies(refLng, beaconActive = false, cellKey = null) {
   const daytime = isDaytime(refLng);
   const now = Date.now();
   const weights = db.droidSpecies.map((sp) => {
@@ -95,6 +96,11 @@ function weightedRandomSpecies(refLng, beaconActive = false) {
     if (beaconActive && ['rare', 'legendary', 'cosmic'].includes(sp.rarity)) {
       w *= db.BEACON_BOOST_MULTIPLIER;
     }
+    // Biome shaping goes LAST and is multiplicative, so it bends the
+    // local mix without overriding events or windows — a granted event
+    // species still appears in a biome that suppresses its collection,
+    // just a little less often.
+    if (cellKey) w *= biomes.speciesMultiplier(biomes.resolveBiome(cellKey), sp);
     return w;
   });
 
@@ -166,7 +172,7 @@ function getSpawnBoostSource(species, beaconActive) {
 }
 
 function trySpawnInCell(cell, refLng = 0, beaconActive = false) {
-  const species = weightedRandomSpecies(refLng, beaconActive);
+  const species = weightedRandomSpecies(refLng, beaconActive, cell);
   const maxForRarity = db.RARITY_MAX_PER_CELL[species.rarity];
 
   if (countActiveSpawnsInCell(cell, species.rarity) >= maxForRarity) {
@@ -313,6 +319,9 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
     // Sent to the client so the map ring and the "move closer" copy stay
     // in sync with the server automatically when this value is tuned.
     captureRadiusMeters: CAPTURE_RADIUS_METERS,
+    // The biome of the cell the player is standing in, so the scan panel
+    // can tell them what this place favours.
+    biome: biomes.describe(cell),
     // When this cell will next produce fresh droids, so the client can
     // show a meaningful refresh state rather than inviting spam.
     cellRefreshAt: (cellLastGenerated.get(cell) || 0) + CELL_SPAWN_COOLDOWN_MS,

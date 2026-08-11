@@ -78,9 +78,12 @@ function livingDefenders(fort) {
 function fortDefenceMultipliers(fort) {
   // Level-derived defender bonus (from the +2% rewards) applies on top
   // of anything fitted into upgrade slots.
-  let hp = 1 + (fort.defenderBonus || 0);
-  let atk = 1 + (fort.defenderBonus || 0);
-  let shield = 1;
+  // Level-derived defender bonus, plus the adjacency bonus from nearby
+  // friendly Forts — mutual support is the whole point of the mechanic.
+  const adj = forts.adjacencyFor(fort).bonus;
+  let hp = 1 + (fort.defenderBonus || 0) + adj;
+  let atk = 1 + (fort.defenderBonus || 0) + adj;
+  let shield = 1 + adj;
   (fort.upgradeSlots || []).forEach((slot) => {
     if (!slot || !slot.itemId) return;
     try {
@@ -435,6 +438,7 @@ function capture(fortId, playerId, droidIds, playerLat, playerLng) {
 
   forts.assignDroids(playerId, fortId, droidIds, false);
 
+  require('./ladder').award(playerId, 'fortCaptured');
   siege.status = 'captured';
   sieges.delete(fortId);
 

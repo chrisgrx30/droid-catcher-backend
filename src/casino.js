@@ -45,6 +45,76 @@ function payout(player, amount, source) {
   return amount;
 }
 
+
+// ---- dealer droids ----
+// A droid assigned as your dealer tilts the odds slightly. It NEVER
+// removes the house edge — the biggest effect is worth ~2%, so a fully
+// kitted player still loses over time. The point is to give collection
+// depth a use at the tables, not to open a crystal faucet.
+//
+// Which species help is deliberately thematic rather than a stat check:
+// luck-flavoured and trickster droids read as dealers.
+// CEILING CHECK: roulette's base return is 97.3%. About 51.3% of
+// even-money bets lose, so a refund chance of r adds roughly r * 0.513
+// back. A 6% refund measured at 100.73% return — an actual crystal
+// printer. Capped at 3% so the best possible dealer lands near 98.8%
+// and the house still wins over time.
+const MAX_DEALER_REFUND = 0.03;
+const DEALER_BONUS = {
+  Jestrix:     { refund: 0.030, blackjackPeek: 0 },
+  Chronobot:   { refund: 0.025, blackjackPeek: 0.05 },
+  StarSprite:  { refund: 0.020, blackjackPeek: 0.05 },
+  Mirrord:     { refund: 0.015, blackjackPeek: 0.08 },
+  Synaptix:    { refund: 0.010, blackjackPeek: 0.10 },
+};
+const DEFAULT_DEALER = { refund: 0, blackjackPeek: 0 };
+
+function dealerFor(player) {
+  if (!player || !player.dealerDroidId) return { bonus: DEFAULT_DEALER, name: null };
+  const droid = db.ownedDroids.get(player.dealerDroidId);
+  if (!droid) return { bonus: DEFAULT_DEALER, name: null };
+  const species = db.droidSpecies.find((s) => s.id === droid.speciesId);
+  if (!species) return { bonus: DEFAULT_DEALER, name: null };
+  return { bonus: DEALER_BONUS[species.name] || DEFAULT_DEALER, name: species.name };
+}
+
+function setDealer(playerId, droidId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new CasinoError('NO_PLAYER', 'Player not found');
+  if (droidId === null) { player.dealerDroidId = null; return dealerStatus(playerId); }
+  const droid = db.ownedDroids.get(droidId);
+  if (!droid || droid.playerId !== playerId) throw new CasinoError('NO_DROID', 'Droid not found');
+  if (droid.fortId) throw new CasinoError('IN_FORT', 'That droid is garrisoned in a Fort');
+  player.dealerDroidId = droidId;
+  return dealerStatus(playerId);
+}
+
+function dealerStatus(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new CasinoError('NO_PLAYER', 'Player not found');
+  const d = dealerFor(player);
+  const workshop = require('./workshop');
+  const candidates = [...db.ownedDroids.values()]
+    .filter((x) => x.playerId === playerId && !x.fortId)
+    .map((x) => {
+      const e = workshop.enrichDroid(x);
+      return {
+        id: x.id, speciesName: e.speciesName, level: e.level, rarity: e.rarity,
+        bonus: DEALER_BONUS[e.speciesName] || null,
+      };
+    })
+    .sort((a, b) => (b.bonus ? 1 : 0) - (a.bonus ? 1 : 0) || b.level - a.level);
+  return {
+    dealerDroidId: player.dealerDroidId || null,
+    dealerName: d.name,
+    bonus: d.bonus,
+    refundPercent: Math.round(d.bonus.refund * 100),
+    peekPercent: Math.round(d.bonus.blackjackPeek * 100),
+    candidates,
+    knownDealers: Object.keys(DEALER_BONUS),
+  };
+}
+
 // ============================================================
 // ROULETTE — single-zero wheel, 0-36
 // ============================================================
@@ -81,9 +151,19 @@ function playRoulette(playerId, betType, betValue, amount) {
     default: throw new CasinoError('BAD_BET', 'Unknown bet type');
   }
 
-  const winnings = won ? payout(player, bet * multiplier, 'casino_roulette') : 0;
+  let winnings = won ? payout(player, bet * multiplier, 'casino_roulette') : 0;
+  // Dealer droid: a small chance a losing bet is refunded.
+  let dealerRefund = 0;
+  if (!won) {
+    const d = dealerFor(player);
+    if (d.bonus.refund && Math.random() < Math.min(d.bonus.refund, MAX_DEALER_REFUND)) {
+      dealerRefund = payout(player, bet, 'casino_dealer_refund');
+      winnings += dealerRefund;
+    }
+  }
   return {
-    game: 'roulette', result, colour, won, bet,
+    game: 'roulette', result, colour, won, bet, dealerRefund,
+    dealerName: dealerFor(player).name,
     winnings, net: winnings - bet,
     crystalBalance: Math.floor(player.crystalBalance),
   };
@@ -249,6 +329,9 @@ function dailySpin(playerId) {
 module.exports = {
   MIN_BET, MAX_BET, WHEEL, DAILY_SPIN_COOLDOWN_MS,
   playRoulette,
+  setDealer,
+  dealerStatus,
+  DEALER_BONUS,
   blackjackDeal, blackjackHit, blackjackStand,
   dailySpin, spinStatus,
   handTotal,

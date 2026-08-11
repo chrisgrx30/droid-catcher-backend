@@ -79,7 +79,7 @@ const CATALOG = FORGE_ITEMS.map(([id, name, rarity, effect, value]) => ({
   effectLabel: EFFECT_LABELS[effect].label,
   description: EFFECT_LABELS[effect].describe(value),
   // augcore.png lives in assets/equipment/; everything else in assets/forge/
-  icon: id === 'augcore' ? 'AugCore.png' : `${id}.png`,
+  icon: id === 'augcore' ? 'augcore.png' : `${id}.png`,
   folder: id === 'augcore' ? 'equipment' : 'forge',
 }));
 
@@ -184,6 +184,7 @@ function attemptForge(playerId, stages, totalDurationMs) {
   if (success) {
     item = rollItem();
     grant(playerId, item.id);
+    require('./ladder').award(playerId, 'forgeSuccess');
   }
 
   return {

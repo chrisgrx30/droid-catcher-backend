@@ -857,6 +857,7 @@ const TRADEABLE_MATERIALS = [
   { key: 'guildTokens', name: 'Guild Tokens' },
   { key: 'joyCoins', name: 'Joy Coins' },
   { key: 'fortTokens', name: 'Fort Tokens' },
+  { key: 'emps', name: 'EMPs' },
 ];
 
 // ---- Smuggler's Trade ----
@@ -955,8 +956,14 @@ const SHOP_CATALOG = [
   // RAM and Repair Kits above. Keep these entries when the drops ship;
   // just stop them being the only source.
   { id: 'titan_token', name: 'Titan Token', cost: 1000000, type: 'material', grants: { titanTokens: 1 } },
-  { id: 'guild_token', name: 'Guild Token', cost: 1000000, type: 'material', grants: { guildTokens: 1 } },
+  // Guild Tokens deliberately NOT sold. They now have three real earn
+  // routes — Fort daily payouts, winning alongside a guildmate, and the
+  // weekly ladder — so selling them would undercut all three.
   { id: 'joy_coin', name: 'Joy Coin', cost: 1000000, type: 'material', grants: { joyCoins: 1 } },
+  // Battle equipment — one-use, so priced as a consumable rather than a
+  // permanent upgrade.
+  { id: 'emp', name: 'EMP', cost: 8000, type: 'material', grants: { emps: 1 } },
+  { id: 'augment_core', name: 'Augment Core', cost: 12000, type: 'material', grants: { augmentCores: 1 } },
 ];
 
 // All-or-nothing: validates every item and the combined total cost
@@ -2177,6 +2184,9 @@ function createPlayer(username, pin) {
     fortTokens: 0,
     forgeItems: {},
     forgeCooldownUntil: null,
+    dealerDroidId: null,
+    equippedBattleItem: null,
+    emps: 0,
     dailySpinUntil: null,
     playerBadgeId: null,
     playerBadgeIcon: null,
@@ -2486,6 +2496,7 @@ function exportState() {
     // MUST survive a redeploy — an audit log that resets on every push
     // would be worthless.
     forts: require('./forts').exportForts(),
+    ladder: require('./ladder').exportLadder(),
     adminLog: require('./admin').adminLog.slice(-2000),
     adminUsers: [...require('./admin').adminUsers.values()],
   };
@@ -2496,6 +2507,7 @@ function importState(state) {
   // Restore the admin log first so anything logged during import is
   // appended rather than overwritten.
   try { require('./forts').importForts(state.forts); } catch (e) {}
+  try { require('./ladder').importLadder(state.ladder); } catch (e) {}
   try {
     const admin = require('./admin');
     admin.adminLog.length = 0;
@@ -2587,6 +2599,9 @@ function importState(state) {
     fortTokens: 0,
     forgeItems: {},
     forgeCooldownUntil: null,
+    dealerDroidId: null,
+    equippedBattleItem: null,
+    emps: 0,
     dailySpinUntil: null,
     playerBadgeId: null,
     playerBadgeIcon: null,

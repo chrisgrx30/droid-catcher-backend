@@ -364,6 +364,14 @@
   }
   .out-of-reach-toggle .oor-caret { float: right; }
 
+  .ladder-row { display:flex; align-items:center; gap:8px; font-size:10px; padding:5px 0; border-bottom:1px solid var(--line); }
+  .ladder-row:last-child { border-bottom:none; }
+  .ladder-row.mine { background: rgba(95,216,224,0.10); }
+  .ladder-row .lr-rank { width:26px; font-weight:800; color:var(--text-dim); }
+  .ladder-row .lr-name { flex:1; color:#fff; }
+  .ladder-row.mine .lr-rank { color: var(--cyan); }
+  .biome-chip { display:inline-block; padding:2px 6px; border-radius:10px; font-size:8px; }
+
   .set-head { font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 5px; }
   #playerAvatar { width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--cyan); overflow: hidden; background: var(--panel-raised); display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; cursor: pointer; }
 
@@ -930,6 +938,7 @@
     </div>
     <span style="display:flex; align-items:center; gap:6px; margin-top:2px;">
       <span style="color:var(--text-dim); font-size:9px;" id="appVersion">v—</span>
+      <button class="tab-btn active" data-tab="home" title="Home" style="width:auto; margin:0; padding:3px 8px; font-size:11px; line-height:1;">🏠</button>
       <button id="btnSettings" title="Settings" style="width:auto; margin:0; padding:3px 7px; font-size:11px; line-height:1;">⚙️</button>
     </span>
     <input type="text" id="serverUrl" value="" placeholder="same as this page" style="display:none;">
@@ -937,7 +946,6 @@
 </header>
 
 <div class="tab-nav" id="tabNav">
-  <button class="tab-btn active" data-tab="home">🏠 Home</button>
   <button class="tab-btn" data-tab="player">🧑‍🚀 Player</button>
   <button class="tab-btn" data-tab="capture">📡 Override</button>
   <button class="tab-btn" data-tab="fieldops">🛠️ Field Ops</button>
@@ -946,6 +954,7 @@
   <button class="tab-btn" data-tab="companion">🐾 Companion</button>
   <button class="tab-btn" data-tab="inventory">🎒 Inventory</button>
   <button class="tab-btn" data-tab="social">🔄 Trading</button>
+  <button class="tab-btn" data-tab="lounge">🎰 Spark Lounge</button>
   <button class="tab-btn" data-tab="dex">📖 Dex</button>
   <button class="tab-btn" data-tab="battles">⚔️ Battles</button>
   <button class="tab-btn" data-tab="livepvp">⚡ Live PVP</button>
@@ -1152,6 +1161,7 @@
 <div class="tab-page" id="tab-capture">
   <div class="panel" id="radarSweepPanel">
     <div class="panel-title">Radar Sweep <span id="todBadge" style="color: var(--text-dim);"></span></div>
+    <div id="scanBiome" style="font-size:10px; text-align:center; margin:6px 0;"></div>
     <div id="scanLocalTime" style="font-size:9px; color:var(--text-dim); text-align:center; margin:6px 0;"></div>
     <div id="coordOverrideBanner"></div>
     <div id="beaconCellBanner"></div>
@@ -1263,6 +1273,7 @@
   <div class="panel" id="chooseBattleTeamPanel" style="margin-top:16px;">
     <div class="panel-title">Choose Your Battle Team <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— exactly 4, no fainted</span></div>
     <div id="battleTeamPicker" style="margin-top:8px;"></div>
+    <div id="battleItemSlot" style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px;"></div>
   </div>
 
   <div class="panel" style="margin-top:16px; display:none;" id="activeBattlePanel">
@@ -1311,6 +1322,16 @@
       <input type="text" id="joinGuildId" placeholder="e.g. 3">
       <button id="btnJoinGuild">Join Guild</button>
     </div>
+  </div>
+
+  <div class="panel" id="ladderPanel">
+    <div class="panel-title">🏅 Weekly Guild Ladder <span id="ladderWeek" style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;"></span></div>
+    <div id="ladderPrizeBanner"></div>
+    <div id="ladderStandings"><div class="empty">Loading…</div></div>
+    <details style="margin-top:8px;">
+      <summary style="font-size:9px; color:var(--text-dim); cursor:pointer;">How points are scored</summary>
+      <div id="ladderPoints" style="font-size:9px; color:var(--text-dim); margin-top:6px;"></div>
+    </details>
   </div>
 
   <div class="panel" id="guildProgressPanel">
@@ -1372,6 +1393,63 @@
 </div>
 
 <!-- BROOD CHAMBER TAB -->
+<!-- SPARK LOUNGE TAB -->
+<div class="tab-page" id="tab-lounge">
+<div class="panel" id="casinoPanel">
+    <div class="panel-title">🎰 The Spark Lounge</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">
+      Bet crystals. The house has an edge — these are a crystal sink, not a way to farm.
+      The daily spin is free and always pays.
+    </div>
+
+    <div id="dailySpinBox" class="casino-box">
+      <div class="cb-title">🎡 Daily Spin — free</div>
+      <div id="dailySpinStatus" style="font-size:10px; color:var(--text-dim);">—</div>
+      <button id="btnDailySpin" class="primary" style="margin-top:8px;">Spin</button>
+    </div>
+
+    <div class="casino-box" style="margin-top:12px;">
+      <div class="cb-title">🔴 Roulette</div>
+      <label style="margin-top:4px;">Bet amount</label>
+      <input type="number" id="rouletteBet" value="500" min="100" step="100">
+      <div class="roulette-grid">
+        <button class="rl-bet" data-type="red" style="background:#b3352f; border-color:#b3352f; color:#fff;">Red 2x</button>
+        <button class="rl-bet" data-type="black" style="background:#22262b; border-color:#555; color:#fff;">Black 2x</button>
+        <button class="rl-bet" data-type="odd">Odd 2x</button>
+        <button class="rl-bet" data-type="even">Even 2x</button>
+        <button class="rl-bet" data-type="low">1-18 2x</button>
+        <button class="rl-bet" data-type="high">19-36 2x</button>
+      </div>
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <input type="number" id="rouletteNumber" min="0" max="36" placeholder="0-36" style="flex:1; margin-top:0;">
+        <button class="rl-bet" data-type="number" style="width:auto; margin-top:0; padding:8px 12px;">Straight 36x</button>
+      </div>
+      <div id="rouletteResult" style="margin-top:8px; font-size:11px; text-align:center;"></div>
+    </div>
+
+    <div class="casino-box" style="margin-top:12px;">
+      <div class="cb-title">🃏 Blackjack</div>
+      <div id="blackjackTable">
+        <label style="margin-top:4px;">Bet amount</label>
+        <input type="number" id="blackjackBet" value="500" min="100" step="100">
+        <button id="btnBlackjackDeal" class="primary" style="margin-top:8px;">Deal</button>
+      </div>
+      <div id="blackjackResult" style="margin-top:8px; font-size:11px;"></div>
+    </div>
+  </div>
+
+
+    <div class="panel" id="dealerPanel" style="margin-top:16px;">
+    <div class="panel-title">🃏 Dealer Droid</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">
+      Assign a droid as your dealer. Some species tilt the odds slightly in your favour —
+      it never removes the house edge, it just softens it.
+    </div>
+    <div id="dealerSlot"></div>
+    <button id="btnPickDealer" style="margin-top:8px; font-size:10px;">Choose Dealer Droid</button>
+  </div>
+</div>
+
 <div class="tab-page" id="tab-brood">
   <div class="panel" id="broodChamberPanel">
     <div class="panel-title">🔮 Brood Chamber</div>
@@ -1395,8 +1473,10 @@
   <div class="panel" id="broodMergePanel" style="margin-top:16px;">
     <div class="panel-title">Merge</div>
     <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Pick exactly two droids. Cost: <span id="broodMergeCost">5,000</span> crystals.</div>
-    <div id="broodMergePicker"></div>
-    <button id="btnBroodMerge" style="margin-top:10px; background:#8b6de0; border-color:#8b6de0; color:#fff; font-weight:700;">Merge Selected</button>
+    <!-- Merge button sits ABOVE the list: with hundreds of droids the
+         list scrolls a long way, and a button at the bottom is a hunt. -->
+    <button id="btnBroodMerge" style="margin-bottom:10px; background:#8b6de0; border-color:#8b6de0; color:#fff; font-weight:700;">Merge Selected (0/2)</button>
+    <div id="broodMergePicker" style="max-height:340px; overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -1465,50 +1545,6 @@
 
 <!-- EVENTS & TRADING TAB -->
 <div class="tab-page" id="tab-social">
-  <div class="panel" id="casinoPanel">
-    <div class="panel-title">🎰 The Spark Lounge</div>
-    <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">
-      Bet crystals. The house has an edge — these are a crystal sink, not a way to farm.
-      The daily spin is free and always pays.
-    </div>
-
-    <div id="dailySpinBox" class="casino-box">
-      <div class="cb-title">🎡 Daily Spin — free</div>
-      <div id="dailySpinStatus" style="font-size:10px; color:var(--text-dim);">—</div>
-      <button id="btnDailySpin" class="primary" style="margin-top:8px;">Spin</button>
-    </div>
-
-    <div class="casino-box" style="margin-top:12px;">
-      <div class="cb-title">🔴 Roulette</div>
-      <label style="margin-top:4px;">Bet amount</label>
-      <input type="number" id="rouletteBet" value="500" min="100" step="100">
-      <div class="roulette-grid">
-        <button class="rl-bet" data-type="red" style="background:#b3352f; border-color:#b3352f; color:#fff;">Red 2x</button>
-        <button class="rl-bet" data-type="black" style="background:#22262b; border-color:#555; color:#fff;">Black 2x</button>
-        <button class="rl-bet" data-type="odd">Odd 2x</button>
-        <button class="rl-bet" data-type="even">Even 2x</button>
-        <button class="rl-bet" data-type="low">1-18 2x</button>
-        <button class="rl-bet" data-type="high">19-36 2x</button>
-      </div>
-      <div style="display:flex; gap:6px; margin-top:6px;">
-        <input type="number" id="rouletteNumber" min="0" max="36" placeholder="0-36" style="flex:1; margin-top:0;">
-        <button class="rl-bet" data-type="number" style="width:auto; margin-top:0; padding:8px 12px;">Straight 36x</button>
-      </div>
-      <div id="rouletteResult" style="margin-top:8px; font-size:11px; text-align:center;"></div>
-    </div>
-
-    <div class="casino-box" style="margin-top:12px;">
-      <div class="cb-title">🃏 Blackjack</div>
-      <div id="blackjackTable">
-        <label style="margin-top:4px;">Bet amount</label>
-        <input type="number" id="blackjackBet" value="500" min="100" step="100">
-        <button id="btnBlackjackDeal" class="primary" style="margin-top:8px;">Deal</button>
-      </div>
-      <div id="blackjackResult" style="margin-top:8px; font-size:11px;"></div>
-    </div>
-  </div>
-
-
   <div class="panel" id="tradingMainPanel">
     <div class="panel-title">Trading</div>
     <label>Target Player ID</label>
@@ -1633,7 +1669,19 @@
 
 <!-- ADMIN TAB -->
 <div class="tab-page" id="tab-admin">
-  <div class="panel" id="adminLogPanel">
+  <div class="panel" id="fortModPanel">
+    <div class="panel-title">🏰 Fort Photo Approvals <span id="fortModCount" style="color:var(--amber); font-weight:400; text-transform:none; font-size:9px;"></span></div>
+    <button id="btnLoadFortMod" style="margin-top:0; font-size:9px; padding:8px;">Load Queue</button>
+    <div id="fortModList" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="panel" id="adminFortsPanel" style="margin-top:16px;">
+    <div class="panel-title">🗺️ All Forts</div>
+    <button id="btnLoadAdminForts" style="margin-top:0; font-size:9px; padding:8px;">Load Fort List</button>
+    <div id="adminFortsList" style="margin-top:8px; max-height:320px; overflow-y:auto;"></div>
+  </div>
+
+  <div class="panel" id="adminLogPanel" style="margin-top:16px;">
     <div class="panel-title">Admin Activity Log</div>
     <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Every admin action is recorded with the player who performed it. Failed code attempts are logged too.</div>
     <div style="display:flex; gap:6px;">
@@ -1807,11 +1855,13 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     // initialized or updated while its container was hidden by the
     // previous tab's display:none — recalculating size on every visit
     // to this tab fixes it reliably.
+    if (btn.dataset.tab === 'battles') refreshBattleItems();
+    if (btn.dataset.tab === 'lounge') { refreshCasino(); refreshDealer(); }
     if (btn.dataset.tab === 'livepvp') refreshLivePvp();
     if (btn.dataset.tab === 'brood') { refreshMastery().then(refreshBrood); }
     if (btn.dataset.tab === 'achievements') refreshAchievements();
     if (btn.dataset.tab === 'social') refreshCasino();
-    if (btn.dataset.tab === 'guilds') { refreshTerritory(); refreshSieges(); refreshGuildProgress(); refreshArmoury(); }
+    if (btn.dataset.tab === 'guilds') { refreshTerritory(); refreshSieges(); refreshGuildProgress(); refreshArmoury(); refreshLadder(); }
     if (btn.dataset.tab === 'capture' && locationMap) {
       setTimeout(() => locationMap.invalidateSize(), 50);
     }
@@ -1979,13 +2029,14 @@ function highlightSpawnCard(spawnId) {
 // Written each build round — a short, plain-language summary of what
 // just shipped. Update this string when packaging a new release.
 const HOME_CHANGELOG = `
-  <p><strong>Latest update — v0.8.2: FORTS</strong></p>
+  <p><strong>Latest update — v0.9.2:</strong></p>
   <ul style="margin:6px 0 0; padding-left:18px;">
-    <li><strong>🏰 Build Forts</strong> at real map locations. Garrison droids, hold territory, see rival Forts on your map.</li>
-    <li><strong>⚔️ Take rival Forts</strong> — grind the garrison down, then break the shield. Defenders don't heal on their own.</li>
-    <li><strong>Fort levelling to 13</strong> with Guild Tokens — more droid slots, stronger shields, upgrade slots and bigger daily token payouts.</li>
-    <li><strong>⚒️ The Forge</strong> — a three-stage guild minigame producing 21 upgrade items for your Forts and Apex battles.</li>
-    <li><strong>🛡️ Guild levelling</strong> — check in daily to level your guild to 10 and unlock guild badges.</li>
+    <li><strong>🎰 Spark Lounge</strong> is now its own tab, with <strong>Dealer Droids</strong> that soften the house edge.</li>
+    <li><strong>🌳 Biomes</strong> — every area now favours different droids. Look for rare Anomaly Fields.</li>
+    <li><strong>🏅 Weekly guild ladder</strong> — compete for Guild Tokens and crystals, paid to every member.</li>
+    <li><strong>Fort photos</strong> — add a picture of your Fort's real location (admin approved).</li>
+    <li><strong>Battle equipment</strong> — equip an Augment Core or EMP next to your battle team.</li>
+    <li>Warehouse now groups droids on duty, and the merge list shows [DUPE] tags.</li>
   </ul>
 `;
 
@@ -2466,6 +2517,12 @@ async function scanAt(lat, lng) {
     // is what decides football weekends and night-only lines.
     refreshNearbyForts(lat, lng);
     updateBuildFortButton();
+    // Biome readout — tells the player what this place favours.
+    const bi = $('scanBiome');
+    if (bi && data.biome) {
+      bi.innerHTML = `<span style="color:${data.biome.colour}; font-weight:700;">${data.biome.icon} ${data.biome.name}</span>`
+        + `<div style="font-size:8px; color:var(--text-dim);">${escapeHtml(data.biome.blurb)}</div>`;
+    }
     const lt = $('scanLocalTime');
     if (lt && data.localDayName) {
       const h = Math.floor(data.localHour), m = Math.round((data.localHour % 1) * 60);
@@ -3034,8 +3091,19 @@ let selectedDroidIds = new Set();
 function renderDroids() {
   const list = $('droidList');
   const searchTerm = ($('warehouseSearch').value || '').trim().toLowerCase();
-  let sorted = sortedDroidsForDisplay().filter((d) => !d.workshopSlotId); // farming droids live on the Farm tab now
+  // Busy droids (Fort garrison, companion, buddy, dealer) are now shown
+  // in their OWN groups rather than mixed into the idle roster — you
+  // can't act on them here, so burying them among droids you can act on
+  // just makes the list harder to read.
+  let sorted = sortedDroidsForDisplay().filter((d) => !d.workshopSlotId); // farming droids live on the Farm tab
   if (searchTerm) sorted = sorted.filter((d) => d.speciesName.toLowerCase().includes(searchTerm));
+  const busyGroups = [
+    { key: 'fort', label: '🏰 Fort Guards', droids: sorted.filter((d) => d.activity === 'fort') },
+    { key: 'companion', label: '🐾 Companion', droids: sorted.filter((d) => d.activity === 'companion') },
+    { key: 'buddy', label: '★ Mastery Buddy', droids: sorted.filter((d) => d.activity === 'buddy') },
+    { key: 'dealer', label: '🃏 Dealer Droid', droids: sorted.filter((d) => d.activity === 'dealer') },
+  ].filter((g) => g.droids.length);
+  sorted = sorted.filter((d) => !d.activity || d.activity === 'idle');
   selectedDroidIds = new Set([...selectedDroidIds].filter((id) => sorted.some((d) => d.id === id)));
 
   if (!sorted.length) {
@@ -3049,6 +3117,24 @@ function renderDroids() {
   // Fainted droids get their own dropdown at the top — they need
   // attention (healing), so they shouldn't be buried inside a rarity
   // group among perfectly healthy droids.
+  busyGroups.forEach((g) => {
+    const det = document.createElement('details');
+    det.className = 'ward-set';
+    det.innerHTML = `<summary>${g.label} (${g.droids.length}) — on duty, not available</summary>`;
+    const body = document.createElement('div');
+    g.droids.forEach((d) => {
+      const row = document.createElement('div');
+      row.className = 'droid-row';
+      row.style.cssText = 'opacity:0.75; font-size:10px; padding:5px 0;';
+      row.innerHTML = `<span style="flex:1;">${escapeHtml(d.speciesName)} <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span></span>
+        <span style="color:var(--text-dim); font-size:9px;">Lv ${d.level}${d.masteryLevel ? ` · ★${d.masteryLevel}` : ''}</span>`;
+      row.onclick = () => showStatsModal(d);
+      body.appendChild(row);
+    });
+    det.appendChild(body);
+    list.appendChild(det);
+  });
+
   const faintedDroids = sorted.filter((d) => d.fainted);
   const healthyDroids = sorted.filter((d) => !d.fainted);
 
@@ -4892,6 +4978,10 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('buildFortPanel', 'buildfort');
   applyPanelBackground('territoryPanel', 'territory');
   applyPanelBackground('siegePanel', 'siege');
+  applyPanelBackground('ladderPanel', 'ladder');
+  applyPanelBackground('dealerPanel', 'dealer');
+  applyPanelBackground('fortModPanel', 'fortmod');
+  applyPanelBackground('adminFortsPanel', 'adminforts');
   applyPanelBackground('guildProgressPanel', 'guildlevel');
   applyPanelBackground('armouryPanel', 'armoury');
   applyPanelBackground('broodChamberPanel', 'broodchamber', 'astral');
@@ -6136,6 +6226,7 @@ async function refreshTerritory() {
           <span style="margin-left:auto; font-size:9px; color:var(--text-dim);">${f.activeDroids}/${f.droidSlots}</span>
         </div>
         <div style="font-size:9px; color:var(--text-dim); margin-top:3px;">Shield ${f.shieldPercent}% · Token rewards ${f.tokenDaysLeft}d left · ${f.upgradeSlotCount} upgrade slots</div>
+        ${f.adjacency && f.adjacency.counted ? `<div style="font-size:9px; color:#2a9d4a; margin-top:2px;">🔗 ${f.adjacency.neighbours} allied Fort${f.adjacency.neighbours === 1 ? '' : 's'} within ${f.adjacency.radiusKm}km — +${f.adjacency.percent}% shield &amp; defenders</div>` : ''}
         <div class="fort-bar"><div style="width:${f.shieldPercent}%;"></div></div>
         <div style="margin-top:6px;">
           ${f.garrison.map((d) => `<span class="garrison-chip ${d.fainted ? 'fainted' : ''}">${escapeHtml(d.speciesName)} L${d.level}${d.fainted ? ' 💀' : ''}${d.ownerId === state.playerId ? ` <button class="fort-withdraw" data-fort="${f.id}" data-droid="${d.id}" style="width:auto;margin:0;padding:0 3px;font-size:8px;background:none;border:none;color:var(--danger);">✕</button>` : ''}</span>`).join('')
@@ -6536,6 +6627,213 @@ function showUpgradeSlotPicker(fortId, slotIndex) {
     };
   });
   box.querySelector('#upgCancel').onclick = () => { overlay.style.display = 'none'; };
+}
+
+// ============================================================
+// BATTLE EQUIPMENT
+// ============================================================
+
+async function refreshBattleItems() {
+  const el = $('battleItemSlot');
+  if (!el || !state.playerId) return;
+  try {
+    const d = await api('GET', `/battle-items/${state.playerId}`);
+    state.battleItems = d;
+    el.innerHTML = `
+      <div style="font-size:8px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); margin-bottom:5px;">Battle equipment — one use, consumed when the fight starts</div>
+      <div style="display:flex; gap:6px;">
+        ${d.items.map((i) => `
+          <button class="bi-pick" data-key="${i.key}"
+                  style="flex:1; margin-top:0; font-size:9px; padding:7px 4px; ${d.equipped === i.key ? 'background:var(--cyan); border-color:var(--cyan); color:#04181a; font-weight:700;' : ''}"
+                  ${i.owned ? '' : 'disabled'} title="${escapeHtml(i.blurb)}">
+            ${i.name}<br><span style="font-size:8px; opacity:0.8;">x${i.owned}</span>
+          </button>`).join('')}
+        ${d.equipped ? '<button class="bi-clear ghost" style="width:auto; margin-top:0; font-size:9px; padding:7px 10px;">Clear</button>' : ''}
+      </div>
+      ${d.equipped ? `<div style="font-size:9px; color:var(--cyan); margin-top:5px;">${escapeHtml((d.items.find((i) => i.key === d.equipped) || {}).blurb || '')}</div>` : ''}`;
+
+    el.querySelectorAll('.bi-pick').forEach((b) => {
+      b.onclick = async () => {
+        try { await api('POST', '/battle-items/equip', { playerId: state.playerId, itemKey: b.dataset.key }); await refreshBattleItems(); }
+        catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not equip that.'); }
+      };
+    });
+    const clr = el.querySelector('.bi-clear');
+    if (clr) clr.onclick = async () => {
+      try { await api('POST', '/battle-items/equip', { playerId: state.playerId, itemKey: null }); await refreshBattleItems(); } catch (e) {}
+    };
+  } catch (e) {}
+}
+
+// ---- dealer droid ----
+async function refreshDealer() {
+  const el = $('dealerSlot');
+  if (!el || !state.playerId) return;
+  try {
+    const d = await api('GET', `/casino/dealer/${state.playerId}`);
+    state.dealer = d;
+    el.innerHTML = d.dealerDroidId
+      ? `<div style="font-size:11px; color:#fff;">🃏 ${escapeHtml(d.dealerName)}</div>
+         <div style="font-size:9px; color:var(--cyan);">${d.refundPercent}% chance a losing roulette bet is refunded</div>
+         <button id="btnClearDealer" class="ghost" style="margin-top:6px; font-size:9px; padding:6px 10px; width:auto;">Remove</button>`
+      : '<div style="font-size:10px; color:var(--text-dim);">No dealer assigned.</div>';
+    const cd = el.querySelector('#btnClearDealer');
+    if (cd) cd.onclick = async () => {
+      try { await api('POST', '/casino/dealer', { playerId: state.playerId, droidId: null }); await refreshDealer(); } catch (e) {}
+    };
+  } catch (e) {}
+}
+
+$('btnPickDealer').onclick = async () => {
+  if (!state.dealer) await refreshDealer();
+  const d = state.dealer;
+  if (!d || !d.candidates.length) { showGuildResultPopup(false, 'You have no droids available.'); return; }
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-title" style="color:#fff;">🃏 Choose a Dealer</div>
+    <div class="mb-detail">Some species tilt the odds. It never removes the house edge.</div>
+    <div style="max-height:230px; overflow-y:auto; text-align:left; margin-top:8px;">
+      ${d.candidates.map((c) => `
+        <div class="merge-pick" data-id="${c.id}">
+          <span class="mp-name">${escapeHtml(c.speciesName)} ${c.bonus ? `<span style="color:var(--cyan); font-size:8px;">+${Math.round(c.bonus.refund * 100)}% refund</span>` : ''}</span>
+          <span style="color:var(--text-dim); font-size:9px;">Lv ${c.level}</span>
+        </div>`).join('')}
+    </div>
+    <button id="dealerCancel" class="ghost" style="margin-top:12px;">Cancel</button>`;
+  overlay.style.display = 'flex';
+  box.querySelectorAll('.merge-pick').forEach((r) => {
+    r.onclick = async () => {
+      try {
+        await api('POST', '/casino/dealer', { playerId: state.playerId, droidId: Number(r.dataset.id) });
+        overlay.style.display = 'none';
+        await refreshDealer();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not set dealer.'); }
+    };
+  });
+  box.querySelector('#dealerCancel').onclick = () => { overlay.style.display = 'none'; };
+};
+
+// ============================================================
+// FORT PHOTOS + ADMIN FORT TOOLS
+// ============================================================
+
+function submitFortPhoto(fortId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    // Fort photos go into the Upstash save, so an unbounded image would
+    // blow the snapshot size for every player, not just this one.
+    if (file.size > 150 * 1024) { showGuildResultPopup(false, 'Please pick an image under 150KB — Fort photos are stored in the save file.'); return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        await api('POST', `/forts/${fortId}/image`, { playerId: state.playerId, dataUrl: reader.result });
+        showGuildResultPopup(true, '📷 Photo submitted — an admin will review it before it appears.');
+        await refreshTerritory();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not submit that photo.'); }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+window.submitFortPhoto = submitFortPhoto;
+
+$('btnLoadFortMod').onclick = async () => {
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
+  try {
+    const d = await api('GET', `/admin/fort-images?adminCode=${encodeURIComponent(adminCode)}&playerId=${state.playerId}`);
+    $('fortModCount').textContent = d.pending.length ? `— ${d.pending.length} waiting` : '— none waiting';
+    $('fortModList').innerHTML = d.pending.length
+      ? d.pending.map((p) => `
+          <div style="border:1px solid var(--line); border-radius:4px; padding:8px; margin-bottom:8px;">
+            <img src="${p.dataUrl}" style="width:100%; max-height:180px; object-fit:contain; border-radius:4px;">
+            <div style="font-size:10px; color:#fff; margin-top:5px;">🏰 ${escapeHtml(p.fortName)}</div>
+            <div style="font-size:9px; color:var(--text-dim);">${escapeHtml(p.guildName)} · by ${escapeHtml(p.submittedByName)} · ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+              <button class="fm-ok" data-id="${p.fortId}" data-code="${adminCode}" style="flex:1; margin-top:0; font-size:9px; background:#2a9d4a; border-color:#2a9d4a; color:#fff;">Approve</button>
+              <button class="fm-no" data-id="${p.fortId}" data-code="${adminCode}" style="flex:1; margin-top:0; font-size:9px; color:var(--danger); border-color:var(--danger);">Reject</button>
+            </div>
+          </div>`).join('')
+      : '<div class="empty">Nothing waiting for review</div>';
+    const review = async (fortId, approve, code) => {
+      try {
+        await api('POST', '/admin/fort-images/review', { playerId: state.playerId, adminCode: code, fortId: Number(fortId), approve });
+        $('btnLoadFortMod').click();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Review failed.'); }
+    };
+    $('fortModList').querySelectorAll('.fm-ok').forEach((b) => { b.onclick = () => review(b.dataset.id, true, b.dataset.code); });
+    $('fortModList').querySelectorAll('.fm-no').forEach((b) => { b.onclick = () => review(b.dataset.id, false, b.dataset.code); });
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Access denied.'); }
+};
+
+$('btnLoadAdminForts').onclick = async () => {
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
+  try {
+    const d = await api('GET', `/admin/forts?adminCode=${encodeURIComponent(adminCode)}&playerId=${state.playerId}`);
+    $('adminFortsList').innerHTML = d.forts.length
+      ? d.forts.map((f) => `
+          <div class="stat-row">
+            <span class="stat-label" style="flex:1;">🏰 ${escapeHtml(f.name)}
+              <div style="font-size:8px; color:var(--text-dim); text-transform:none; letter-spacing:0;">
+                ${escapeHtml(f.guildName)} · L${f.level} · ${f.droidCount}/${f.droidSlots} droids · shield ${f.shieldPercent}%
+                ${f.underAttack ? ' · UNDER ATTACK' : ''}${f.captured ? ' · captured' : ''}${f.pendingImage ? ' · 📷 pending' : ''}
+                <br>${f.lat.toFixed(4)}, ${f.lng.toFixed(4)} · tokens ${f.tokenDaysLeft}d
+              </div>
+            </span>
+          </div>`).join('')
+      : '<div class="empty">No Forts have been built yet</div>';
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Access denied.'); }
+};
+
+// ============================================================
+// WEEKLY GUILD LADDER
+// ============================================================
+
+async function refreshLadder() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/ladder/${state.playerId}`);
+    state.ladder = d;
+    const days = Math.max(0, Math.ceil((d.endsAt - Date.now()) / 86400000));
+    $('ladderWeek').textContent = `${d.weekKey} · ${days} day${days === 1 ? '' : 's'} left`;
+
+    // Last week's prize, if this player hasn't taken it yet.
+    const lw = d.lastWeek;
+    $('ladderPrizeBanner').innerHTML = lw.claimable
+      ? `<div style="border:1px solid var(--amber); background:rgba(232,169,79,0.14); border-radius:4px; padding:8px; margin-bottom:8px; font-size:10px; color:var(--amber);">
+           🏅 Your guild finished #${lw.myRank} last week — ${lw.prize.guildTokens} Guild Tokens + ${lw.prize.crystals.toLocaleString()}✦
+           <button id="btnClaimLadder" style="margin-top:6px; background:var(--amber); border-color:var(--amber); color:#201002; font-weight:700;">Claim</button>
+         </div>`
+      : (lw.claimed ? '<div style="font-size:9px; color:var(--text-dim); margin-bottom:6px;">Last week\'s prize claimed ✓</div>' : '');
+
+    $('ladderStandings').innerHTML = d.standings.length
+      ? d.standings.map((r) => `
+          <div class="ladder-row ${d.myGuild && r.guildId === d.myGuild.guildId ? 'mine' : ''}">
+            <span class="lr-rank">${r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : '#' + r.rank}</span>
+            <span class="lr-name">${escapeHtml(r.guildName)} <span style="color:var(--text-dim); font-size:8px;">${r.memberCount} members</span></span>
+            <span style="color:var(--cyan); font-weight:700;">${r.points.toLocaleString()}</span>
+          </div>`).join('')
+      : '<div class="empty">No guild has scored yet this week — be first</div>';
+
+    $('ladderPoints').innerHTML = Object.entries(d.points)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `<div>${k.replace(/([A-Z])/g, ' $1').toLowerCase()} — <strong style="color:var(--cyan);">${v}</strong></div>`).join('');
+
+    const cb = $('btnClaimLadder');
+    if (cb) cb.onclick = () => guardedAction('ladder', async () => {
+      try {
+        const r = await api('POST', '/ladder/claim', { playerId: state.playerId });
+        showGuildResultPopup(true, `🏅 Rank #${r.rank} reward claimed — ${r.guildTokens} Guild Tokens and ${r.crystals.toLocaleString()} crystals.`);
+        await refreshLadder(); await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not claim.'); }
+    });
+  } catch (e) {}
 }
 
 // ============================================================
@@ -6948,7 +7246,7 @@ async function refreshBrood() {
       b.onclick = async () => {
         try {
           const r = await api('POST', '/brood/collect', { playerId: state.playerId, bayId: Number(b.dataset.id) });
-          showGuildResultPopup(true, `🔮 Hatched: ${r.hatched.name} (${r.hatched.rarity}${r.hatched.variant !== 'standard' ? ', ' + r.hatched.variant : ''})`);
+          showHatchedDroidPopup(r.hatched);
           await refreshBrood();
           await refreshWorkshop();
           await refreshDex();
@@ -6958,6 +7256,24 @@ async function refreshBrood() {
 
     renderBroodPicker();
   } catch (e) {}
+}
+
+// Collecting an egg shows the droid you actually got, not just its name.
+function showHatchedDroidPopup(h) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const slug = h.name.toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
+  box.innerHTML = `
+    <div style="width:min(60vw,180px); height:min(60vw,180px); margin:0 auto 10px;">
+      <img src="/assets/droids/${slug}.png" style="width:100%;height:100%;object-fit:contain;"
+           onerror="this.parentElement.innerHTML='<div style=\'font-size:70px;\'>🔮</div>';">
+    </div>
+    <div class="mb-title success">${escapeHtml(h.name)}</div>
+    <div class="mb-detail"><span class="spawn-rarity ${h.rarity}">${h.rarity}</span>${h.variant !== 'standard' ? ` · ${h.variant}` : ''}</div>
+    <div class="mb-detail" style="font-size:9px;">Hatched from the Brood Chamber</div>
+    <button class="primary mb-close" style="margin-top:12px;">Nice</button>`;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
 }
 
 function renderBroodPicker() {
@@ -6994,10 +7310,20 @@ function renderBroodPicker() {
     wireBroodFilters(el);
     return;
   }
+  // Count species so duplicates can be flagged — merging away your only
+  // copy of something is a mistake worth warning about, and merging a
+  // spare is exactly what this screen is for.
+  const speciesCount = {};
+  (state.droids || []).forEach((d) => { speciesCount[d.speciesName] = (speciesCount[d.speciesName] || 0) + 1; });
+
   el.innerHTML = filterBar + eligible.map((d) => `
     <div class="merge-pick ${broodSelection.has(d.id) ? 'selected' : ''}" data-id="${d.id}">
-      <span class="mp-name">${d.speciesName} <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span></span>
-      <span style="color:var(--text-dim); font-size:9px;">Lv ${d.level}${d.variant !== 'standard' ? ' · ' + d.variant : ''}</span>
+      <span class="mp-name">${escapeHtml(d.speciesName)}
+        <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span>
+        ${speciesCount[d.speciesName] > 1 ? '<span style="color:var(--amber); font-size:8px; font-weight:800;">[DUPE]</span>' : ''}
+        ${d.variant !== 'standard' ? `<span class="variant-dot ${d.variant} caught" title="${d.variant}" style="display:inline-block; vertical-align:middle; margin-left:3px;"></span>` : ''}
+      </span>
+      <span style="color:var(--text-dim); font-size:9px;">Lv ${d.level}</span>
     </div>`).join('');
 
   wireBroodFilters(el);
@@ -7013,6 +7339,8 @@ function renderBroodPicker() {
         broodSelection.add(id);
       }
       renderBroodPicker();
+      const mb = $('btnBroodMerge');
+      if (mb) mb.textContent = `Merge Selected (${broodSelection.size}/2)`;
     };
   });
 }

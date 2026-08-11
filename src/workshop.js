@@ -153,6 +153,15 @@ function enrichDroid(droid) {
     nextLevelCurrency: db.isApexSpecies(species) ? 'apexCubes' : 'crystals',
     isApex: db.isApexSpecies(species),
     capturedViaJoystick: Boolean(droid.capturedViaJoystick),
+    // What this droid is currently doing, so the Warehouse can group
+    // busy droids instead of mixing them in with the idle roster.
+    activity: droid.fortId ? 'fort'
+      : droid.workshopSlotId ? 'workshop'
+      : (db.players.get(droid.playerId) || {}).companionDroidId === droid.id ? 'companion'
+      : (db.players.get(droid.playerId) || {}).buddyDroidId === droid.id ? 'buddy'
+      : (db.players.get(droid.playerId) || {}).dealerDroidId === droid.id ? 'dealer'
+      : 'idle',
+    fortId: droid.fortId || null,
     masteryLevel: masteryLvl,
     isBuddy: Boolean(droid.buddySince),
     attachments: droid.attachments || {},
@@ -672,6 +681,7 @@ function evolveSpecies(playerId, droidId) {
   db.markDexSeen(playerId, evolution.evolvesTo, droid.variant);
 
   levels.awardXp(playerId, 'evolve');
+  require('./ladder').award(playerId, 'evolve');
   ach.track(playerId, 'evolutionsCompleted');
   return { droid: enrichDroid(droid), novaChips: player.novaChips, crystalBalance: player.crystalBalance };
 }

@@ -279,7 +279,10 @@ function finish(room, winnerId, lastEntry, reason) {
   });
 
   const winner = db.players.get(winnerId);
-  if (winner) winner.battlesWon = (winner.battlesWon || 0) + 1;
+  if (winner) {
+    winner.battlesWon = (winner.battlesWon || 0) + 1;
+    require('./ladder').award(winnerId, 'livePvpWin');
+  }
   if (winner && WIN_REWARD.crystals) {
     winner.crystalBalance = (winner.crystalBalance || 0) + WIN_REWARD.crystals;
     db.crystalTransactions.push({

@@ -501,6 +501,7 @@ function attackGroupTitan(battleId, playerId) {
       levels.awardXp(pid, 'battleWin');
       p.battlesWon = (p.battlesWon || 0) + 1;
       ach.track(pid, 'battlesWon');
+      require('./ladder').award(pid, battle.isApexBattle ? 'apexWin' : 'titanWin');
       p.battleWinStreak = (p.battleWinStreak || 0) + 1;
       ach.track(pid, 'battleWinStreak', p.battleWinStreak, 'max');
       p.paint = (p.paint || 0) + TITAN_REWARDS.paint;
@@ -982,4 +983,51 @@ function attackApex(battleId, playerId) {
   return { battle, logEntry };
 }
 
-module.exports = { TITAN_ROSTER, pickTitan, awardTitanExtras, TITAN_TOKEN_DROP_CHANCE, validateTeam, firstNonFaintedIndex, DAMAGE_VARIANCE, createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };
+
+// ---- one-time battle equipment ----
+// Augment Core and EMP, plus any Apex-kind Forge item. Equipped BEFORE
+// a battle starts and consumed when it does, so there's no mid-fight
+// decision to balance — you commit, then fight.
+//
+// Augment Core buffs everyone on your side; EMP is a field effect that
+// suppresses buffs and specials for both players. Both are deliberately
+// one-use so they stay a moment rather than a permanent stat.
+const BATTLE_EQUIPMENT = {
+  augmentCores: { key: 'augmentCores', name: 'Augment Core', icon: 'augcore.png', folder: 'equipment',
+    effect: 'team_boost', value: 0.05, blurb: '+5% HP and attack to every droid on your side' },
+  emps: { key: 'emps', name: 'EMP', icon: 'emp.png', folder: 'equipment',
+    effect: 'field_emp', value: 2, blurb: 'Suppresses all buffs and specials for 2 turns' },
+};
+
+function equipBattleItem(playerId, itemKey) {
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (itemKey === null) { player.equippedBattleItem = null; return { equipped: null }; }
+  const item = BATTLE_EQUIPMENT[itemKey];
+  if (!item) throw new Error('Unknown battle item');
+  if ((player[item.key] || 0) < 1) throw new Error(`You don't own an ${item.name}`);
+  player.equippedBattleItem = itemKey;
+  return { equipped: itemKey, item };
+}
+
+// Consumed at battle start. Returns what was applied so the UI can say.
+function consumeBattleItem(playerId) {
+  const player = db.players.get(playerId);
+  if (!player || !player.equippedBattleItem) return null;
+  const item = BATTLE_EQUIPMENT[player.equippedBattleItem];
+  if (!item || (player[item.key] || 0) < 1) { player.equippedBattleItem = null; return null; }
+  player[item.key] -= 1;
+  player.equippedBattleItem = null;
+  return item;
+}
+
+function battleItemsFor(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) return { items: [], equipped: null };
+  return {
+    equipped: player.equippedBattleItem || null,
+    items: Object.values(BATTLE_EQUIPMENT).map((i) => ({ ...i, owned: player[i.key] || 0 })),
+  };
+}
+
+module.exports = { BATTLE_EQUIPMENT, equipBattleItem, consumeBattleItem, battleItemsFor, TITAN_ROSTER, pickTitan, awardTitanExtras, TITAN_TOKEN_DROP_CHANCE, validateTeam, firstNonFaintedIndex, DAMAGE_VARIANCE, createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };
