@@ -196,6 +196,7 @@ function validateTeam(playerId, droidIds) {
     // Garrisoned droids are defending a Fort and can't also be on an
     // attacking team.
     if (droid.fortId) throw new Error('One of those droids is garrisoned in a Fort — withdraw it first');
+    if (droid.smugglerRun) throw new Error("One of those droids is out on a Smuggler's Run");
     return droid;
   });
   const faintedOnEntry = droids.filter(isFainted);

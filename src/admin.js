@@ -95,8 +95,34 @@ function getLog({ limit = 200, playerId = null, action = null } = {}) {
 // Everything is applied server-side from the catalogue, so a crafted
 // request can't invent a material key or a species that doesn't exist.
 
+// Grouped so the gift builder can show banners like the shop, and so a
+// newly added material can't quietly go missing from the admin screen.
+const GIFT_GROUPS = [
+  { title: 'Common', keys: ['paint', 'novaChips', 'repairKits', 'energyTubes', 'beacons'] },
+  { title: 'Pad & Plug-ins', keys: ['padRam', 'timeWarps', 'growths'] },
+  { title: 'Battle Items', keys: ['emps', 'augmentCores'] },
+  { title: 'Chain Materials', keys: ['lightStones', 'darkCrystals', 'zombieJuice', 'lumeCells'] },
+  { title: 'Endgame', keys: ['apexCubes'] },
+  { title: 'Tokens — use sparingly', keys: ['titanTokens', 'guildTokens', 'joyCoins', 'fortTokens', 'seasonTokens'] },
+];
+
 function giftableMaterials() {
-  return db.TRADEABLE_MATERIALS.map((m) => ({ key: m.key, name: m.name }));
+  const all = db.TRADEABLE_MATERIALS.map((m) => ({ key: m.key, name: m.name }));
+  const grouped = new Set(GIFT_GROUPS.flatMap((g) => g.keys));
+  const ungrouped = all.filter((m) => !grouped.has(m.key)).map((m) => m.key);
+  const groups = ungrouped.length ? [...GIFT_GROUPS, { title: 'Other', keys: ungrouped }] : GIFT_GROUPS;
+  return { items: all, groups };
+}
+
+// Forge items and attachments are giftable too — they were missing
+// entirely, so an admin couldn't hand out the things players most often
+// need for testing.
+function giftableItems() {
+  let attachments = [];
+  let forge = [];
+  try { attachments = require('./attachments').ATTACHMENT_CATALOG.map((a) => ({ id: a.id, name: a.name, rarity: a.rarity, kind: 'attachment' })); } catch (e) {}
+  try { forge = require('./forge').FORGE_ITEMS.map((f) => ({ id: f.id, name: f.name, rarity: f.rarity, kind: 'forge' })); } catch (e) {}
+  return { attachments, forge };
 }
 
 function giftableSpecies() {
@@ -109,7 +135,8 @@ function giftableSpecies() {
   }));
 }
 
-function sendGift(adminPlayerId, adminUsername, { playerIds, materials, droid, crystals, note }) {
+function sendGift(adminPlayerId, adminUsername, { playerIds, materials, droid, crystals, note, attachments = [], forgeItems = [] }) {
+  const extras = { attachments, forgeItems };
   if (!Array.isArray(playerIds) || !playerIds.length) {
     throw new AdminError('NO_RECIPIENTS', 'Select at least one player');
   }
@@ -142,6 +169,14 @@ function sendGift(adminPlayerId, adminUsername, { playerIds, materials, droid, c
   recipients.forEach((player) => {
     Object.entries(cleanMaterials).forEach(([k, v]) => {
       player[k] = (player[k] || 0) + v;
+    });
+
+    // Attachments and Forge items.
+    (extras.attachments || []).forEach((id) => {
+      try { require('./attachments').grant(player.id, id, 1); } catch (e) {}
+    });
+    (extras.forgeItems || []).forEach((id) => {
+      try { require('./forge').grant(player.id, id, 1); } catch (e) {}
     });
 
     if (crystalAmount) {
@@ -226,6 +261,8 @@ module.exports = {
   getLog,
   sendGift,
   giftableMaterials,
+  giftableItems,
+  GIFT_GROUPS,
   giftableSpecies,
   playerRoster,
   markGiftsSeen,

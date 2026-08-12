@@ -60,6 +60,16 @@ function payout(player, amount, source) {
 // printer. Capped at 3% so the best possible dealer lands near 98.8%
 // and the house still wins over time.
 const MAX_DEALER_REFUND = 0.03;
+// Legendary droids all carry a Lounge buff, so a legendary is worth
+// keeping even if it never battles. Named entries below override this.
+function legendaryDealerBonus(species) {
+  if (!species) return null;
+  if (species.rarity === 'legendary') return { refund: 0.020, blackjackPeek: 0.06 };
+  if (species.rarity === 'cosmic') return { refund: 0.025, blackjackPeek: 0.08 };
+  if (species.rarity === 'galactic') return { refund: 0.030, blackjackPeek: 0.10 };
+  return null;
+}
+
 const DEALER_BONUS = {
   Jestrix:     { refund: 0.030, blackjackPeek: 0 },
   Chronobot:   { refund: 0.025, blackjackPeek: 0.05 },
@@ -75,7 +85,9 @@ function dealerFor(player) {
   if (!droid) return { bonus: DEFAULT_DEALER, name: null };
   const species = db.droidSpecies.find((s) => s.id === droid.speciesId);
   if (!species) return { bonus: DEFAULT_DEALER, name: null };
-  return { bonus: DEALER_BONUS[species.name] || DEFAULT_DEALER, name: species.name };
+  const named = DEALER_BONUS[species.name];
+  const byRarity = legendaryDealerBonus(species);
+  return { bonus: named || byRarity || DEFAULT_DEALER, name: species.name };
 }
 
 function setDealer(playerId, droidId) {
@@ -100,7 +112,7 @@ function dealerStatus(playerId) {
       const e = workshop.enrichDroid(x);
       return {
         id: x.id, speciesName: e.speciesName, level: e.level, rarity: e.rarity,
-        bonus: DEALER_BONUS[e.speciesName] || null,
+        bonus: DEALER_BONUS[e.speciesName] || legendaryDealerBonus({ rarity: e.rarity }) || null,
       };
     })
     .sort((a, b) => (b.bonus ? 1 : 0) - (a.bonus ? 1 : 0) || b.level - a.level);

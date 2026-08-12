@@ -66,7 +66,7 @@ class LivePvpError extends Error {
 
 // ---- challenges ----
 
-function challenge(fromPlayerId, toPlayerId, teamDroidIds) {
+function challenge(fromPlayerId, toPlayerId, teamDroidIds, ranked = false) {
   const from = db.players.get(fromPlayerId);
   const to = db.players.get(toPlayerId);
   if (!from) throw new LivePvpError('NO_PLAYER', 'Player not found');
@@ -88,6 +88,7 @@ function challenge(fromPlayerId, toPlayerId, teamDroidIds) {
     toPlayerId,
     fromUsername: from.username,
     teamDroidIds: team.map((d) => d.id),
+    ranked: Boolean(ranked),
     createdAt: Date.now(),
     expiresAt: Date.now() + CHALLENGE_EXPIRY_MS,
   };
@@ -129,6 +130,7 @@ function acceptChallenge(challengeId, playerId, teamDroidIds) {
   const room = {
     id: db.nextId(),
     status: 'active',
+    ranked: Boolean(ch.ranked),
     playerIds: [ch.fromPlayerId, playerId],
     usernames: {
       [ch.fromPlayerId]: ch.fromUsername,
@@ -188,6 +190,7 @@ function viewFor(room) {
     missedTurns: room.missedTurns,
     maxMissedTurns: MAX_MISSED_TURNS,
     winnerId: room.winnerId,
+    isRanked: Boolean(room.ranked),
     log: room.log.slice(-12),
     chat: (room.chat || []).slice(-20),
     emotes: EMOTES,
@@ -278,6 +281,13 @@ function finish(room, winnerId, lastEntry, reason) {
     if (pl) pl.battlesPlayed = (pl.battlesPlayed || 0) + 1;
   });
 
+  // Ranked matches move rating and pay the division bonus.
+  let rankedResult = null;
+  if (room.ranked && reason !== 'error') {
+    const loserId = room.playerIds.find((id) => id !== winnerId);
+    try { rankedResult = require('./ranked').recordResult(winnerId, loserId); } catch (e) {}
+  }
+
   const winner = db.players.get(winnerId);
   if (winner) {
     winner.battlesWon = (winner.battlesWon || 0) + 1;
@@ -292,7 +302,7 @@ function finish(room, winnerId, lastEntry, reason) {
     levels.awardXp(winnerId, 'battleWin');
   }
 
-  const payload = { ...viewFor(room), lastAction: lastEntry, reason, reward: WIN_REWARD };
+  const payload = { ...viewFor(room), lastAction: lastEntry, reason, reward: WIN_REWARD, ranked: rankedResult };
   realtime.toPlayers(room.playerIds, 'live:end', payload);
   return { room, entry: lastEntry, finished: true };
 }

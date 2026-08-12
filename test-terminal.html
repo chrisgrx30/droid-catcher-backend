@@ -364,6 +364,94 @@
   }
   .out-of-reach-toggle .oor-caret { float: right; }
 
+  /* Droid art arrives at wildly different sizes and aspect ratios, which
+     made the old fixed borders look broken. A subtle checkerboard plate
+     with contain-fit makes any size read as deliberate. */
+  .droid-icon, .dex-card img, .merge-pick img {
+    background-image:
+      linear-gradient(45deg, rgba(255,255,255,0.028) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.028) 75%),
+      linear-gradient(45deg, rgba(255,255,255,0.028) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.028) 75%);
+    background-size: 10px 10px;
+    background-position: 0 0, 5px 5px;
+    object-fit: contain !important;
+    border-radius: 4px;
+  }
+  .outfit-card { border:1px solid var(--line); border-radius:6px; padding:6px; text-align:center; cursor:pointer; background:var(--panel-raised); }
+  .outfit-card.selected { border-color:var(--cyan); box-shadow:0 0 8px rgba(95,216,224,0.4); }
+  .outfit-card img { width:100%; height:120px; object-fit:contain; }
+  .outfit-card .oc-name { font-size:9px; color:#fff; text-transform:capitalize; margin-top:3px; }
+
+  .lvl-stepper { display:flex; align-items:center; gap:6px; margin-top:10px; justify-content:center; }
+  .lvl-stepper button { width:auto; margin:0; padding:7px 11px; font-size:11px; }
+  .lvl-stepper .lvl-max { background:#e8862f; border-color:#e8862f; color:#201002; font-weight:800; }
+  .lvl-stepper #lvlCount { min-width:26px; text-align:center; font-size:13px; color:#fff; font-weight:700; }
+
+  .rank-badge { display:flex; align-items:center; gap:10px; }
+  .rank-icon { font-size:34px; line-height:1; }
+  .rank-bar { height:8px; border-radius:4px; background:var(--panel-raised); border:1px solid var(--line); overflow:hidden; margin-top:5px; }
+  .rank-bar > div { height:100%; transition:width .4s; }
+  .lb-row { display:flex; align-items:center; gap:7px; font-size:10px; padding:4px 0; border-bottom:1px solid var(--line); }
+  .lb-row:last-child { border-bottom:none; }
+  .lb-row.me { background:rgba(95,216,224,0.10); }
+  .rank-hist { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+  .rank-pip { font-size:8px; padding:2px 5px; border-radius:8px; }
+  .rank-pip.w { background:rgba(42,157,74,0.2); color:#2a9d4a; }
+  .rank-pip.l { background:rgba(232,97,95,0.2); color:var(--danger); }
+  .div-row { display:flex; align-items:center; gap:8px; font-size:9px; padding:3px 0; }
+
+  .mode-switch { display: flex; gap: 6px; margin-bottom: 12px; }
+  .mode-btn { flex: 1; margin-top: 0; font-size: 10px; padding: 10px 4px; }
+  .mode-btn.active { background: var(--cyan); border-color: var(--cyan); color: #04181a; font-weight: 700; }
+  .run-tier { border: 1px solid var(--line); border-radius: 5px; padding: 10px; margin-top: 8px; background: var(--panel-raised); cursor: pointer; }
+  .run-tier:active { border-color: var(--cyan); }
+  .run-tier .rt-head { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #fff; }
+  .run-tier .rt-meta { font-size: 9px; color: var(--text-dim); margin-top: 3px; line-height: 1.5; }
+
+  /* ---- space rift ---- */
+  /* Retro tile grid. Tiles are CSS cells rather than a canvas so the
+     player's own art drops straight in as background-image later. */
+  .rift-stage { margin-top: 10px; display: flex; justify-content: center; }
+  #riftGrid {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    width: min(94vw, 460px);
+    aspect-ratio: 1;
+    gap: 0;
+    border: 2px solid var(--cyan-dim);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #05070c;
+    image-rendering: pixelated;
+  }
+  .rt { position: relative; background-size: cover; background-position: center; }
+  .rt.floor { background-color: #12161f; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+  .rt.wall  { background-color: #2b1f3a; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
+  .rt-ico {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: min(3.4vw, 17px); line-height: 1;
+  }
+  .rt-ico.used { opacity: 0.25; filter: grayscale(1); }
+  .rt-player { text-shadow: 0 0 6px var(--cyan); animation: riftPulse 1.6s ease-in-out infinite; }
+  @keyframes riftPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+  .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 210px; margin: 0 auto; }
+  .dp { margin-top: 0; font-size: 17px; padding: 13px 0; line-height: 1; }
+  #dpUp { grid-column: 2; }
+  #dpLeft { grid-column: 1; grid-row: 2; }
+  .dp-mid { grid-column: 2; grid-row: 2; background: var(--cyan); border-color: var(--cyan); color: #04181a; }
+  #dpRight { grid-column: 3; grid-row: 2; }
+  #dpDown { grid-column: 2; grid-row: 3; }
+
+  .rift-battle { border: 2px solid var(--danger); border-radius: 5px; padding: 12px; margin-top: 10px; background: rgba(232,97,95,0.08); }
+  .rift-battle.boss { border-color: #8b6de0; background: rgba(139,109,224,0.12); }
+  .rb-hp { height: 8px; border-radius: 4px; background: rgba(0,0,0,0.5); overflow: hidden; margin-top: 4px; }
+  .rb-hp > div { height: 100%; background: var(--danger); transition: width 0.3s; }
+  .rift-log { max-height: 96px; overflow-y: auto; font-size: 9px; color: var(--text-dim); margin-top: 8px; }
+  .rt-team-row { display: flex; align-items: center; gap: 6px; font-size: 10px; padding: 4px 0; }
+  .rt-team-row.down { opacity: 0.4; }
+  .rt-team-row .rtt-bar { flex: 1; height: 5px; border-radius: 3px; background: rgba(0,0,0,0.4); overflow: hidden; }
+  .rt-team-row .rtt-bar > div { height: 100%; background: #2a9d4a; }
+
   /* ---- menu drawer ---- */
   /* The tab strip grew past a dozen entries and wrapped onto three
      lines on a phone. It's now a drawer opened from ☰. */
@@ -972,7 +1060,7 @@
     </div>
     <span style="display:flex; align-items:center; gap:6px; margin-top:2px;">
       <span style="color:var(--text-dim); font-size:9px;" id="appVersion">v—</span>
-      <button id="btnMenu" title="Menu" style="width:auto; margin:0; padding:3px 9px; font-size:13px; line-height:1;">☰</button>
+      <button id="btnMenu" title="Menu" style="width:auto; margin:0; padding:7px 13px; font-size:12px; line-height:1; font-weight:700;">☰ Menu</button>
       <button class="tab-btn active" data-tab="home" title="Home" style="width:auto; margin:0; padding:3px 8px; font-size:11px; line-height:1;">🏠</button>
       <button id="btnSettings" title="Settings" style="width:auto; margin:0; padding:3px 7px; font-size:11px; line-height:1;">⚙️</button>
     </span>
@@ -991,6 +1079,7 @@
   <button class="tab-btn" data-tab="social">🔄 Trading</button>
   <button class="tab-btn" data-tab="lounge">🎰 Spark Lounge</button>
   <button class="tab-btn" data-tab="season">🎟️ Season Pass</button>
+  <button class="tab-btn" data-tab="rift">🌌 Space Exploration</button>
   <button class="tab-btn" data-tab="dex">📖 Dex</button>
   <button class="tab-btn" data-tab="battles">⚔️ Battles</button>
   <button class="tab-btn" data-tab="livepvp">⚡ Live PVP</button>
@@ -1099,7 +1188,8 @@
           </div>
         </div>
         <div id="outfitBuffTotal" class="outfit-total">No cosmetics equipped</div>
-        <div id="outfitOptions" style="font-size:9px; color:var(--text-dim); margin-top:8px;"></div>
+        <button id="btnChooseOutfit" style="margin-top:10px; font-size:10px;">👕 Choose Outfit</button>
+        <div id="outfitOptions" style="display:none;"></div>
       </div>
     </div>
 
@@ -1119,8 +1209,12 @@
         <div id="playerAvatar" title="Change in Settings">🧑‍🚀</div>
         <div style="flex:1; min-width:0;">
           <div id="pilotName" style="font-size:13px; color:#fff; font-weight:700;">—</div>
+          <div id="pilotTitle" style="font-size:9px; color:var(--amber);"></div>
           <div id="pilotSub" style="font-size:9px; color:var(--text-dim);"></div>
         </div>
+        <!-- Badge slot is SEPARATE from the profile image: the avatar is
+             your face, the badge is what you've earned. -->
+        <div id="pilotBadgeSlot" title="Your selected badge" style="width:46px; height:46px; border-radius:6px; border:1px solid var(--line); background:var(--panel-raised); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; cursor:pointer;">🏅</div>
       </div>
       <div class="panel-title">Pilot Level <span id="plLevelTag" style="color:var(--cyan); font-weight:400; text-transform:none;"></span></div>
       <div class="xp-bar"><div class="xp-fill" id="plXpFill"></div></div>
@@ -1266,6 +1360,7 @@
   </div>
   <div class="panel" id="yourCompanionsPanel" style="margin-top:16px;">
     <div class="panel-title" style="margin-bottom:6px;">Your Companions</div>
+    <input type="text" id="companionFilter" placeholder="Filter by species…" style="font-size:10px; margin-bottom:8px;">
     <div id="companionOptions"><div class="empty">Capture a Companion to equip one</div></div>
   </div>
 </div>
@@ -1370,7 +1465,16 @@
     </details>
   </div>
 
-  <div class="panel" id="guildProgressPanel">
+  <div class="panel" id="guildInvitePanel">
+    <div class="panel-title">✉️ Invites</div>
+    <div id="guildInviteList" style="margin-bottom:8px;"></div>
+    <div style="display:flex; gap:6px;">
+      <input type="number" id="inviteIdInput" placeholder="Player ID" style="flex:1; margin-top:0;">
+      <button id="btnInvitePlayer" style="width:auto; margin-top:0; font-size:9px; padding:8px 12px;">Invite</button>
+    </div>
+  </div>
+
+  <div class="panel" id="guildProgressPanel" style="margin-top:16px;">
     <div class="panel-title">🛡️ Guild Level <span id="guildLevelTag" style="color:var(--cyan); font-weight:400; text-transform:none; font-size:10px;"></span></div>
     <div id="guildBadgeStrip" style="display:flex; gap:5px; flex-wrap:wrap; margin:8px 0;"></div>
     <div class="xp-bar"><div class="xp-fill" id="guildCoinFill"></div></div>
@@ -1429,6 +1533,95 @@
 </div>
 
 <!-- BROOD CHAMBER TAB -->
+<!-- SPACE RIFT TAB -->
+<div class="tab-page" id="tab-rift">
+  <div class="mode-switch">
+    <button class="mode-btn active" data-mode="rift">🌌 Space Rift</button>
+    <button class="mode-btn" data-mode="smuggler">🚀 Smuggler's Run</button>
+  </div>
+
+  <div id="modeRift">
+  <div id="riftLaunchView">
+    <div class="panel" id="riftIntroPanel">
+      <div class="panel-title">🌌 Space Rift</div>
+      <div style="font-size:10px; color:var(--text-dim); line-height:1.6;">
+        A one-way mission into the Rift. Take <strong>6 droids</strong>, cross a
+        150×150 sector on foot, defeat <strong>5 Rift Bosses</strong> and reach the
+        escape pod.<br><br>
+        Only 5 healing charges exist for the whole run. Captured droids leave fully healed
+        and join your collection. If your whole team faints, the run ends — you keep what
+        you gathered, but not what you didn't.
+      </div>
+      <div id="riftHistory" style="margin-top:10px;"></div>
+      <button id="btnRiftLaunch" class="primary" style="margin-top:12px;">Enter the Rift</button>
+    </div>
+  </div>
+
+  <div id="riftMissionView" style="display:none;">
+    <div class="panel" id="riftHudPanel">
+      <div style="display:flex; gap:8px; font-size:9px; color:var(--text-dim); flex-wrap:wrap;">
+        <span id="riftBossCount">Bosses 0/5</span>
+        <span id="riftHeals">Heals 0/5</span>
+        <span id="riftChests">Chests 0/10</span>
+        <span id="riftSteps">Steps 0</span>
+        <span id="riftLoot" style="margin-left:auto; color:var(--amber);"></span>
+      </div>
+      <div id="riftHealHint" style="font-size:9px; color:#4cb8e8; margin-top:4px;"></div>
+    </div>
+
+    <div class="rift-stage">
+      <div id="riftGrid"></div>
+    </div>
+
+    <div id="riftEncounter" style="display:none;"></div>
+
+    <div class="panel" id="riftControlPanel" style="margin-top:10px;">
+      <div class="dpad">
+        <button class="dp" id="dpUp" data-dir="up">▲</button>
+        <button class="dp" id="dpLeft" data-dir="left">◀</button>
+        <button class="dp dp-mid" id="dpInvestigate">🔍</button>
+        <button class="dp" id="dpRight" data-dir="right">▶</button>
+        <button class="dp" id="dpDown" data-dir="down">▼</button>
+      </div>
+      <div id="riftActionLabel" style="text-align:center; font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
+    </div>
+
+    <div class="panel" id="riftTeamPanel" style="margin-top:12px;">
+      <div class="panel-title">Your Team</div>
+      <div id="riftTeam"></div>
+      <button id="btnRiftAbandon" class="ghost" style="margin-top:10px; font-size:9px; padding:7px; color:var(--danger); border-color:var(--danger);">Abandon Mission</button>
+    </div>
+  </div>
+</div>
+
+  </div><!-- /modeRift -->
+
+  <div id="modeSmuggler" style="display:none;">
+    <div class="panel" id="smugglerPanel">
+      <div class="panel-title">🚀 Smuggler's Run</div>
+      <div style="font-size:10px; color:var(--text-dim); line-height:1.6;">
+        Send droids out on a timed run and collect the haul later. Higher tiers pay better
+        but take longer.<br><br>
+        <strong>The droids you send cut the wait</strong> — a Legendary droid trims 40%, a
+        Common one 10%. Crystals you invest don't come back at a profit; they buy
+        <strong>better loot</strong>: more materials, better attachment odds, and a real
+        chance at a droid.
+      </div>
+    </div>
+
+    <div id="smugglerActive" style="display:none;"></div>
+
+    <div class="panel" id="smugglerTiersPanel" style="margin-top:16px;">
+      <div class="panel-title">Choose a Run</div>
+      <div id="smugglerTiers"></div>
+    </div>
+
+    <div class="panel" id="smugglerHistoryPanel" style="margin-top:16px;">
+      <div class="panel-title">Recent Hauls</div>
+      <div id="smugglerHistory"><div class="empty">No runs yet</div></div>
+    </div>
+  </div>
+
 <!-- SEASON PASS TAB -->
 <div class="tab-page" id="tab-season">
   <div id="seasonLockedView" class="panel season-locked">
@@ -1453,6 +1646,7 @@
     <div class="panel" id="seasonPassesPanel" style="margin-top:16px;">
       <div class="panel-title">Your Passes</div>
       <div style="font-size:9px; color:var(--text-dim); margin-bottom:6px;">Passes never expire. Only your selected track earns progress.</div>
+      <div style="font-size:9px; color:var(--cyan); margin-bottom:8px;">Season Pass droids are exclusive to the track — they don't spawn in the wild. Claim their tier to add them straight to your collection.</div>
       <div id="seasonOwnedList"></div>
     </div>
   </div>
@@ -1540,6 +1734,7 @@
     <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Pick exactly two droids. Cost: <span id="broodMergeCost">5,000</span> crystals.</div>
     <!-- Merge button sits ABOVE the list: with hundreds of droids the
          list scrolls a long way, and a button at the bottom is a hunt. -->
+    <button id="btnBroodAuto" class="ghost" style="margin-bottom:6px; font-size:10px;">🎲 Auto-Select Duplicates</button>
     <button id="btnBroodMerge" style="margin-bottom:10px; background:#8b6de0; border-color:#8b6de0; color:#fff; font-weight:700;">Merge Selected (0/2)</button>
     <div id="broodMergePicker" style="max-height:340px; overflow-y:auto;"></div>
   </div>
@@ -1547,9 +1742,21 @@
 
 <!-- LIVE PVP TAB (beta) -->
 <div class="tab-page" id="tab-livepvp">
-  <div class="panel" id="livePvpStatusPanel">
+  <div class="panel" id="rankedPanel">
+    <div class="panel-title">🏆 Ranked Arena <span id="rankedSeason" style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;"></span></div>
+    <div id="rankedClaimBanner"></div>
+    <div id="rankedProfile"></div>
+    <details style="margin-top:10px;">
+      <summary style="font-size:9px; color:var(--text-dim); cursor:pointer;">Leaderboard &amp; division rewards</summary>
+      <div id="rankedBoard" style="margin-top:8px;"></div>
+      <div id="rankedDivisions" style="margin-top:10px;"></div>
+    </details>
+  </div>
+
+  <div class="panel" id="livePvpStatusPanel" style="margin-top:16px;">
     <div class="panel-title">⚡ Live PVP <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">— beta</span></div>
     <div id="liveConnStatus" class="live-conn offline">Not connected</div>
+    <div id="livePvpTeamBox" style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px;"></div>
     <div style="font-size:9px; color:var(--text-dim); margin-top:8px; line-height:1.5;">
       Real-time battles against players who are online right now.
       <strong>30 seconds per turn.</strong> Miss a turn and the server plays it for you;
@@ -1734,7 +1941,14 @@
 
 <!-- ADMIN TAB -->
 <div class="tab-page" id="tab-admin">
-  <div class="panel" id="adminSeasonPanel">
+  <div class="panel" id="adminTogglePanel">
+    <div class="panel-title">🎛️ Feature Toggles</div>
+    <button id="btnLoadToggles" style="margin-top:0; font-size:9px; padding:8px;">Load Toggles</button>
+    <div id="adminToggleList" style="margin-top:8px;"></div>
+    <button id="btnChangeAdminCode" class="ghost" style="margin-top:10px; font-size:9px; padding:8px;">Change Admin Code</button>
+  </div>
+
+  <div class="panel" id="adminSeasonPanel" style="margin-top:16px;">
     <div class="panel-title">🎟️ Season Pass Control</div>
     <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">Seasons are hidden from players until activated. Scheduling one shows a countdown on the Season Pass tab.</div>
     <button id="btnLoadSeasons" style="margin-top:0; font-size:9px; padding:8px;">Load Seasons</button>
@@ -1808,9 +2022,9 @@
     <div id="coordOverrideStatus" class="coord-status inactive">Override OFF — scans use real GPS</div>
 
     <label style="margin-top:10px;">Latitude</label>
-    <input type="text" id="coordLatInput" placeholder="e.g. 51.5074" inputmode="decimal">
+    <input type="text" id="coordLatInput" placeholder="e.g. 51.5074 or -33.86" inputmode="text" autocapitalize="off" autocorrect="off">
     <label style="margin-top:6px;">Longitude</label>
-    <input type="text" id="coordLngInput" placeholder="e.g. -0.1278" inputmode="decimal">
+    <input type="text" id="coordLngInput" placeholder="e.g. -0.1278" inputmode="text" autocapitalize="off" autocorrect="off">
 
     <div style="display:flex; gap:6px; margin-top:8px;">
       <button class="primary" id="btnSetCoordOverride" style="margin-top:0;">Set Override</button>
@@ -1928,14 +2142,18 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     // previous tab's display:none — recalculating size on every visit
     // to this tab fixes it reliably.
     if (btn.dataset.tab === 'battles') refreshBattleItems();
-    if (btn.dataset.tab === 'lounge') { refreshCasino(); refreshDealer(); }
+    if (btn.dataset.tab === 'lounge') {
+      if (!checkLoungeAgeGate()) return;
+      refreshCasino(); refreshDealer();
+    }
     toggleMenu(false);
     if (btn.dataset.tab === 'season') refreshSeason();
-    if (btn.dataset.tab === 'livepvp') refreshLivePvp();
+    if (btn.dataset.tab === 'rift') { refreshRift(); refreshSmuggler(); }
+    if (btn.dataset.tab === 'livepvp') { refreshLivePvp(); refreshRanked(); renderLivePvpTeam(); }
     if (btn.dataset.tab === 'brood') { refreshMastery().then(refreshBrood); }
     if (btn.dataset.tab === 'achievements') refreshAchievements();
     if (btn.dataset.tab === 'social') refreshCasino();
-    if (btn.dataset.tab === 'guilds') { refreshTerritory(); refreshSieges(); refreshGuildProgress(); refreshArmoury(); refreshLadder(); }
+    if (btn.dataset.tab === 'guilds') { refreshTerritory(); refreshSieges(); refreshGuildProgress(); refreshArmoury(); refreshLadder(); refreshGuildInvites(); }
     if (btn.dataset.tab === 'capture' && locationMap) {
       setTimeout(() => locationMap.invalidateSize(), 50);
     }
@@ -2080,7 +2298,8 @@ function renderSpawnMarkers() {
         iconSize: [size, size],
       });
       const marker = L.marker([spawn.lat, spawn.lng], { icon }).addTo(locationMap);
-      marker.bindPopup(`<strong>${spawn.onWishlist ? '⭐ ' : ''}${spawn.isEvent ? '⚡ ' : ''}${spawn.speciesName}${spawn.alreadyCaught ? ' ✅' : ''}</strong><br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a; font-weight:700;">✓ In capture range</span>' : `<span style="color:#e8615f;">${spawn.distanceMeters}m away</span> — walk ${Math.max(0, spawn.distanceMeters - (state.captureRadiusMeters || 40))}m closer`}`);
+      const expMins = spawn.expiresAt ? Math.max(0, Math.round((spawn.expiresAt - Date.now()) / 60000)) : null;
+      marker.bindPopup(`<strong>${spawn.onWishlist ? '⭐ ' : ''}${spawn.isEvent ? '⚡ ' : ''}${spawn.speciesName}${spawn.alreadyCaught ? ' ✅' : ''}</strong>${expMins !== null ? `<br><span style="color:#e8862f;">⏳ despawns in ${expMins}m</span>` : ''}<br>${spawn.rarity}${spawn.variant !== 'standard' ? ' · ' + spawn.variant : ''}<br>${inRange ? '<span style="color:#2a9d4a; font-weight:700;">✓ In capture range</span>' : `<span style="color:#e8615f;">${spawn.distanceMeters}m away</span> — walk ${Math.max(0, spawn.distanceMeters - (state.captureRadiusMeters || 40))}m closer`}`);
       marker.on('click', () => highlightSpawnCard(spawn.id));
       spawnMarkers.push(marker);
     });
@@ -2266,6 +2485,7 @@ async function activatePlayer(player) {
   refreshJoystick();
   refreshLevels();
   refreshPlugins();
+  loadToggles();
   updateBuildFortButton();
   wireMaterialRows();
   refreshMastery();
@@ -2306,7 +2526,11 @@ $('btnCreatePlayer').onclick = async () => {
   try {
     const player = await api('POST', '/players', { username, pin });
     await activatePlayer(player);
-  } catch (e) {}
+  } catch (e) {
+    // This catch used to be empty, so a wrong PIN looked like the button
+    // simply didn't work.
+    showGuildResultPopup(false, (e && e.message) || 'Could not sign in. Check your callsign and PIN.');
+  }
 };
 
 // On page load, try to resume a previous session from this browser rather
@@ -2469,6 +2693,11 @@ $('btnUseLocation').onclick = () => {
   if (state.coordOverride) {
     const { lat, lng, label } = state.coordOverride;
     status.textContent = `📍 Manual override active${label ? ' — ' + label : ''} (${lat.toFixed(4)}, ${lng.toFixed(4)}). Scanning…`;
+    // Move the pin as well as the scan origin — previously the map still
+    // showed real GPS, so a spoofing admin couldn't see themselves.
+    mapFollowsPlayer = true;
+    updatePositionAndRange(lat, lng, { redraw: false });
+    if (locationMap) locationMap.setView([lat, lng], 16);
     scanAt(lat, lng);
     return;
   }
@@ -2703,8 +2932,8 @@ function renderSpawns() {
 
     const pluginRow = (state.timeWarps > 0 || state.growths > 0) ? `
       <div style="display:flex; gap:10px; margin-top:4px; font-size:9px; color:var(--text-dim);">
-        ${state.timeWarps > 0 ? `<label style="display:flex; align-items:center; gap:3px;"><input type="checkbox" class="use-timewarp-cb"> Time Warp (${state.timeWarps})</label>` : ''}
-        ${state.growths > 0 ? `<label style="display:flex; align-items:center; gap:3px;"><input type="checkbox" class="use-growth-cb"> Growth (${state.growths})</label>` : ''}
+        ${(state.toggles && state.toggles.padPluginsInCapture && state.timeWarps > 0) ? `<label style="display:flex; align-items:center; gap:3px;"><input type="checkbox" class="use-timewarp-cb"> Time Warp (${state.timeWarps})</label>` : ''}
+        ${(state.toggles && state.toggles.padPluginsInCapture && state.growths > 0) ? `<label style="display:flex; align-items:center; gap:3px;"><input type="checkbox" class="use-growth-cb"> Growth (${state.growths})</label>` : ''}
       </div>` : '';
 
     card.innerHTML = `
@@ -3467,7 +3696,8 @@ function showStatsModal(droid) {
     const unlockedSlots = state.slots.filter((s) => s.unlocked && !state.droids.some((d) => d.workshopSlotId === s.id));
     const options = unlockedSlots.map((s) => `<option value="${s.id}">Slot ${s.slotIndex + 1}</option>`).join('');
     assignmentControl = `
-      <select id="statsModalAssignSelect" style="margin-top:10px;">
+      <div style="font-size:8px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-top:10px;">Assign to a Foundry crystal slot</div>
+      <select id="statsModalAssignSelect" style="margin-top:4px;">
         <option value="">Assign to slot...</option>
         ${options}
       </select>`;
@@ -3484,7 +3714,21 @@ function showStatsModal(droid) {
   const masterBtn = droid.masteryNextTierName
     ? `<button class="master-scaffitan-btn" style="margin-top:6px; width:100%;">Master → ${droid.masteryNextTierName} (${droid.masteryTubeCost} 🔋 — you have ${state.energyTubes || 0})</button>`
     : '';
-  const hideTradeBtn = `<button class="hide-trade-btn ghost" style="margin-top:6px; width:100%; font-size:9px;">${droid.hiddenFromTrade ? '🔒 Hidden from Trade — tap to unhide' : '👁️ Visible in Trade — tap to hide'}</button>`;
+  const hideTradeBtn = `<button class="hide-trade-btn ghost" style="margin-top:6px; width:100%; font-size:9px;">${droid.hiddenFromTrade ? '🙈 Hidden from Trade — tap to unhide' : '👁️ Visible in Trade — tap to hide'}</button>`;
+  // Padlock sits top-right, separate from hide-from-trade: one is
+  // visibility, the other is a safety catch against bulk actions.
+  const lockBtn = `<button class="droid-lock-btn" title="${droid.locked ? 'Locked — protected from auto-release' : 'Unlocked'}"
+      style="position:absolute; top:8px; right:8px; width:auto; margin:0; padding:5px 8px; font-size:14px; line-height:1; ${droid.locked ? 'background:var(--amber); border-color:var(--amber);' : ''}">${droid.locked ? '🔒' : '🔓'}</button>`;
+  // Level stepper — the old flow reset the warehouse filter on every
+  // level-up, so levelling ten times meant ten trips back through it.
+  const levelStepper = droid.nextLevelCost === null ? '' : `
+    <div class="lvl-stepper">
+      <button class="lvl-minus">−</button>
+      <span id="lvlCount">1</span>
+      <button class="lvl-plus">+</button>
+      <button class="lvl-apply">Level Up</button>
+      <button class="lvl-max">MAX</button>
+    </div>`;
 
   // ---- attachment slots ----
   // This is where attachments actually get assigned. Until now the
@@ -3534,6 +3778,9 @@ function showStatsModal(droid) {
       <div class="sg-item"><div class="sg-label">${droid.workshopSlotId ? 'Crystals/min' : 'Crystals/min if farming'}</div><div class="sg-val">${droid.workshopSlotId ? droid.crystalsPerMinute : droid.potentialCrystalsPerMinute}</div></div>
       <div class="sg-item"><div class="sg-label">Next Level Cost</div><div class="sg-val" style="font-size:11px;">${levelCostLabel(droid)}</div></div>
     </div>
+    ${lockBtn}
+    ${levelStepper}
+    ${droid.caughtLat != null ? `<div style="font-size:9px; color:var(--text-dim); margin-top:8px;">📍 Caught at ${droid.caughtLat}, ${droid.caughtLng}</div>` : ''}
     ${attachmentBlock}
     ${buddyBtn}
     ${healBtn}
@@ -3659,6 +3906,53 @@ function showStatsModal(droid) {
       } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not change your buddy.'); }
     };
   }
+
+  // ---- padlock ----
+  const lockEl = box.querySelector('.droid-lock-btn');
+  if (lockEl) lockEl.onclick = async () => {
+    try {
+      const r = await api('POST', `/droids/${droid.id}/lock`, { playerId: state.playerId });
+      droid.locked = r.locked;
+      lockEl.textContent = r.locked ? '🔒' : '🔓';
+      lockEl.style.background = r.locked ? 'var(--amber)' : '';
+      lockEl.style.borderColor = r.locked ? 'var(--amber)' : '';
+      showGuildResultPopup(true, r.locked
+        ? '🔒 Locked — this droid is protected from auto-release and bulk actions.'
+        : '🔓 Unlocked.');
+      await refreshWorkshop();
+    } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not toggle the lock.'); }
+  };
+
+  // ---- level stepper ----
+  // Levels are applied WITHOUT closing the modal, so the warehouse
+  // filter behind it survives.
+  let lvlN = 1;
+  const lvlCount = box.querySelector('#lvlCount');
+  const setN = (n) => { lvlN = Math.max(1, Math.min(20, n)); if (lvlCount) lvlCount.textContent = lvlN; };
+  const minus = box.querySelector('.lvl-minus');
+  const plus = box.querySelector('.lvl-plus');
+  if (minus) minus.onclick = () => setN(lvlN - 1);
+  if (plus) plus.onclick = () => setN(lvlN + 1);
+  const applyLevels = async (count) => {
+    let done = 0;
+    for (let i = 0; i < count; i++) {
+      try { await api('POST', `/droids/${droid.id}/level-up`, { playerId: state.playerId }); done++; }
+      catch (e) {
+        if (done === 0) showGuildResultPopup(false, (e && e.message) || 'Could not level up.');
+        break;
+      }
+    }
+    if (done) {
+      showGuildResultPopup(true, `Levelled up ${done} time${done === 1 ? '' : 's'}.`);
+      await refreshWorkshop();
+      const fresh = (state.droids || []).find((d) => d.id === droid.id);
+      if (fresh) showStatsModal(fresh); else overlay.style.display = 'none';
+    }
+  };
+  const applyBtn = box.querySelector('.lvl-apply');
+  if (applyBtn) applyBtn.onclick = () => guardedAction('lvl' + droid.id, () => applyLevels(lvlN));
+  const maxBtn = box.querySelector('.lvl-max');
+  if (maxBtn) maxBtn.onclick = () => guardedAction('lvlmax' + droid.id, () => applyLevels(20));
 
   const hideTradeBtnEl = box.querySelector('.hide-trade-btn');
   if (hideTradeBtnEl) {
@@ -3886,7 +4180,7 @@ function renderShop() {
   if (!unownedOutfits.length) {
     const done = document.createElement('div');
     done.className = 'empty';
-    done.textContent = 'You own every outfit — see them in your Wardrobe';
+    done.textContent = 'You own every outfit — equip them from Player › Outfit';
     outfitsDetails.appendChild(done);
   }
   list.appendChild(outfitsDetails);
@@ -5055,6 +5349,10 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('ladderPanel', 'ladder');
   applyPanelBackground('dealerPanel', 'dealer');
   applyPanelBackground('seasonHeaderPanel', 'season');
+  applyPanelBackground('riftIntroPanel', 'rift');
+  applyPanelBackground('smugglerPanel', 'smuggler');
+  applyPanelBackground('rankedPanel', 'ranked');
+  applyPanelBackground('guildInvitePanel', 'guildinvite');
   applyPanelBackground('seasonTrackPanel', 'seasontrack');
   applyPanelBackground('fortModPanel', 'fortmod');
   applyPanelBackground('adminFortsPanel', 'adminforts');
@@ -5275,9 +5573,40 @@ function buildDexCard(s) {
 
 const DEX_PAGE_SIZE = 30;
 
+let dexGeneration = 'gen-dex';
+
 function renderDex(entries) {
   const grid = $('dexGrid');
   grid.innerHTML = '';
+  // Sorted common → legendary rather than by internal id, so the Dex
+  // reads as a progression instead of an arbitrary list.
+  const DEX_RARITY_ORDER = ['common', 'uncommon', 'rare', 'legendary', 'cosmic', 'galactic', 'apex'];
+  entries = [...entries].sort((a, b) => {
+    const ra = DEX_RARITY_ORDER.indexOf(a.rarity); const rb = DEX_RARITY_ORDER.indexOf(b.rarity);
+    if (ra !== rb) return ra - rb;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Generation switch — today's roster is the Beta generation; Gen-1 is
+  // a placeholder so future droids get a home without reshuffling this.
+  const genBar = document.createElement('div');
+  genBar.className = 'dex-filter-bar';
+  genBar.innerHTML = `
+    <button class="dex-filter ${dexGeneration === 'gen-dex' ? 'active' : ''}" data-gen="gen-dex">Gen-Dex (Beta)</button>
+    <button class="dex-filter ${dexGeneration === 'gen-1' ? 'active' : ''}" data-gen="gen-1">Gen-1</button>`;
+  genBar.querySelectorAll('.dex-filter').forEach((b) => {
+    b.onclick = () => { dexGeneration = b.dataset.gen; renderDex(entries); };
+  });
+  grid.appendChild(genBar);
+
+  if (dexGeneration === 'gen-1') {
+    const soon = document.createElement('div');
+    soon.className = 'empty';
+    soon.style.cssText = 'padding:40px 20px; text-align:center;';
+    soon.innerHTML = '<div style="font-size:32px;">🔒</div><div style="margin-top:8px; font-size:12px; color:#fff;">Gen-1 Dex</div><div style="font-size:10px; margin-top:4px;">Coming late 2026</div>';
+    grid.appendChild(soon);
+    return;
+  }
   // #dexGrid carries the .dex-grid class from the markup, which makes it
   // a CSS grid of ~90px columns. Appending the controls bar and the card
   // container into it made each of them a single 90px grid CELL — which
@@ -6469,7 +6798,7 @@ function showSettings() {
   box.querySelector('#setAvatarInput').onchange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    if (file.size > 1024 * 1024) { showGuildResultPopup(false, 'Please pick an image under 1MB.'); return; }
+    if (file.size > 2 * 1024 * 1024) { showGuildResultPopup(false, 'That image is over 2MB — please pick a smaller one.'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -6494,6 +6823,24 @@ function showSettings() {
     } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not rename.'); }
   };
   box.querySelector('#setClose').onclick = () => { overlay.style.display = 'none'; };
+}
+
+// The badge slot and the avatar are deliberately two different things:
+// the avatar is a photo you chose, the badge is something you earned.
+function applyPilotBadge() {
+  const el = $('pilotBadgeSlot');
+  if (!el) return;
+  const b = state.badges;
+  if (b && b.selectedBadgeId) {
+    const badge = (b.badges || []).find((x) => x.id === b.selectedBadgeId);
+    el.innerHTML = badge
+      ? `<img src="/assets/${badge.folder}/${badge.icon}" style="width:100%;height:100%;object-fit:contain;" onerror="this.replaceWith(document.createTextNode('🏅'));">`
+      : '🏅';
+  } else el.textContent = '🏅';
+  el.onclick = () => {
+    const tray = $('plBadges');
+    if (tray) tray.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 }
 
 function applyProfileImage() {
@@ -6589,11 +6936,31 @@ async function refreshArmoury() {
     $('armouryCount').textContent = `— ${d.totalOwned} item${d.totalOwned === 1 ? '' : 's'}`;
     // Every item shows at all times with a quantity, per the spec.
     $('armouryGrid').innerHTML = d.armoury.map((i) => `
-      <div class="armoury-cell ${i.owned ? '' : 'none'}" title="${escapeHtml(i.name)} — ${escapeHtml(i.description)}">
+      <div class="armoury-cell ${i.owned ? '' : 'none'} arm-cell" data-name="${escapeHtml(i.name)}" data-desc="${escapeHtml(i.description)}" data-rarity="${i.rarity}" data-owned="${i.owned}" data-folder="${i.folder}" data-icon="${i.icon}" title="${escapeHtml(i.name)}">
         <img src="/assets/${i.folder}/${i.icon}" onerror="this.style.visibility='hidden';">
         <span class="ac-qty">${i.owned}</span>
         <div class="ac-name">${escapeHtml(i.name)}</div>
       </div>`).join('');
+
+    // Tapping any Forge item shows its buff, owned or not — you should
+    // be able to see what you're chasing.
+    $('armouryGrid').querySelectorAll('.arm-cell').forEach((c) => {
+      c.onclick = () => {
+        const overlay = $('captureResultOverlay');
+        const box = $('captureResultBox');
+        box.innerHTML = `
+          <div style="width:min(50vw,150px); height:min(50vw,150px); margin:0 auto 8px;">
+            <img src="/assets/${c.dataset.folder}/${c.dataset.icon}" style="width:100%;height:100%;object-fit:contain;${c.dataset.owned === '0' ? 'filter:grayscale(1);opacity:0.45;' : ''}" onerror="this.style.visibility='hidden';">
+          </div>
+          <div class="mb-title" style="color:#fff;">${c.dataset.name}</div>
+          <div class="mb-detail"><span class="spawn-rarity ${c.dataset.rarity}">${c.dataset.rarity}</span></div>
+          <div class="mb-detail" style="color:var(--cyan);">${c.dataset.desc}</div>
+          <div class="mb-detail" style="font-size:9px;">${c.dataset.owned === '0' ? 'Not owned — forge one in The Forge.' : `You own ${c.dataset.owned}.`}</div>
+          <button class="primary mb-close" style="margin-top:12px;">Close</button>`;
+        overlay.style.display = 'flex';
+        box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+      };
+    });
 
     $('forgeStatus').textContent = !d.hasGuild
       ? 'The Forge is a guild facility — join a guild first.'
@@ -6885,6 +7252,869 @@ function toggleMenu(force) {
 $('btnMenu').onclick = () => toggleMenu();
 
 // ============================================================
+// SPACE RIFT
+// ============================================================
+// The server owns the map; the client only ever receives a 15x15
+// viewport, so a 150x150 sector renders as 225 tiles per move.
+
+const RIFT_ICON = {
+  chest: '📦', debris: '🪨', crystal: '💎', heal: '✚',
+  boss: '☠️', exit: '🚀', start: '🛬',
+  scenery: { rock: '🌑', blackhole: '🕳️', riftstrike: '⚡' },
+};
+
+// Wall tile art drops in here when supplied — the code already asks for
+// the right filename per wall shape, so adding the PNGs is enough.
+function wallTileFile(rows, x, y) {
+  const at = (cx, cy) => (rows[cy] && rows[cy][cx]) === '#';
+  const n = at(x, y - 1), s = at(x, y + 1), w = at(x - 1, y), e = at(x + 1, y);
+  if (n && s && !w && !e) return 'wall-vertical';
+  if (!n && !s && w && e) return 'wall-horizontal';
+  if (s && e && !n && !w) return 'wall-corner-tl';
+  if (s && w && !n && !e) return 'wall-corner-tr';
+  if (n && e && !s && !w) return 'wall-corner-bl';
+  if (n && w && !s && !e) return 'wall-corner-br';
+  if (n && s && w && e) return 'wall-cross';
+  if (!n && s && !w && !e) return 'wall-end-top';
+  if (n && !s && !w && !e) return 'wall-end-bottom';
+  if (!n && !s && w && !e) return 'wall-end-right';
+  if (!n && !s && !w && e) return 'wall-end-left';
+  return 'wall';
+}
+
+async function refreshRift() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/rift/${state.playerId}`);
+    state.rift = d;
+    if (!d.active) { renderRiftLaunch(d); return; }
+    renderRiftMission(d);
+  } catch (e) {}
+}
+
+function renderRiftLaunch(d) {
+  $('riftLaunchView').style.display = 'block';
+  $('riftMissionView').style.display = 'none';
+  const h = d.history || [];
+  $('riftHistory').innerHTML = h.length
+    ? '<div style="font-size:8px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:4px;">Recent runs</div>'
+      + h.map((r) => `<div class="stat-row">
+          <span class="stat-label">${r.escaped ? '🚀 Escaped' : '💀 Lost'} <span style="color:var(--text-dim);">${new Date(r.at).toLocaleDateString()}</span></span>
+          <span class="stat-val">${r.bossesDefeated}/${r.totalBosses} bosses · ${r.crystals.toLocaleString()}✦ · ${r.captured.length} droids</span>
+        </div>`).join('')
+    : '';
+}
+
+function renderRiftMission(d) {
+  $('riftLaunchView').style.display = 'none';
+  $('riftMissionView').style.display = 'block';
+
+  $('riftBossCount').textContent = `☠️ Bosses ${d.bossesDefeated}/${d.totalBosses}`;
+  $('riftHeals').textContent = `✚ Heals ${d.healingUses}/${d.maxHealing}`;
+  $('riftChests').textContent = `📦 Chests ${d.chestsOpened}/${d.totalChests}`;
+  $('riftSteps').textContent = `👣 ${d.steps}`;
+  $('riftLoot').textContent = d.loot.crystals ? `${d.loot.crystals.toLocaleString()}✦ gathered` : '';
+
+  // Compass hint only, and only when the team is hurt enough to need it.
+  const hurt = d.team.reduce((a, t) => a + t.hp, 0) / d.team.reduce((a, t) => a + t.maxHp, 0);
+  $('riftHealHint').textContent = (d.healHint && hurt < 0.6 && d.healHint.distance > 0)
+    ? `✚ Nearest healing post: ${d.healHint.compass} · about ${d.healHint.distance} cells`
+    : '';
+
+  // ---- tiles ----
+  const objByCell = {};
+  d.objects.forEach((o) => {
+    const k = `${o.x},${o.y}`;
+    // Bosses and the exit outrank scenery when they share a cell.
+    const rank = { boss: 5, exit: 4, chest: 3, heal: 3, crystal: 2, debris: 2, start: 1, scenery: 0 };
+    if (!objByCell[k] || rank[o.kind] > rank[objByCell[k].kind]) objByCell[k] = o;
+  });
+
+  const grid = $('riftGrid');
+  grid.style.gridTemplateColumns = `repeat(${d.viewSize}, 1fr)`;
+  let html = '';
+  for (let y = 0; y < d.viewSize; y++) {
+    for (let x = 0; x < d.viewSize; x++) {
+      const isWall = d.rows[y][x] === '#';
+      const tile = isWall ? wallTileFile(d.rows, x, y) : 'floor';
+      const o = objByCell[`${x},${y}`];
+      const isPlayer = x === d.playerView.x && y === d.playerView.y;
+      let ico = '';
+      if (o && !isPlayer) {
+        if (o.kind === 'scenery') ico = `<span class="rt-ico">${RIFT_ICON.scenery[o.variant] || '🌑'}</span>`;
+        else ico = `<span class="rt-ico ${o.used ? 'used' : ''}">${RIFT_ICON[o.kind] || ''}</span>`;
+      }
+      if (isPlayer) ico = '<span class="rt-ico rt-player">🧑‍🚀</span>';
+      html += `<div class="rt ${isWall ? 'wall' : 'floor'}" style="background-image:url('/assets/rift/${tile}.png');">${ico}</div>`;
+    }
+  }
+  grid.innerHTML = html;
+
+  // ---- action button label ----
+  const labels = { chest: 'Open Chest', crystal: 'Collect Crystals', debris: 'Search Debris', heal: 'Use Healing Post', exit: 'ESCAPE' };
+  $('riftActionLabel').textContent = d.standingOn ? labels[d.standingOn] : 'Nothing here';
+  $('dpInvestigate').style.opacity = d.standingOn ? '1' : '0.45';
+
+  // ---- team ----
+  $('riftTeam').innerHTML = d.team.map((t) => `
+    <div class="rt-team-row ${t.hp <= 0 ? 'down' : ''}">
+      <span style="width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(t.name)}${t.hp <= 0 ? ' 💀' : ''}</span>
+      <span class="rtt-bar"><div style="width:${Math.round((t.hp / t.maxHp) * 100)}%; background:${t.hp / t.maxHp < 0.3 ? 'var(--danger)' : '#2a9d4a'};"></div></span>
+      <span style="width:64px; text-align:right; color:var(--text-dim); font-size:9px;">${t.hp}/${t.maxHp}</span>
+    </div>`).join('');
+
+  renderRiftEncounter(d);
+}
+
+function renderRiftEncounter(d) {
+  const el = $('riftEncounter');
+  const e = d.encounter;
+  if (!e) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const pct = Math.round((e.hp / e.maxHp) * 100);
+  const mine = d.team[e.activeIndex];
+
+  el.innerHTML = `
+    <div class="rift-battle ${e.kind === 'boss' ? 'boss' : ''}">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:20px;">${e.kind === 'boss' ? '☠️' : '👾'}</span>
+        <div style="flex:1;">
+          <div style="font-size:12px; color:#fff;">${escapeHtml(e.name)}</div>
+          <div style="font-size:8px; color:var(--text-dim);">${e.kind === 'boss' ? 'RIFT BOSS — no escape' : e.rarity} · ${escapeHtml(e.move)}</div>
+        </div>
+        <span style="font-size:10px; color:var(--text-dim);">${e.hp}/${e.maxHp}</span>
+      </div>
+      <div class="rb-hp"><div style="width:${pct}%;"></div></div>
+      ${mine ? `<div style="font-size:9px; color:var(--cyan); margin-top:6px;">▶ ${escapeHtml(mine.name)} — ${mine.hp}/${mine.maxHp} HP</div>` : ''}
+      <div class="rift-log">${e.log.slice(-6).reverse().map((l) => `<div>${escapeHtml(l)}</div>`).join('')}</div>
+      ${e.captureOffered
+        ? `<div style="margin-top:8px;">
+             <div style="font-size:10px; color:#2a9d4a;">Defeated! Spend crystals to improve your capture odds.</div>
+             <input type="number" id="riftCapSpend" value="60" min="0" step="20" style="margin-top:6px;">
+             <div style="display:flex; gap:6px; margin-top:6px;">
+               <button id="btnRiftCapture" class="primary" style="flex:1; margin-top:0;">Capture</button>
+               <button id="btnRiftSkip" class="ghost" style="flex:1; margin-top:0;">Leave it</button>
+             </div>
+           </div>`
+        : `<div style="display:flex; gap:6px; margin-top:10px;">
+             <button id="btnRiftAttack" style="flex:2; margin-top:0; background:var(--danger); border-color:var(--danger); color:#fff; font-weight:700;">ATTACK</button>
+             ${e.canRun ? '<button id="btnRiftRun" class="ghost" style="flex:1; margin-top:0;">Run</button>' : '<button class="ghost" style="flex:1; margin-top:0;" disabled>No escape</button>'}
+           </div>`}
+    </div>`;
+
+  const atk = $('btnRiftAttack');
+  if (atk) atk.onclick = () => guardedAction('riftatk', async () => {
+    try {
+      const r = await api('POST', '/rift/attack', { playerId: state.playerId });
+      if (r.finished) return showRiftSummary(r.summary);
+      if (r.reward) showGuildResultPopup(true, `☠️ Boss defeated!\n${r.reward.text}`);
+      state.rift = r; renderRiftMission(r);
+    } catch (e2) { showGuildResultPopup(false, (e2 && e2.message) || 'Attack failed.'); }
+  });
+  const rn = $('btnRiftRun');
+  if (rn) rn.onclick = () => guardedAction('riftrun', async () => {
+    try { const r = await api('POST', '/rift/run', { playerId: state.playerId }); state.rift = r; renderRiftMission(r); }
+    catch (e2) { showGuildResultPopup(false, (e2 && e2.message) || 'Could not run.'); }
+  });
+  const cap = $('btnRiftCapture');
+  if (cap) cap.onclick = () => guardedAction('riftcap', async () => {
+    try {
+      const spend = Math.max(0, Number($('riftCapSpend').value) || 0);
+      const r = await api('POST', '/rift/capture', { playerId: state.playerId, crystalsSpent: spend });
+      showGuildResultPopup(r.captured, r.captured ? `✨ Captured ${r.capturedName}!` : 'It slipped away.');
+      state.rift = r; renderRiftMission(r);
+    } catch (e2) { showGuildResultPopup(false, (e2 && e2.message) || 'Capture failed.'); }
+  });
+  const skip = $('btnRiftSkip');
+  if (skip) skip.onclick = () => guardedAction('riftskip', async () => {
+    try { const r = await api('POST', '/rift/capture', { playerId: state.playerId, crystalsSpent: 0 }); state.rift = r; renderRiftMission(r); } catch (e2) {}
+  });
+}
+
+async function riftMove(dir) {
+  try {
+    const r = await api('POST', '/rift/move', { playerId: state.playerId, dir });
+    state.rift = r;
+    renderRiftMission(r);
+  } catch (e) {
+    if (e && e.code !== 'BLOCKED' && e.message && !/wall/i.test(e.message)) {
+      showGuildResultPopup(false, e.message);
+    }
+  }
+}
+
+document.querySelectorAll('.dp[data-dir]').forEach((b) => {
+  b.onclick = () => riftMove(b.dataset.dir);
+});
+
+$('dpInvestigate').onclick = () => guardedAction('riftinv', async () => {
+  try {
+    const r = await api('POST', '/rift/investigate', { playerId: state.playerId });
+    if (r.finished) return showRiftSummary(r.summary);
+    if (r.found) {
+      const f = r.found;
+      const msg = f.kind === 'chest' ? `📦 Space Chest!\n${f.crystals.toLocaleString()} crystals and ${f.amount} ${f.material}`
+        : f.kind === 'crystal' ? `💎 ${f.crystals.toLocaleString()} crystals`
+        : f.kind === 'debris' ? `🪨 Found ${f.amount} ${f.material}`
+        : `✚ Team fully healed — ${f.usesLeft} charge${f.usesLeft === 1 ? '' : 's'} left`;
+      showGuildResultPopup(true, msg);
+    }
+    state.rift = r; renderRiftMission(r);
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Nothing here.'); }
+});
+
+// Keyboard support for desktop testing.
+document.addEventListener('keydown', (e) => {
+  const page = document.querySelector('#tab-rift');
+  if (!page || page.style.display === 'none' || !state.rift || !state.rift.active) return;
+  const map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+  if (map[e.key]) { e.preventDefault(); riftMove(map[e.key]); }
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('dpInvestigate').click(); }
+});
+
+$('btnRiftLaunch').onclick = async () => {
+  let d;
+  try { d = await api('GET', `/rift/candidates/${state.playerId}`); } catch (e) { return; }
+  if (d.droids.length < d.teamSize) {
+    showGuildResultPopup(false, `You need ${d.teamSize} healthy droids to enter the Rift — you have ${d.droids.length}.`);
+    return;
+  }
+  const picked = new Set();
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const draw = () => {
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">🌌 Enter the Rift</div>
+      <div class="mb-detail">Choose exactly ${d.teamSize} droids (${picked.size} selected).</div>
+      <div style="max-height:250px; overflow-y:auto; text-align:left; margin-top:8px;">
+        ${d.droids.map((x) => `
+          <div class="merge-pick ${picked.has(x.id) ? 'selected' : ''}" data-id="${x.id}">
+            <span class="mp-name">${escapeHtml(x.name)} <span class="spawn-rarity ${x.rarity}" style="font-size:8px;">${x.rarity}</span></span>
+            <span style="color:var(--text-dim); font-size:9px;">Lv${x.level} · ${x.hp}HP · ${x.attack}atk</span>
+          </div>`).join('')}
+      </div>
+      <button id="riftGo" class="primary" style="margin-top:12px;" ${picked.size === d.teamSize ? '' : 'disabled'}>Launch Mission</button>
+      <button id="riftCancel" class="ghost" style="margin-top:6px;">Cancel</button>`;
+    box.querySelectorAll('.merge-pick').forEach((row) => {
+      row.onclick = () => {
+        const id = Number(row.dataset.id);
+        if (picked.has(id)) picked.delete(id);
+        else if (picked.size < d.teamSize) picked.add(id);
+        else { showGuildResultPopup(false, `That's already ${d.teamSize} droids.`); return; }
+        draw();
+      };
+    });
+    box.querySelector('#riftGo').onclick = async () => {
+      try {
+        const r = await api('POST', '/rift/start', { playerId: state.playerId, teamDroidIds: [...picked] });
+        overlay.style.display = 'none';
+        state.rift = r; renderRiftMission(r);
+        showGuildResultPopup(true, '🌌 You drop into the Rift. Find the escape pod.');
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not start the mission.'); }
+    };
+    box.querySelector('#riftCancel').onclick = () => { overlay.style.display = 'none'; };
+  };
+  draw();
+  overlay.style.display = 'flex';
+};
+
+$('btnRiftAbandon').onclick = async () => {
+  if (!confirm('Abandon the mission?\n\nYou lose all loot and captures from this run. This cannot be undone.')) return;
+  try { await api('POST', '/rift/abandon', { playerId: state.playerId }); await refreshRift(); await refreshWorkshop(); } catch (e) {}
+};
+
+function showRiftSummary(sum) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">${sum.escaped ? '🚀' : '💀'}</div>
+    <div class="mb-title ${sum.escaped ? 'success' : ''}" style="${sum.escaped ? '' : 'color:var(--danger);'}">
+      ${sum.escaped ? 'Escaped the Rift' : 'Team Wiped Out'}
+    </div>
+    <div style="text-align:left; margin-top:12px; font-size:10px;">
+      <div class="stat-row"><span class="stat-label">Bosses defeated</span><span class="stat-val">${sum.bossesDefeated}/${sum.totalBosses}</span></div>
+      <div class="stat-row"><span class="stat-label">Chests opened</span><span class="stat-val">${sum.chestsOpened}/${sum.totalChests}</span></div>
+      <div class="stat-row"><span class="stat-label">Debris searched</span><span class="stat-val">${sum.debrisSearched}</span></div>
+      <div class="stat-row"><span class="stat-label">Crystal points</span><span class="stat-val">${sum.crystalPoints}</span></div>
+      <div class="stat-row"><span class="stat-label">Healing used</span><span class="stat-val">${sum.healingUses}/${sum.maxHealing}</span></div>
+      <div class="stat-row"><span class="stat-label">Steps taken</span><span class="stat-val">${sum.steps}</span></div>
+      <div class="stat-row"><span class="stat-label">Crystals</span><span class="stat-val" style="color:var(--amber);">${sum.crystals.toLocaleString()}✦</span></div>
+      ${Object.entries(sum.materials).map(([k, v]) => `<div class="stat-row"><span class="stat-label">${k}</span><span class="stat-val">+${v}</span></div>`).join('')}
+    </div>
+    ${sum.captured.length ? `<div style="margin-top:10px; text-align:left;">
+        <div style="font-size:8px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim);">Droids captured (${sum.captured.length}) — all fully healed</div>
+        <div style="font-size:10px; color:#fff; margin-top:3px;">${sum.captured.map(escapeHtml).join(', ')}</div>
+      </div>` : ''}
+    <div style="font-size:8px; color:var(--text-dim); margin-top:10px;">Map seed ${sum.seed}</div>
+    <button class="primary mb-close" style="margin-top:12px;">Done</button>`;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = async () => {
+    overlay.style.display = 'none';
+    await refreshRift(); await refreshWorkshop(); await refreshDex();
+  };
+}
+
+// ============================================================
+// QOL v0.12.3
+// ============================================================
+
+// ---- guild invites by player ID ----
+async function refreshGuildInvites() {
+  const el = $('guildInviteList');
+  if (!el || !state.playerId) return;
+  try {
+    const d = await api('GET', `/guilds/invites/${state.playerId}`);
+    el.innerHTML = d.invites.length
+      ? d.invites.map((i) => `
+          <div class="stat-row">
+            <span class="stat-label">${escapeHtml(i.name)} <span style="color:var(--text-dim);">${i.members} members</span></span>
+            <button class="inv-accept" data-id="${i.guildId}" style="width:auto;margin:0;padding:5px 10px;font-size:9px;background:#2a9d4a;border-color:#2a9d4a;color:#fff;">Join</button>
+          </div>`).join('')
+      : '<div style="font-size:9px; color:var(--text-dim);">No pending invites. Invite others by their player ID below.</div>';
+    el.querySelectorAll('.inv-accept').forEach((b) => {
+      b.onclick = async () => {
+        try {
+          await api('POST', '/guilds/accept-invite', { playerId: state.playerId, guildId: Number(b.dataset.id) });
+          showGuildResultPopup(true, 'Joined the guild!');
+          await refreshWorkshop(); await refreshGuildInvites();
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not join.'); }
+      };
+    });
+  } catch (e) {}
+}
+
+$('btnInvitePlayer').onclick = async () => {
+  const id = Number($('inviteIdInput').value);
+  if (!id) { showGuildResultPopup(false, 'Enter a player ID.'); return; }
+  try {
+    const r = await api('POST', '/guilds/invite', { playerId: state.playerId, targetId: id });
+    showGuildResultPopup(true, `Invite sent to ${r.invited}.`);
+    $('inviteIdInput').value = '';
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not send that invite.'); }
+};
+
+// ---- companion species filter ----
+const companionFilterEl = $('companionFilter');
+if (companionFilterEl) {
+  companionFilterEl.oninput = () => {
+    const q = companionFilterEl.value.toLowerCase();
+    document.querySelectorAll('#companionList .trade-card, #companionList .droid-row').forEach((row) => {
+      row.style.display = !q || row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  };
+}
+
+// ---- Brood: auto-select two duplicates of a chosen rarity ----
+// Hunting two spare droids by hand through a few hundred rows was the
+// slowest part of merging, so this picks a pair marked [DUPE] for you.
+function broodAutoSelect(rarityA, rarityB) {
+  const counts = {};
+  (state.droids || []).forEach((d) => { counts[d.speciesName] = (counts[d.speciesName] || 0) + 1; });
+  const pool = (state.droids || []).filter((d) =>
+    !d.workshopSlotId && d.rarity !== 'apex' && d.id !== state.buddyDroidId
+    && !d.fortId && d.activity !== 'smuggler' && !d.locked && counts[d.speciesName] > 1);
+
+  const pick = (rarity, exclude) => {
+    const c = pool.filter((d) => d.rarity === rarity && d.id !== exclude);
+    if (!c.length) return null;
+    return c[Math.floor(Math.random() * c.length)];
+  };
+  const a = pick(rarityA, null);
+  if (!a) return { error: `No spare ${rarityA} duplicates found.` };
+  const b = pick(rarityB, a.id);
+  if (!b) return { error: `Only one spare ${rarityB} duplicate found.` };
+  return { a, b };
+}
+
+$('btnBroodAuto').onclick = () => {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const rarities = ['common', 'uncommon', 'rare', 'legendary'];
+  let ra = 'common'; let rb = 'common';
+  const draw = () => {
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">🎲 Auto-Select</div>
+      <div class="mb-detail">Picks two droids marked [DUPE] at random. Locked droids are never chosen.</div>
+      <label style="margin-top:10px;">First droid</label>
+      <div class="dex-filter-bar">${rarities.map((r) => `<button class="dex-filter ${ra === r ? 'active' : ''}" data-side="a" data-r="${r}">${r}</button>`).join('')}</div>
+      <label style="margin-top:8px;">Second droid</label>
+      <div class="dex-filter-bar">${rarities.map((r) => `<button class="dex-filter ${rb === r ? 'active' : ''}" data-side="b" data-r="${r}">${r}</button>`).join('')}</div>
+      <button id="autoGo" class="primary" style="margin-top:12px;">Select Pair</button>
+      <button id="autoCancel" class="ghost" style="margin-top:6px;">Cancel</button>`;
+    box.querySelectorAll('.dex-filter').forEach((b) => {
+      b.onclick = () => { if (b.dataset.side === 'a') ra = b.dataset.r; else rb = b.dataset.r; draw(); };
+    });
+    box.querySelector('#autoGo').onclick = () => {
+      const res = broodAutoSelect(ra, rb);
+      if (res.error) { showGuildResultPopup(false, res.error); return; }
+      broodSelection = new Set([res.a.id, res.b.id]);
+      overlay.style.display = 'none';
+      renderBroodPicker();
+      const mb = $('btnBroodMerge');
+      if (mb) mb.textContent = 'Merge Selected (2/2)';
+      showGuildResultPopup(true, `Selected ${res.a.speciesName} + ${res.b.speciesName}.`);
+    };
+    box.querySelector('#autoCancel').onclick = () => { overlay.style.display = 'none'; };
+  };
+  draw();
+  overlay.style.display = 'flex';
+};
+
+// ============================================================
+// QOL v0.12.2
+// ============================================================
+
+// Feature toggles are fetched once and consulted by the capture screen,
+// so admin switches take effect without a redeploy.
+async function loadToggles() {
+  try { state.toggles = await api('GET', '/toggles'); } catch (e) { state.toggles = {}; }
+}
+
+// ---- Live PVP: pick your team here, not on another tab ----
+function renderLivePvpTeam() {
+  const el = $('livePvpTeamBox');
+  if (!el) return;
+  const chosen = (state.droids || []).filter((d) => selectedBattleTeam && selectedBattleTeam.has(d.id));
+  el.innerHTML = `
+    <div style="font-size:8px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim);">Your battle team</div>
+    ${chosen.length === 4
+      ? `<div style="font-size:10px; color:#fff; margin-top:4px;">${chosen.map((d) => escapeHtml(d.speciesName)).join(' · ')}</div>`
+      : '<div style="font-size:10px; color:var(--danger); margin-top:4px;">No team set — you need 4 different species.</div>'}
+    <button id="btnPvpTeam" style="margin-top:6px; font-size:9px; padding:7px 10px; width:auto;">${chosen.length === 4 ? 'Change team' : 'Set team'}</button>`;
+  $('btnPvpTeam').onclick = openTeamPicker;
+}
+
+// Shared picker — used by the button above AND popped automatically when
+// someone tries to fight without a team, which was the confusing bit.
+function openTeamPicker(afterSet) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  // Fort-garrisoned and away droids can't fight, so they're hidden
+  // rather than shown and then rejected.
+  const usable = (state.droids || []).filter((d) => !d.fainted && !d.fortId && d.activity !== 'fort' && d.activity !== 'smuggler');
+  const picked = new Set([...(selectedBattleTeam || [])].filter((id) => usable.some((d) => d.id === id)));
+
+  const draw = () => {
+    const chosenSpecies = new Set(usable.filter((d) => picked.has(d.id)).map((d) => d.speciesName));
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">⚔️ Battle Team</div>
+      <div class="mb-detail">Pick 4 droids — all different species. (${picked.size}/4)</div>
+      <div style="max-height:250px; overflow-y:auto; text-align:left; margin-top:8px;">
+        ${usable.map((d) => {
+          const dupe = !picked.has(d.id) && chosenSpecies.has(d.speciesName);
+          return `<div class="merge-pick ${picked.has(d.id) ? 'selected' : ''}" data-id="${d.id}" style="${dupe ? 'opacity:0.35;' : ''}">
+            <span class="mp-name">${escapeHtml(d.speciesName)} <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span>${dupe ? ' <span style="font-size:8px;color:var(--danger);">same species</span>' : ''}</span>
+            <span style="color:var(--text-dim); font-size:9px;">Lv${d.level} · ${d.currentHp}/${d.hp}</span>
+          </div>`;
+        }).join('') || '<div class="empty">No droids available to fight</div>'}
+      </div>
+      <button id="teamSave" class="primary" style="margin-top:12px;" ${picked.size === 4 ? '' : 'disabled'}>Save Team</button>
+      <button id="teamCancel" class="ghost" style="margin-top:6px;">Cancel</button>`;
+    box.querySelectorAll('.merge-pick').forEach((row) => {
+      row.onclick = () => {
+        const id = Number(row.dataset.id);
+        const d = usable.find((x) => x.id === id);
+        if (picked.has(id)) picked.delete(id);
+        else {
+          if (picked.size >= 4) { showGuildResultPopup(false, 'That\'s already 4 droids.'); return; }
+          if (chosenSpecies.has(d.speciesName)) { showGuildResultPopup(false, 'Teams need 4 different species.'); return; }
+          picked.add(id);
+        }
+        draw();
+      };
+    });
+    box.querySelector('#teamSave').onclick = () => {
+      selectedBattleTeam = new Set(picked);
+      overlay.style.display = 'none';
+      renderLivePvpTeam();
+      if (typeof afterSet === 'function') afterSet();
+    };
+    box.querySelector('#teamCancel').onclick = () => { overlay.style.display = 'none'; };
+  };
+  draw();
+  overlay.style.display = 'flex';
+}
+
+// ---- outfit picker ----
+$('btnChooseOutfit').onclick = () => {
+  const owned = state.ownedOutfits || ['basic'];
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  let sel = state.outfit;
+  const draw = () => {
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">👕 Choose Outfit</div>
+      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px; max-height:340px; overflow-y:auto;">
+        ${owned.map((o) => `
+          <div class="outfit-card ${sel === o ? 'selected' : ''}" data-outfit="${o}">
+            <img src="/assets/outfits/${o}.png" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'👤',style:'font-size:44px;height:120px;display:flex;align-items:center;justify-content:center;'}));">
+            <div class="oc-name">${escapeHtml(o)}</div>
+          </div>`).join('')}
+      </div>
+      <button id="outfitSave" class="primary" style="margin-top:12px;">Select</button>
+      <button id="outfitCancel" class="ghost" style="margin-top:6px;">Cancel</button>`;
+    box.querySelectorAll('.outfit-card').forEach((c) => {
+      c.onclick = () => { sel = c.dataset.outfit; draw(); };
+    });
+    box.querySelector('#outfitSave').onclick = async () => {
+      try {
+        if (sel !== state.outfit) await api('POST', '/player/equip-outfit', { playerId: state.playerId, outfitId: sel });
+        overlay.style.display = 'none';
+        await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not equip that outfit.'); }
+    };
+    box.querySelector('#outfitCancel').onclick = () => { overlay.style.display = 'none'; };
+  };
+  draw();
+  overlay.style.display = 'flex';
+};
+
+// ---- admin: feature toggles + code change ----
+$('btnLoadToggles').onclick = async () => {
+  const adminCode = promptAdminCode('events');
+  if (!adminCode) return;
+  const t = await api('GET', '/toggles');
+  const LABELS = {
+    earlyScanBlock: 'Block re-scan during cell cooldown (shows "too early")',
+    padPluginsInCapture: 'Offer Growth / Time Warp inside the capture minigame',
+    hardMinigameLowRarity: 'Tighter capture zone for Common & Uncommon',
+  };
+  $('adminToggleList').innerHTML = Object.entries(t).map(([k, v]) => `
+    <div class="stat-row">
+      <span class="stat-label" style="flex:1; text-transform:none; letter-spacing:0;">${LABELS[k] || k}</span>
+      <button class="tog-btn" data-key="${k}" data-val="${v ? '0' : '1'}" data-code="${adminCode}"
+        style="width:auto;margin:0;padding:5px 10px;font-size:9px;${v ? 'background:#2a9d4a;border-color:#2a9d4a;color:#fff;' : ''}">${v ? 'ON' : 'OFF'}</button>
+    </div>`).join('');
+  $('adminToggleList').querySelectorAll('.tog-btn').forEach((b) => {
+    b.onclick = async () => {
+      try {
+        await api('POST', '/admin/toggle', { playerId: state.playerId, adminCode: b.dataset.code, key: b.dataset.key, value: b.dataset.val === '1' });
+        await loadToggles();
+        $('btnLoadToggles').click();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Failed.'); }
+    };
+  });
+};
+
+$('btnChangeAdminCode').onclick = async () => {
+  const current = prompt('Current admin code:');
+  if (!current) return;
+  const next = prompt('New code (4-8 digits):');
+  if (!next) return;
+  const again = prompt('Re-type the new code:');
+  if (next !== again) { showGuildResultPopup(false, 'The new codes did not match.'); return; }
+  try {
+    await api('POST', '/admin/change-code', { playerId: state.playerId, adminCode: current, kind: 'events', currentCode: current, newCode: next });
+    showGuildResultPopup(true, `Admin code changed to ${next}. Keep it safe — it is not recoverable.`);
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not change the code.'); }
+};
+
+// ============================================================
+// RANKED ARENA
+// ============================================================
+
+async function refreshRanked() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/ranked/${state.playerId}`);
+    state.ranked = d;
+
+    const days = Math.max(0, Math.ceil((d.seasonEndsAt - Date.now()) / 86400000));
+    $('rankedSeason').textContent = `Season ${d.season} · ${days}d left`;
+
+    // Unclaimed season reward from last month.
+    $('rankedClaimBanner').innerHTML = d.lastSeason
+      ? `<div style="border:1px solid var(--amber); background:rgba(232,169,79,0.14); border-radius:4px; padding:8px; margin-bottom:10px; font-size:10px; color:var(--amber);">
+           🏆 Season ${d.lastSeason.season} finished — you peaked at <strong>${d.lastSeason.peakDivision}</strong>.
+           <div style="font-size:9px; margin-top:3px;">${d.lastSeason.reward.crystals.toLocaleString()}✦${d.lastSeason.reward.guildTokens ? ` · ${d.lastSeason.reward.guildTokens} Guild Tokens` : ''}${d.lastSeason.reward.seasonTokens ? ` · ${d.lastSeason.reward.seasonTokens} Season Pass Token` : ''} · title "${d.lastSeason.reward.title}"</div>
+           <button id="btnClaimRanked" style="margin-top:6px; background:var(--amber); border-color:var(--amber); color:#201002; font-weight:700;">Claim</button>
+         </div>`
+      : '';
+
+    const div = d.division;
+    $('rankedProfile').innerHTML = `
+      <div class="rank-badge">
+        <span class="rank-icon">${div.icon}</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; color:${div.colour}; font-weight:700;">
+            ${div.name}${d.inPlacement ? ' <span style="font-size:9px; color:var(--amber);">PLACEMENT</span>' : ''}
+          </div>
+          <div style="font-size:10px; color:var(--text-dim);">
+            ${d.rating} rating${d.myRank ? ` · #${d.myRank} worldwide` : ''}
+          </div>
+        </div>
+        <div style="text-align:right; font-size:9px; color:var(--text-dim);">
+          ${d.wins}W ${d.losses}L<br>
+          ${d.streak > 1 ? `<span style="color:#2a9d4a;">🔥 ${d.streak} streak</span>` : ''}
+        </div>
+      </div>
+
+      ${d.inPlacement
+        ? `<div style="font-size:9px; color:var(--amber); margin-top:6px;">${d.placementsLeft} placement match${d.placementsLeft === 1 ? '' : 'es'} left — rating moves faster until then.</div>`
+        : d.nextDivision
+          ? `<div class="rank-bar"><div style="width:${d.progressToNext}%; background:${div.colour};"></div></div>
+             <div style="font-size:9px; color:var(--text-dim); margin-top:3px;">
+               ${d.nextDivision.pointsAway} rating to ${d.nextDivision.icon} ${d.nextDivision.name}
+             </div>`
+          : '<div style="font-size:9px; color:var(--amber); margin-top:6px;">Top division reached.</div>'}
+
+      <div style="font-size:9px; color:var(--text-dim); margin-top:8px;">
+        🛡️ Protected at <strong style="color:#2a9d4a;">${d.protectedFloor}</strong> — reaching a division means you can't drop out of it.
+        · Each win pays <strong style="color:var(--amber);">${d.winReward.toLocaleString()}✦</strong>
+      </div>
+
+      ${d.titles.length ? `<div style="margin-top:8px;">
+        <div style="font-size:8px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:4px;">Titles — shown next to your name</div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;">
+          ${d.titles.map((t) => `<button class="title-pick" data-title="${escapeHtml(t)}" style="width:auto; margin:0; padding:5px 9px; font-size:9px; ${d.equippedTitle === t ? 'background:var(--amber); border-color:var(--amber); color:#201002; font-weight:700;' : ''}">${escapeHtml(t)}</button>`).join('')}
+          ${d.equippedTitle ? '<button class="title-pick" data-title="" style="width:auto; margin:0; padding:5px 9px; font-size:9px; color:var(--danger); border-color:var(--danger);">None</button>' : ''}
+        </div>
+      </div>` : ''}
+
+      ${d.history.length ? `<div class="rank-hist">${d.history.map((h) => `
+        <span class="rank-pip ${h.won ? 'w' : 'l'}" title="vs ${escapeHtml(h.opponent)}">
+          ${h.won ? '+' : ''}${h.delta}
+        </span>`).join('')}</div>` : ''}`;
+
+    $('rankedBoard').innerHTML = d.leaderboard.length
+      ? d.leaderboard.map((r) => `
+          <div class="lb-row ${r.playerId === state.playerId ? 'me' : ''}">
+            <span style="width:26px; color:var(--text-dim);">${r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : '#' + r.rank}</span>
+            <span>${r.icon}</span>
+            <span style="flex:1; color:#fff;">${escapeHtml(r.username)}${r.title ? `<div style="font-size:8px; color:var(--amber);">${escapeHtml(r.title)}</div>` : ''}</span>
+            <span style="color:var(--text-dim); font-size:9px;">${r.wins}W ${r.winRate}%</span>
+            <span style="color:var(--cyan); font-weight:700; width:44px; text-align:right;">${r.rating}</span>
+          </div>`).join('')
+      : '<div class="empty">No ranked matches played yet — be first</div>';
+
+    $('rankedDivisions').innerHTML = '<div style="font-size:8px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:4px;">Season rewards — paid on your PEAK division</div>'
+      + d.divisions.map((x) => `
+          <div class="div-row" style="${x.id === d.peakDivision ? 'background:rgba(95,216,224,0.08);' : ''}">
+            <span>${x.icon}</span>
+            <span style="width:82px; color:${x.colour};">${x.name}</span>
+            <span style="color:var(--text-dim); width:40px;">${x.min}+</span>
+            <span style="flex:1; color:var(--text-dim);">${x.reward.crystals.toLocaleString()}✦${x.reward.guildTokens ? ` · ${x.reward.guildTokens}GT` : ''}${x.reward.seasonTokens ? ` · ${x.reward.seasonTokens} pass` : ''}</span>
+          </div>`).join('');
+
+    $('rankedProfile').querySelectorAll('.title-pick').forEach((b) => {
+      b.onclick = async () => {
+        try {
+          await api('POST', '/ranked/title', { playerId: state.playerId, title: b.dataset.title || null });
+          await refreshRanked(); await refreshLevels();
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not set that title.'); }
+      };
+    });
+
+    const cb = $('btnClaimRanked');
+    if (cb) cb.onclick = () => guardedAction('rankclaim', async () => {
+      try {
+        const r = await api('POST', '/ranked/claim', { playerId: state.playerId });
+        showGuildResultPopup(true, `🏆 Season reward claimed!\n${r.reward.crystals.toLocaleString()} crystals and the title "${r.reward.title}".`);
+        await refreshRanked(); await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not claim.'); }
+    });
+  } catch (e) {}
+}
+
+// ============================================================
+// SMUGGLER'S RUN
+// ============================================================
+
+document.querySelectorAll('.mode-btn').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('.mode-btn').forEach((x) => x.classList.toggle('active', x === b));
+    const smug = b.dataset.mode === 'smuggler';
+    $('modeRift').style.display = smug ? 'none' : 'block';
+    $('modeSmuggler').style.display = smug ? 'block' : 'none';
+    if (smug) refreshSmuggler(); else refreshRift();
+  };
+});
+
+function runTimeLeft(ms) {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const sec = t % 60;
+  return h ? `${h}h ${m}m` : m ? `${m}m ${sec}s` : `${sec}s`;
+}
+
+async function refreshSmuggler() {
+  if (!state.playerId) return;
+  try {
+    const d = await api('GET', `/smuggler-run/${state.playerId}`);
+    state.smuggler = d;
+
+    // ---- active run ----
+    const act = $('smugglerActive');
+    if (d.active) {
+      act.style.display = 'block';
+      $('smugglerTiersPanel').style.display = 'none';
+      const r = d.run;
+      act.innerHTML = `
+        <div class="panel" style="margin-top:16px; border-color:${r.ready ? '#2a9d4a' : 'var(--cyan-dim)'};">
+          <div class="panel-title">${r.ready ? '✅ Run Complete' : '🚀 Run In Progress'}</div>
+          <div style="font-size:11px; color:#fff;">${escapeHtml(r.tierName)}</div>
+          <div style="font-size:9px; color:var(--text-dim); margin-top:3px;">
+            ${r.crystalsInvested.toLocaleString()}✦ invested · −${r.speedupPercent}% travel time
+          </div>
+          <div style="margin-top:8px; font-size:14px; color:${r.ready ? '#2a9d4a' : 'var(--amber)'}; font-weight:700;" id="smugTimer">
+            ${r.ready ? 'Ready to collect' : runTimeLeft(r.msRemaining)}
+          </div>
+          <div style="margin-top:8px;">
+            ${r.droids.map((x) => `<span class="garrison-chip">${escapeHtml(x.name)} <span style="color:var(--text-dim);">${x.rarity}</span></span>`).join('')}
+          </div>
+          ${r.ready
+            ? '<button id="btnCollectRun" class="primary" style="margin-top:10px;">Collect Haul</button>'
+            : '<button id="btnRecallRun" class="ghost" style="margin-top:10px; font-size:9px; padding:7px; color:var(--danger); border-color:var(--danger);">Recall (lose invested crystals)</button>'}
+        </div>`;
+
+      const cb = $('btnCollectRun');
+      if (cb) cb.onclick = () => guardedAction('smugcollect', async () => {
+        try {
+          const res = await api('POST', '/smuggler-run/collect', { playerId: state.playerId });
+          showSmugglerHaul(res.loot);
+          await refreshSmuggler(); await refreshWorkshop();
+        } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not collect.'); }
+      });
+      const rb = $('btnRecallRun');
+      if (rb) rb.onclick = async () => {
+        if (!confirm('Recall the run early?\n\nYou lose the crystals you invested. Your droids come home.')) return;
+        try { await api('POST', '/smuggler-run/recall', { playerId: state.playerId }); await refreshSmuggler(); await refreshWorkshop(); } catch (e) {}
+      };
+
+      // Live countdown without re-fetching every second.
+      if (window._smugTimer) clearInterval(window._smugTimer);
+      if (!r.ready) {
+        let left = r.msRemaining;
+        window._smugTimer = setInterval(() => {
+          left -= 1000;
+          const el = $('smugTimer');
+          if (!el) { clearInterval(window._smugTimer); return; }
+          if (left <= 0) { clearInterval(window._smugTimer); refreshSmuggler(); return; }
+          el.textContent = runTimeLeft(left);
+        }, 1000);
+      }
+    } else {
+      act.style.display = 'none';
+      $('smugglerTiersPanel').style.display = 'block';
+      $('smugglerTiers').innerHTML = d.tiers.map((t) => `
+        <div class="run-tier" data-tier="${t.id}">
+          <div class="rt-head">
+            <span class="spawn-rarity ${t.id}">${t.id}</span>
+            <span style="flex:1;">${escapeHtml(t.name)}</span>
+            <span style="color:var(--text-dim); font-size:9px;">${t.hours}h base</span>
+          </div>
+          <div class="rt-meta">
+            ${t.minCrystals.toLocaleString()}–${t.maxCrystals.toLocaleString()}✦ ·
+            ${t.lootRolls}+ loot rolls · ${t.droidChancePercent}% droid
+            ${t.rareMaterialPercent ? ` · ${t.rareMaterialPercent}% rare material` : ''}
+          </div>
+        </div>`).join('');
+      $('smugglerTiers').querySelectorAll('.run-tier').forEach((el) => {
+        el.onclick = () => openRunPicker(el.dataset.tier, d);
+      });
+    }
+
+    // ---- history ----
+    $('smugglerHistory').innerHTML = (d.history || []).length
+      ? d.history.map((h) => `
+          <div class="stat-row">
+            <span class="stat-label">${h.tierId} <span style="color:var(--text-dim);">${new Date(h.at).toLocaleDateString()}</span></span>
+            <span class="stat-val">${h.crystals.toLocaleString()}✦${h.droid ? ` · ${escapeHtml(h.droid.name)}` : ''}${h.attachments && h.attachments.length ? ` · ${h.attachments.length} attach` : ''}</span>
+          </div>`).join('')
+      : '<div class="empty">No runs yet</div>';
+  } catch (e) {}
+}
+
+async function openRunPicker(tierId, data) {
+  const tier = data.tiers.find((t) => t.id === tierId);
+  let cands = [];
+  try { cands = (await api('GET', `/smuggler-run/candidates/${state.playerId}`)).droids; } catch (e) { return; }
+  if (!cands.length) { showGuildResultPopup(false, 'You have no droids free to send.'); return; }
+
+  const picked = new Set();
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+
+  const draw = () => {
+    const chosen = cands.filter((c) => picked.has(c.id));
+    const speedup = Math.min(65, chosen.reduce((a, c) => a + c.speedup, 0));
+    const hours = (tier.hours * (1 - speedup / 100)).toFixed(2);
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">🚀 ${escapeHtml(tier.name)}</div>
+      <div class="mb-detail">Base ${tier.hours}h — droids you send cut the wait.</div>
+      <div style="font-size:13px; color:var(--amber); font-weight:700; margin-top:6px;">
+        ${hours}h  <span style="font-size:9px; color:var(--text-dim);">(−${speedup}%)</span>
+      </div>
+
+      <label style="margin-top:12px;">Crystals to invest</label>
+      <input type="number" id="runInvest" value="${tier.minCrystals}" min="${tier.minCrystals}" max="${tier.maxCrystals}" step="500">
+      <div style="font-size:8px; color:var(--text-dim); margin-top:3px;">
+        ${tier.minCrystals.toLocaleString()}–${tier.maxCrystals.toLocaleString()}✦. Buys loot, not crystals back.
+      </div>
+
+      <label style="margin-top:12px;">Send droids (${picked.size}/${data.maxDroids})</label>
+      <div style="max-height:190px; overflow-y:auto; text-align:left;">
+        ${cands.map((c) => `
+          <div class="merge-pick ${picked.has(c.id) ? 'selected' : ''}" data-id="${c.id}">
+            <span class="mp-name">${escapeHtml(c.name)} <span class="spawn-rarity ${c.rarity}" style="font-size:8px;">${c.rarity}</span></span>
+            <span style="color:var(--cyan); font-size:9px;">−${c.speedup}%</span>
+          </div>`).join('')}
+      </div>
+      <button id="runGo" class="primary" style="margin-top:12px;" ${picked.size ? '' : 'disabled'}>Launch Run</button>
+      <button id="runCancel" class="ghost" style="margin-top:6px;">Cancel</button>`;
+
+    box.querySelectorAll('.merge-pick').forEach((row) => {
+      row.onclick = () => {
+        const id = Number(row.dataset.id);
+        const invVal = box.querySelector('#runInvest').value;
+        if (picked.has(id)) picked.delete(id);
+        else if (picked.size < data.maxDroids) picked.add(id);
+        else { showGuildResultPopup(false, `You can send at most ${data.maxDroids} droids.`); return; }
+        draw();
+        box.querySelector('#runInvest').value = invVal;
+      };
+    });
+    box.querySelector('#runGo').onclick = async () => {
+      try {
+        await api('POST', '/smuggler-run/start', {
+          playerId: state.playerId, tierId,
+          droidIds: [...picked],
+          crystalsInvested: Number(box.querySelector('#runInvest').value) || 0,
+        });
+        overlay.style.display = 'none';
+        showGuildResultPopup(true, '🚀 The run is away. Come back when the timer ends.');
+        await refreshSmuggler(); await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not launch that run.'); }
+    };
+    box.querySelector('#runCancel').onclick = () => { overlay.style.display = 'none'; };
+  };
+  draw();
+  overlay.style.display = 'flex';
+}
+
+function showSmugglerHaul(loot) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">🚀</div>
+    <div class="mb-title success">Run Complete</div>
+    <div style="text-align:left; margin-top:12px; font-size:10px;">
+      <div class="stat-row"><span class="stat-label">Crystals</span><span class="stat-val" style="color:var(--amber);">+${loot.crystals.toLocaleString()}✦</span></div>
+      ${Object.entries(loot.materials).map(([k, v]) => `<div class="stat-row"><span class="stat-label">${k}</span><span class="stat-val">+${v}</span></div>`).join('')}
+      ${Object.entries(loot.rareMaterials || {}).map(([k, v]) => `<div class="stat-row"><span class="stat-label" style="color:var(--amber);">✨ ${k}</span><span class="stat-val" style="color:var(--amber);">+${v}</span></div>`).join('')}
+      ${loot.attachments.map((a) => `<div class="stat-row"><span class="stat-label">🔌 ${escapeHtml(a.name)}</span><span class="stat-val">${a.rarity}</span></div>`).join('')}
+    </div>
+    ${loot.droid ? `<div style="margin-top:10px; padding:8px; border:1px solid var(--cyan); border-radius:4px;">
+        <div style="font-size:9px; color:var(--text-dim);">A droid came back with them</div>
+        <div style="font-size:12px; color:#fff;">${escapeHtml(loot.droid.name)} <span class="spawn-rarity ${loot.droid.rarity}">${loot.droid.rarity}</span></div>
+      </div>` : ''}
+    <button class="primary mb-close" style="margin-top:12px;">Nice</button>`;
+  overlay.style.display = 'flex';
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; refreshDex(); };
+}
+
+// ============================================================
 // SEASON PASS
 // ============================================================
 
@@ -7163,7 +8393,9 @@ function wireSiegeButtons() {
   const el = $('siegeList');
   const needTeam = () => {
     if (!selectedBattleTeam || selectedBattleTeam.size !== 4) {
-      showGuildResultPopup(false, 'Pick a battle team of 4 droids on the Battles tab first.');
+      // Open the picker straight away rather than telling them to go
+      // and find it on another tab.
+      openTeamPicker();
       return null;
     }
     return [...selectedBattleTeam];
@@ -7280,6 +8512,40 @@ window.initiateSiege = initiateSiege;
 // CASINO — The Spark Lounge
 // ============================================================
 
+// One-time age confirmation before the Spark Lounge opens. Stored on
+// the device — it's a gate, not personal data we need on the server.
+const AGE_GATE_KEY = 'sparkfield.ageConfirmed';
+function checkLoungeAgeGate() {
+  try { if (localStorage.getItem(AGE_GATE_KEY) === 'yes') return true; } catch (e) { return true; }
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = `
+    <div class="mb-icon">🔞</div>
+    <div class="mb-title" style="color:#fff;">Age Check</div>
+    <div class="mb-detail">The Spark Lounge contains simulated gambling. Please confirm your date of birth.</div>
+    <input type="date" id="dobInput" style="margin-top:10px;">
+    <div style="font-size:8px; color:var(--text-dim); margin-top:4px;">Stored on this device only — never uploaded.</div>
+    <button id="dobGo" class="primary" style="margin-top:12px;">Confirm</button>
+    <button id="dobNo" class="ghost" style="margin-top:6px;">Not now</button>`;
+  overlay.style.display = 'flex';
+  box.querySelector('#dobGo').onclick = () => {
+    const v = box.querySelector('#dobInput').value;
+    if (!v) { showGuildResultPopup(false, 'Please enter your date of birth.'); return; }
+    const age = (Date.now() - new Date(v).getTime()) / (365.25 * 86400000);
+    if (age < 18) {
+      overlay.style.display = 'none';
+      showGuildResultPopup(false, 'The Spark Lounge is for players aged 18 and over.');
+      switchTab('home');
+      return;
+    }
+    try { localStorage.setItem(AGE_GATE_KEY, 'yes'); } catch (e) {}
+    overlay.style.display = 'none';
+    refreshCasino(); refreshDealer();
+  };
+  box.querySelector('#dobNo').onclick = () => { overlay.style.display = 'none'; switchTab('home'); };
+  return false;
+}
+
 async function refreshCasino() {
   if (!state.playerId) return;
   try {
@@ -7313,6 +8579,8 @@ $('btnDailySpin').onclick = () => guardedAction('spin', async () => {
 document.querySelectorAll('.rl-bet').forEach((b) => {
   b.onclick = () => guardedAction('roulette', async () => {
     const amount = Math.floor(Number($('rouletteBet').value) || 0);
+    // Real money habits: never let a bet leave without a confirmation.
+    if (!confirm(`Place ${amount.toLocaleString()} crystals on ${b.dataset.type}?`)) return;
     const betType = b.dataset.type;
     const betValue = betType === 'number' ? Number($('rouletteNumber').value) : null;
     if (betType === 'number' && (betValue === null || Number.isNaN(betValue))) {
@@ -7364,6 +8632,7 @@ function renderBlackjack(r) {
 
 $('btnBlackjackDeal').onclick = () => guardedAction('bj', async () => {
   const amount = Math.floor(Number($('blackjackBet').value) || 0);
+  if (!confirm(`Deal for ${amount.toLocaleString()} crystals?`)) return;
   try {
     renderBlackjack(await api('POST', '/casino/blackjack/deal', { playerId: state.playerId, amount }));
     await refreshWorkshop();
@@ -7720,9 +8989,17 @@ function openLiveStream() {
     renderLiveBattle();
     const won = liveState.winnerId === state.playerId;
     const reasons = { knockout: 'knockout', timeout: 'opponent timed out', forfeit: 'forfeit', error: 'error' };
-    showGuildResultPopup(won, won
+    const rk = liveState.ranked;
+    let rankLine = '';
+    if (rk) {
+      const me = rk.winner.id === state.playerId ? rk.winner : rk.loser;
+      rankLine = `\n${me.delta >= 0 ? '+' : ''}${me.delta} rating → ${me.after} (${me.division.name})`;
+      if (me.floored) rankLine += '\n🛡️ Division floor protected you.';
+    }
+    showGuildResultPopup(won, (won
       ? `🏆 You won! (${reasons[liveState.reason] || 'victory'}) +${(liveState.reward && liveState.reward.crystals) || 0} crystals`
-      : `Defeated (${reasons[liveState.reason] || 'loss'})`);
+      : `Defeated (${reasons[liveState.reason] || 'loss'})`) + rankLine);
+    refreshRanked();
     refreshWorkshop();
     refreshLevels();
   });
@@ -7759,7 +9036,8 @@ async function refreshLivePvp() {
             <span class="pdot ${o.presence}"></span>
             <span class="lo-name">${o.username}${o.inBattle ? ' <span style="font-size:8px;color:var(--amber);">in battle</span>' : ''}</span>
             ${o.online && !o.inBattle
-              ? `<button class="live-challenge" data-id="${o.id}">Challenge</button>`
+              ? `<button class="live-challenge" data-id="${o.id}" data-ranked="0">Friendly</button>
+                 <button class="live-challenge" data-id="${o.id}" data-ranked="1" style="background:#e8c14f; border-color:#e8c14f; color:#201002; font-weight:700;">Ranked</button>`
               : '<span style="font-size:9px; color:var(--text-dim);">offline</span>'}
           </div>`).join('')
       : '<div class="empty">Add friends or join a guild to find opponents</div>';
@@ -7780,8 +9058,12 @@ async function refreshLivePvp() {
       b.onclick = async () => {
         if (!requireBattleTeam()) return;
         try {
-          await api('POST', '/livepvp/challenge', { fromPlayerId: state.playerId, toPlayerId: Number(b.dataset.id), teamDroidIds: [...selectedBattleTeam] });
-          showGuildResultPopup(true, 'Challenge sent — they have 60 seconds to accept.');
+          const isRanked = b.dataset.ranked === '1';
+          await api('POST', '/livepvp/challenge', {
+            fromPlayerId: state.playerId, toPlayerId: Number(b.dataset.id),
+            teamDroidIds: [...selectedBattleTeam], ranked: isRanked,
+          });
+          showGuildResultPopup(true, `${isRanked ? '🏆 Ranked challenge' : 'Challenge'} sent — they have 60 seconds to accept.`);
           await refreshLivePvp();
         } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not send that challenge.'); }
       };
@@ -7791,7 +9073,7 @@ async function refreshLivePvp() {
 
 function requireBattleTeam() {
   if (!selectedBattleTeam || selectedBattleTeam.size !== 4) {
-    showGuildResultPopup(false, 'Pick a battle team of 4 droids on the Battles tab first (they must be 4 different species).');
+    openTeamPicker();
     return false;
   }
   return true;
@@ -8036,7 +9318,10 @@ async function refreshLevels() {
     if (pn) pn.textContent = state.username || 'Pilot';
     const ps = $('pilotSub');
     if (ps) ps.textContent = `Level ${d.level}${d.rebootCount ? ` · Re-Boot ${d.rebootCount}` : ''} · #${state.playerId}`;
+    const pt = $('pilotTitle');
+    if (pt && state.ranked) pt.textContent = state.ranked.equippedTitle ? `« ${state.ranked.equippedTitle} »` : '';
     applyProfileImage();
+    applyPilotBadge();
 
     $('plNextReward').textContent = d.nextRewardLevel
       ? `Next reward at Level ${d.nextRewardLevel}`

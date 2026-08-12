@@ -177,6 +177,9 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
       // what achievements read from later.
       capturedViaJoystick: viaJoystick,
     };
+    // Where it was caught, so the stats page can show it.
+    newDroid.caughtLat = Math.round(playerLat * 10000) / 10000;
+    newDroid.caughtLng = Math.round(playerLng * 10000) / 10000;
     db.ownedDroids.set(newDroid.id, newDroid);
     db.markDexSeen(playerId, species.id, spawn.variant);
     // Catching a wished-for droid clears it from the wish list.
@@ -251,6 +254,9 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
       isEligibleForAutoRelease &&
       ['common', 'uncommon'].includes(species.rarity)
     ) {
+      // Locked droids are never counted as the "one you already own",
+      // so locking your best copy can't cause the NEW one to be kept
+      // and the locked one released later by a different rule.
       const alreadyOwnsMatch = [...db.ownedDroids.values()].some(
         (d) => d.playerId === playerId && d.speciesId === species.id && d.variant === spawn.variant && d.id !== newDroid.id
       );

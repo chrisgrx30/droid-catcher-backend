@@ -288,6 +288,26 @@ const droidSpecies = [
   { id: id(), name: 'Scaffitan Apex',      alignment: 'cosmic', rarity: 'legendary', collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 35, spawnWeight: 0, isEvolutionOnly: true, ...statsFor('legendary') },
   { id: id(), name: 'Scaffitan Eternal',   alignment: 'cosmic', rarity: 'galactic',  collection: 'titan', baseCaptureRate: 1, baseCrystalRate: 60, spawnWeight: 0, isEvolutionOnly: true, isGalactic: true, galacticBuffType: 'hp_boost', galacticBuffPercent: 20, ...statsFor('galactic') },
 
+  // ---- RIFT (15) — Space Rift mission exclusive ----
+  // spawnWeight 0 + eventOnly: these never appear in the wild. The only
+  // way to get one is to capture it inside a Space Rift mission, which
+  // is what makes the mode worth running.
+  { id: id(), name: 'Void Scout',       alignment: 'dark',  rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Rift Hound',       alignment: 'dark',  rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Spark Drone',      alignment: 'light', rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Storm Mite',       alignment: 'light', rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Rift Rat',         alignment: 'dark',  rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Lumen Guard',      alignment: 'light', rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 6,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Nexus Beast',      alignment: 'dark',  rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 6,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Aqua Sentinel',    alignment: 'light', rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 6,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Photon Wisp',      alignment: 'light', rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 6,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Rift Stalker',     alignment: 'dark',  rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 6,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Celestial Lion',   alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Obsidian Serpent', alignment: 'dark',  rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Stellar Phoenix',  alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Gravity Titan',    alignment: 'dark',  rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Eclipse Prime',    alignment: 'dark',  rarity: 'legendary', collection: 'rift', baseCaptureRate: 0.08, baseCrystalRate: 30, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('legendary') },
+
   // ---- ASTRAL BROOD (10) — merge-exclusive ----
   // spawnWeight 0 and isBroodOnly: these NEVER spawn in the world and
   // are not obtainable from the Factory or any event. The Brood Chamber
@@ -1654,6 +1674,7 @@ function playerLeaderboardStats(playerId) {
     playerLevel: player.playerLevel || 0,
     rebootCount: player.rebootCount || 0,
     highestMastery: owned.reduce((max, d) => Math.max(max, d.masteryLevel || 0), 0),
+    title: player.equippedTitle || null,
     badgeIcon: player.playerBadgeIcon || null,
     badgeFolder: player.playerBadgeFolder || null,
   };
@@ -1741,6 +1762,68 @@ function guildCheckIn(playerId) {
     unlockedBadges: guild.unlockedBadges || [],
     crystalBalance: Math.floor(player.crystalBalance),
   };
+}
+
+// Guild Tokens can top up guild level: 1 token = 1 check-in coin. Gives
+// tokens a sink for guilds that already hold Forts and are drowning in
+// them, without touching the daily check-in rhythm.
+// Invite by player ID — the guild screen had no way to add someone you
+// knew the number of, only open joining.
+function inviteToGuild(playerId, targetId) {
+  const player = players.get(playerId);
+  if (!player || !player.guildId) throw new Error('You are not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (!guild) throw new Error('Guild not found');
+  const target = players.get(Number(targetId));
+  if (!target) throw new Error('No player with that ID');
+  if (target.guildId) throw new Error(`${target.username} is already in a guild`);
+  target.guildInvites = target.guildInvites || [];
+  if (target.guildInvites.includes(guild.id)) throw new Error('They already have an invite from your guild');
+  target.guildInvites.push(guild.id);
+  return { invited: target.username, targetId: target.id };
+}
+
+function myGuildInvites(playerId) {
+  const player = players.get(playerId);
+  if (!player) return [];
+  return (player.guildInvites || []).map((gid) => {
+    const g = guilds.get(gid);
+    return g ? { guildId: g.id, name: g.name, members: g.memberIds.length } : null;
+  }).filter(Boolean);
+}
+
+function acceptGuildInvite(playerId, guildId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (player.guildId) throw new Error('Leave your current guild first');
+  if (!(player.guildInvites || []).includes(Number(guildId))) throw new Error('No invite from that guild');
+  joinGuild(playerId, Number(guildId));
+  player.guildInvites = [];
+  return { joined: true };
+}
+
+function guildBoost(playerId, tokens) {
+  const player = players.get(playerId);
+  if (!player || !player.guildId) throw new Error('You are not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (!guild) throw new Error('Guild not found');
+  const n = Math.max(1, Math.floor(Number(tokens) || 0));
+  if ((player.guildTokens || 0) < n) throw new Error(`You only have ${player.guildTokens || 0} Guild Tokens`);
+
+  player.guildTokens -= n;
+  guild.checkInCoins = (guild.checkInCoins || 0) + n;
+  guild.level = guild.level || 0;
+  const levelsGained = [];
+  let need = guildCoinsForLevel(guild.level);
+  while (need !== null && guild.checkInCoins >= need && guild.level < MAX_GUILD_LEVEL) {
+    guild.checkInCoins -= need;
+    guild.level += 1;
+    levelsGained.push(guild.level);
+    guild.unlockedBadges = guild.unlockedBadges || [];
+    if (!guild.unlockedBadges.includes(guild.level)) guild.unlockedBadges.push(guild.level);
+    need = guildCoinsForLevel(guild.level);
+  }
+  return { spent: n, levelsGained, ...guildProgress(playerId) };
 }
 
 function guildProgress(playerId) {
@@ -1849,6 +1932,39 @@ function renameCallsign(playerId, newName) {
   const previous = player.username;
   player.username = name;
   return { username: name, previous, crystalBalance: Math.floor(player.crystalBalance), cost: RENAME_COST };
+}
+
+
+// ---- admin feature toggles ----
+// Behaviours the user wanted switchable at runtime rather than baked in.
+// Defaults preserve current behaviour so flipping one is a deliberate act.
+const featureToggles = {
+  earlyScanBlock: false,      // block re-scan during cell cooldown (was always on)
+  padPluginsInCapture: false, // offer Growth/Time Warp inside the capture minigame
+  hardMinigameLowRarity: true,// slightly tighter zone for common/uncommon
+};
+
+function getToggles() { return { ...featureToggles }; }
+function setToggle(key, value) {
+  if (!(key in featureToggles)) throw new Error('Unknown toggle');
+  featureToggles[key] = Boolean(value);
+  return getToggles();
+}
+
+// Admin access codes live here so they can be changed at runtime rather
+// than needing a redeploy. Seeded from env on boot.
+const adminCodes = {
+  events: process.env.ADMIN_CODE_EVENTS || '2026',
+  redeemCodes: process.env.ADMIN_CODE_REDEEM || '3103',
+};
+function getAdminCode(kind) { return adminCodes[kind]; }
+function setAdminCode(kind, currentCode, newCode) {
+  if (!(kind in adminCodes)) throw new Error('Unknown code type');
+  if (adminCodes[kind] !== currentCode) throw new Error('Current code is incorrect');
+  const clean = String(newCode || '').trim();
+  if (!/^\d{4,8}$/.test(clean)) throw new Error('New code must be 4-8 digits');
+  adminCodes[kind] = clean;
+  return { kind, changed: true };
 }
 
 // ---- wishlist (public "looking for" board) ----
@@ -2186,6 +2302,14 @@ function createPlayer(username, pin) {
     forgeItems: {},
     forgeCooldownUntil: null,
     dealerDroidId: null,
+    ranked: null,
+    equippedTitle: null,
+    guildInvites: [],
+    rankedTitles: [],
+    smugglerRun: null,
+    smugglerHistory: [],
+    riftMission: null,
+    riftHistory: [],
     seasonPasses: {},
     activeSeasonId: null,
     seasonTokens: 0,
@@ -2501,6 +2625,8 @@ function exportState() {
     // would be worthless.
     forts: require('./forts').exportForts(),
     ladder: require('./ladder').exportLadder(),
+    featureToggles: { ...featureToggles },
+    adminCodes: { ...adminCodes },
     seasons: require('./seasonpass').exportSeasons(),
     adminLog: require('./admin').adminLog.slice(-2000),
     adminUsers: [...require('./admin').adminUsers.values()],
@@ -2513,6 +2639,8 @@ function importState(state) {
   // appended rather than overwritten.
   try { require('./forts').importForts(state.forts); } catch (e) {}
   try { require('./ladder').importLadder(state.ladder); } catch (e) {}
+  try { Object.assign(featureToggles, state.featureToggles || {}); } catch (e) {}
+  try { Object.assign(adminCodes, state.adminCodes || {}); } catch (e) {}
   try { require('./seasonpass').importSeasons(state.seasons); } catch (e) {}
   try {
     const admin = require('./admin');
@@ -2606,6 +2734,14 @@ function importState(state) {
     forgeItems: {},
     forgeCooldownUntil: null,
     dealerDroidId: null,
+    ranked: null,
+    equippedTitle: null,
+    guildInvites: [],
+    rankedTitles: [],
+    smugglerRun: null,
+    smugglerHistory: [],
+    riftMission: null,
+    riftHistory: [],
     seasonPasses: {},
     activeSeasonId: null,
     seasonTokens: 0,
@@ -2761,6 +2897,15 @@ module.exports = {
   renameCallsign,
   RENAME_COST,
   guildCheckIn,
+  guildBoost,
+  inviteToGuild,
+  myGuildInvites,
+  acceptGuildInvite,
+  getToggles,
+  setToggle,
+  getAdminCode,
+  setAdminCode,
+  featureToggles,
   guildProgress,
   setGuildBadge,
   GUILD_CHECKIN_COST,

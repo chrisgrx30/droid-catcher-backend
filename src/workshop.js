@@ -153,9 +153,15 @@ function enrichDroid(droid) {
     nextLevelCurrency: db.isApexSpecies(species) ? 'apexCubes' : 'crystals',
     isApex: db.isApexSpecies(species),
     capturedViaJoystick: Boolean(droid.capturedViaJoystick),
+    locked: Boolean(droid.locked),
+    caughtLat: droid.caughtLat != null ? droid.caughtLat : null,
+    caughtLng: droid.caughtLng != null ? droid.caughtLng : null,
+    gifted: Boolean(droid.giftedByAdmin),
+    traded: Boolean(droid.tradedAt),
     // What this droid is currently doing, so the Warehouse can group
     // busy droids instead of mixing them in with the idle roster.
-    activity: droid.fortId ? 'fort'
+    activity: droid.smugglerRun ? 'smuggler'
+      : droid.fortId ? 'fort'
       : droid.workshopSlotId ? 'workshop'
       : (db.players.get(droid.playerId) || {}).companionDroidId === droid.id ? 'companion'
       : (db.players.get(droid.playerId) || {}).buddyDroidId === droid.id ? 'buddy'
@@ -280,6 +286,7 @@ function assignDroidToSlot(playerId, droidId, slotId) {
 
   const droid = db.ownedDroids.get(droidId);
   if (droid && droid.fortId) throw new Error('That droid is garrisoned in a Fort — withdraw it from the Guild tab first');
+  if (droid && droid.smugglerRun) throw new Error("That droid is out on a Smuggler's Run");
   const slot = db.workshopSlots.get(slotId);
   if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
   if (!slot || slot.playerId !== playerId) throw new Error('Slot not found for player');
@@ -510,6 +517,9 @@ function releaseDroid(playerId, droidId) {
   {
     const d = db.ownedDroids.get(droidId);
     if (d && d.fortId) throw new Error('That droid is garrisoned in a Fort — withdraw it before releasing');
+    // The padlock is the player's own safety catch against every
+    // automated and bulk action, including their own mis-taps.
+    if (d && d.locked) throw new Error('That droid is locked — unlock it from its stats page first');
   }
   const settled = settleEarnings(playerId);
   const player = db.players.get(playerId);
@@ -609,6 +619,16 @@ function releaseDroidsBulk(playerId, droidIds) {
 // Species evolution (e.g. Leafkin -> Bushy): spends Nova Chips, swaps the
 // droid's speciesId in place — keeps its level/variant/slot, just becomes
 // a stronger species going forward.
+// Padlock: excludes a droid from auto-release and any future cleanup or
+// bulk tooling. Deliberately separate from hide-from-trade, which is
+// about visibility rather than safety.
+function toggleDroidLock(playerId, droidId) {
+  const droid = db.ownedDroids.get(droidId);
+  if (!droid || droid.playerId !== playerId) throw new Error('Droid not found');
+  droid.locked = !droid.locked;
+  return { droidId, locked: Boolean(droid.locked) };
+}
+
 function toggleHiddenFromTrade(playerId, droidId) {
   const droid = db.ownedDroids.get(droidId);
   if (!droid || droid.playerId !== playerId) throw new Error('Droid not found for player');
@@ -803,6 +823,7 @@ module.exports = {
   healDroid,
   masterScaffitan,
   toggleHiddenFromTrade,
+  toggleDroidLock,
   evolveFunky,
   assignCompanion,
   unassignCompanion,

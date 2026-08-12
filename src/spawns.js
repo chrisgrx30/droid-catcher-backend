@@ -304,6 +304,8 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
         // Star this spawn if it's a species the player has on their
         // wish list — so a wanted droid can't be walked past unnoticed.
         onWishlist: wishedIds.has(species.id),
+        // Despawn time, so the map popup can show a countdown.
+        expiresAt: spawn.expiresAt,
         // Map legend data: whether this is an event-exclusive species,
         // and whether the player has already caught it. Both drive
         // marker decorations so the map is readable at a glance.

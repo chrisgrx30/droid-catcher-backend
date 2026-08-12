@@ -34,6 +34,7 @@ const MIN_FORT_SEPARATION_METERS = 1609;
 // so one heavy hitter can't solo-wall a Fort and lock guildmates out.
 const MAX_DROIDS_PER_PLAYER_PER_FORT = 2;
 const ASSIGN_COST_ON_CAPTURE = 1000; // per droid, used in stage 3
+const RENAME_COST = 10000;
 
 // Shield and reward fields exist now so later stages don't need a
 // migration pass over saved forts.
@@ -463,6 +464,23 @@ function extendTokenWindow(playerId, fortId) {
 }
 
 
+function renameFort(playerId, fortId, name) {
+  const player = db.players.get(playerId);
+  if (!player) throw new FortError('NO_PLAYER', 'Player not found');
+  const fort = forts.get(fortId);
+  if (!fort) throw new FortError('NO_FORT', 'Fort not found');
+  if (fort.guildId !== player.guildId) throw new FortError('NOT_YOUR_FORT', 'That Fort belongs to another guild');
+  const clean = String(name || '').trim().slice(0, 40);
+  if (clean.length < 3) throw new FortError('BAD_NAME', 'Fort names need at least 3 characters');
+  if ((player.crystalBalance || 0) < RENAME_COST) {
+    throw new FortError('NOT_ENOUGH_CRYSTALS', `Renaming a Fort costs ${RENAME_COST.toLocaleString()} crystals`);
+  }
+  player.crystalBalance -= RENAME_COST;
+  db.crystalTransactions.push({ id: db.nextId(), playerId, amount: -RENAME_COST, source: 'fort_rename', createdAt: Date.now() });
+  fort.name = clean;
+  return fortView(fort, player.guildId);
+}
+
 // ---- adjacency bonuses ----
 // Forts held by the SAME guild within ADJACENCY_RADIUS_M of each other
 // reinforce one another. This turns territory into a shape you read on
@@ -612,6 +630,8 @@ module.exports = {
   fitUpgrade,
   claimDailyTokens,
   extendTokenWindow,
+  renameFort,
+  RENAME_COST,
   submitFortImage,
   pendingFortImages,
   reviewFortImage,

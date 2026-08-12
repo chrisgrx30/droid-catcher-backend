@@ -31,6 +31,9 @@ const fortsModule = require('./forts');
 const fortBattleModule = require('./fortbattle');
 const ladderModule = require('./ladder');
 const seasonModule = require('./seasonpass');
+const riftModule = require('./rift');
+const smugglerModule = require('./smugglersrun');
+const rankedModule = require('./ranked');
 const biomesModule = require('./biomes');
 const workshopModule = require('./workshop');
 const battleModule = require('./battle');
@@ -80,6 +83,7 @@ const EXTRA_ASSET_DIRS = {
   levels:       path.join(__dirname, '..', 'assets', 'levels'),
   materials:    path.join(__dirname, '..', 'assets', 'materials'),
   astral:       path.join(__dirname, '..', 'assets', 'astral'),
+  rift:         path.join(__dirname, '..', 'assets', 'rift'),
   forge:        path.join(__dirname, '..', 'assets', 'forge'),
   guild:        path.join(__dirname, '..', 'assets', 'guild'),
 };
@@ -1331,7 +1335,7 @@ const server = http.createServer(async (req, res) => {
     // Admin-only — see ADMIN_CODES above.
     if (req.method === 'POST' && pathname === '/redeem-codes') {
       const body = await readBody(req);
-      if (body.adminCode !== ADMIN_CODES.redeemCodes) {
+      if (body.adminCode !== db.getAdminCode('redeemCodes')) {
         return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
       }
       try {
@@ -1346,13 +1350,13 @@ const server = http.createServer(async (req, res) => {
     // POST /admin/validate-code  { adminCode } -> validation only, no side effects
     if (req.method === 'POST' && pathname === '/admin/validate-code') {
       const { adminCode } = await readBody(req);
-      return sendJson(res, 200, { valid: adminCode === ADMIN_CODES.events });
+      return sendJson(res, 200, { valid: adminCode === db.getAdminCode('events') });
     }
 
     // POST /admin/players  { adminCode } -> lists every player with last-online, for account cleanup
     if (req.method === 'POST' && pathname === '/admin/players') {
       const { adminCode } = await readBody(req);
-      if (adminCode !== ADMIN_CODES.events) {
+      if (adminCode !== db.getAdminCode('events')) {
         return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
       }
       return sendJson(res, 200, { players: db.listPlayersAdmin() });
@@ -1405,7 +1409,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && pathname.match(/^\/admin\/players\/\d+\/reset-pin$/)) {
       const playerId = Number(pathname.split('/')[3]);
       const body = await readBody(req);
-      if (body.adminCode !== ADMIN_CODES.events) {
+      if (body.adminCode !== db.getAdminCode('events')) {
         return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
       }
       try {
@@ -1420,7 +1424,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && pathname.match(/^\/admin\/players\/\d+\/delete$/)) {
       const targetId = Number(pathname.split('/')[3]);
       const { adminCode } = await readBody(req);
-      if (adminCode !== ADMIN_CODES.events) {
+      if (adminCode !== db.getAdminCode('events')) {
         return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
       }
       try {
@@ -1440,7 +1444,7 @@ const server = http.createServer(async (req, res) => {
     // Admin-only — see ADMIN_CODES above.
     if (req.method === 'POST' && pathname === '/events') {
       const body = await readBody(req);
-      if (body.adminCode !== ADMIN_CODES.events) {
+      if (body.adminCode !== db.getAdminCode('events')) {
         return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
       }
       try {
@@ -1461,7 +1465,7 @@ const server = http.createServer(async (req, res) => {
       const { playerId, adminCode } = await readBody(req);
       const player = db.players.get(playerId);
       try {
-        const who = adminModule.authenticate(playerId, player && player.username, adminCode, ADMIN_CODES.events, 'login');
+        const who = adminModule.authenticate(playerId, player && player.username, adminCode, db.getAdminCode('events'), 'login');
         adminModule.record(who.playerId, who.username, 'ADMIN_LOGIN', {});
         return sendJson(res, 200, { ok: true, ...who });
       } catch (e) {
@@ -1475,7 +1479,7 @@ const server = http.createServer(async (req, res) => {
       const viewerId = Number(searchParams.get('playerId'));
       const viewer = db.players.get(viewerId);
       try {
-        adminModule.authenticate(viewerId, viewer && viewer.username, adminCode, ADMIN_CODES.events, 'view_log');
+        adminModule.authenticate(viewerId, viewer && viewer.username, adminCode, db.getAdminCode('events'), 'view_log');
         return sendJson(res, 200, adminModule.getLog({
           limit: Number(searchParams.get('limit')) || 200,
           playerId: searchParams.get('filterPlayerId'),
@@ -1492,9 +1496,10 @@ const server = http.createServer(async (req, res) => {
       const viewerId = Number(searchParams.get('playerId'));
       const viewer = db.players.get(viewerId);
       try {
-        adminModule.authenticate(viewerId, viewer && viewer.username, adminCode, ADMIN_CODES.events, 'gift_options');
+        adminModule.authenticate(viewerId, viewer && viewer.username, adminCode, db.getAdminCode('events'), 'gift_options');
         return sendJson(res, 200, {
           materials: adminModule.giftableMaterials(),
+          items: adminModule.giftableItems(),
           species: adminModule.giftableSpecies(),
           players: adminModule.playerRoster(),
           variants: ['standard', 'rusty', 'platinum', 'funky'],
@@ -1510,7 +1515,7 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const sender = db.players.get(body.playerId);
       try {
-        const who = adminModule.authenticate(body.playerId, sender && sender.username, body.adminCode, ADMIN_CODES.events, 'gift');
+        const who = adminModule.authenticate(body.playerId, sender && sender.username, body.adminCode, db.getAdminCode('events'), 'gift');
         const result = adminModule.sendGift(who.playerId, who.username, body);
         return sendJson(res, 200, result);
       } catch (e) {
@@ -1569,6 +1574,22 @@ const server = http.createServer(async (req, res) => {
       catch (e) { return sendJson(res, 400, { error: 'GUILD_ERROR', message: e.message }); }
     }
 
+    // POST /guilds/invite { playerId, targetId }
+    if (req.method === 'POST' && pathname === '/guilds/invite') {
+      const { playerId, targetId } = await readBody(req);
+      try { return sendJson(res, 200, db.inviteToGuild(playerId, targetId)); }
+      catch (e) { return sendJson(res, 400, { error: 'INVITE_ERROR', message: e.message }); }
+    }
+    if (req.method === 'GET' && pathname.match(/^\/guilds\/invites\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[3]);
+      return sendJson(res, 200, { invites: db.myGuildInvites(playerId) });
+    }
+    if (req.method === 'POST' && pathname === '/guilds/accept-invite') {
+      const { playerId, guildId } = await readBody(req);
+      try { return sendJson(res, 200, db.acceptGuildInvite(playerId, guildId)); }
+      catch (e) { return sendJson(res, 400, { error: 'INVITE_ERROR', message: e.message }); }
+    }
+
     // ---- GUILD CHECK-IN / LEVELLING ----
     if (req.method === 'GET' && pathname.match(/^\/guild-progress\/\d+$/)) {
       const playerId = Number(pathname.split('/')[2]);
@@ -1595,6 +1616,148 @@ const server = http.createServer(async (req, res) => {
       const { playerId, itemKey } = await readBody(req);
       try { return sendJson(res, 200, battleModule.equipBattleItem(playerId, itemKey)); }
       catch (e) { return sendJson(res, 400, { error: 'BATTLE_ITEM_ERROR', message: e.message }); }
+    }
+
+    // GET /toggles -> feature switches the client should respect
+    if (req.method === 'GET' && pathname === '/toggles') {
+      return sendJson(res, 200, db.getToggles());
+    }
+    // POST /admin/toggle { playerId, adminCode, key, value }
+    if (req.method === 'POST' && pathname === '/admin/toggle') {
+      const b = await readBody(req);
+      const viewer = db.players.get(b.playerId);
+      try {
+        const who = adminModule.authenticate(b.playerId, viewer && viewer.username, b.adminCode, db.getAdminCode('events'), 'toggle');
+        const t = db.setToggle(b.key, b.value);
+        adminModule.record(who.playerId, who.username, 'TOGGLE_SET', { key: b.key, value: Boolean(b.value) });
+        return sendJson(res, 200, t);
+      } catch (e) { return sendJson(res, e.code === 'ADMIN_ONLY' ? 403 : 400, { error: e.code || 'TOGGLE_ERROR', message: e.message }); }
+    }
+    // POST /admin/change-code { playerId, adminCode, kind, newCode }
+    if (req.method === 'POST' && pathname === '/admin/change-code') {
+      const b = await readBody(req);
+      const viewer = db.players.get(b.playerId);
+      try {
+        const who = adminModule.authenticate(b.playerId, viewer && viewer.username, b.adminCode, db.getAdminCode('events'), 'change_code');
+        const r = db.setAdminCode(b.kind || 'events', b.currentCode, b.newCode);
+        adminModule.record(who.playerId, who.username, 'ADMIN_CODE_CHANGED', { kind: b.kind || 'events' });
+        return sendJson(res, 200, r);
+      } catch (e) { return sendJson(res, e.code === 'ADMIN_ONLY' ? 403 : 400, { error: e.code || 'CODE_ERROR', message: e.message }); }
+    }
+
+    // ---- RANKED ARENA ----
+    // POST /ranked/title { playerId, title }
+    if (req.method === 'POST' && pathname === '/ranked/title') {
+      const { playerId, title } = await readBody(req);
+      try { return sendJson(res, 200, rankedModule.equipTitle(playerId, title)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RANKED_ERROR', message: e.message }); }
+    }
+    // POST /droids/:id/lock { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/droids\/\d+\/lock$/)) {
+      const droidId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, workshopModule.toggleDroidLock(playerId, droidId)); }
+      catch (e) { return sendJson(res, 400, { error: 'LOCK_ERROR', message: e.message }); }
+    }
+    // POST /forts/:id/rename { playerId, name }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/rename$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, name } = await readBody(req);
+      try { return sendJson(res, 200, { fort: fortsModule.renameFort(playerId, fortId, name) }); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+    // POST /guild-boost { playerId, tokens }
+    if (req.method === 'POST' && pathname === '/guild-boost') {
+      const { playerId, tokens } = await readBody(req);
+      try { return sendJson(res, 200, db.guildBoost(playerId, tokens)); }
+      catch (e) { return sendJson(res, 400, { error: 'BOOST_ERROR', message: e.message }); }
+    }
+
+
+    if (req.method === 'GET' && pathname.match(/^\/ranked\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, rankedModule.statusFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RANKED_ERROR', message: e.message }); }
+    }
+    if (req.method === 'GET' && pathname === '/ranked/leaderboard') {
+      return sendJson(res, 200, { leaderboard: rankedModule.leaderboard(50) });
+    }
+    if (req.method === 'POST' && pathname === '/ranked/claim') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, rankedModule.claimSeasonReward(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RANKED_ERROR', message: e.message }); }
+    }
+
+    // ---- SMUGGLER'S RUN ----
+    if (req.method === 'GET' && pathname.match(/^\/smuggler-run\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, smugglerModule.statusFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RUN_ERROR', message: e.message }); }
+    }
+    if (req.method === 'GET' && pathname.match(/^\/smuggler-run\/candidates\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[3]);
+      return sendJson(res, 200, { droids: smugglerModule.candidates(playerId) });
+    }
+    if (req.method === 'POST' && pathname === '/smuggler-run/start') {
+      const { playerId, tierId, droidIds, crystalsInvested } = await readBody(req);
+      try { return sendJson(res, 200, smugglerModule.start(playerId, tierId, droidIds, crystalsInvested)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RUN_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/smuggler-run/collect') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, smugglerModule.collect(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RUN_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/smuggler-run/recall') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, smugglerModule.recall(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RUN_ERROR', message: e.message }); }
+    }
+
+    // ---- SPACE RIFT ----
+    if (req.method === 'GET' && pathname.match(/^\/rift\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      try { return sendJson(res, 200, riftModule.viewFor(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'GET' && pathname.match(/^\/rift\/candidates\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[3]);
+      return sendJson(res, 200, { droids: riftModule.teamCandidates(playerId), teamSize: riftModule.TEAM_SIZE });
+    }
+    if (req.method === 'POST' && pathname === '/rift/start') {
+      const { playerId, teamDroidIds } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.startMission(playerId, teamDroidIds)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/move') {
+      const { playerId, dir } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.move(playerId, dir)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/investigate') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.investigate(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/attack') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.attack(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/run') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.run(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/capture') {
+      const { playerId, crystalsSpent } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.capture(playerId, crystalsSpent)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/abandon') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.abandonMission(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
     }
 
     // ---- SEASON PASS ----
@@ -1624,7 +1787,7 @@ const server = http.createServer(async (req, res) => {
       const viewerId = Number(searchParams.get('playerId'));
       const viewer = db.players.get(viewerId);
       try {
-        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), ADMIN_CODES.events, 'seasons');
+        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), db.getAdminCode('events'), 'seasons');
         return sendJson(res, 200, { seasons: seasonModule.listSeasons() });
       } catch (e) { return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message }); }
     }
@@ -1633,7 +1796,7 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const viewer = db.players.get(body.playerId);
       try {
-        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, ADMIN_CODES.events, 'season_activate');
+        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, db.getAdminCode('events'), 'season_activate');
         const r = seasonModule.activateSeason(body.seasonId, { inDays: body.inDays, durationDays: body.durationDays });
         adminModule.record(who.playerId, who.username, 'SEASON_ACTIVATED', { seasonId: body.seasonId, inDays: body.inDays || 0, durationDays: body.durationDays || null });
         return sendJson(res, 200, { season: { id: r.id, name: r.name, status: r.status, startsAt: r.startsAt, endsAt: r.endsAt } });
@@ -1643,7 +1806,7 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const viewer = db.players.get(body.playerId);
       try {
-        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, ADMIN_CODES.events, 'season_deactivate');
+        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, db.getAdminCode('events'), 'season_deactivate');
         const r = seasonModule.deactivateSeason(body.seasonId);
         adminModule.record(who.playerId, who.username, 'SEASON_DEACTIVATED', { seasonId: body.seasonId });
         return sendJson(res, 200, { season: { id: r.id, name: r.name, status: r.status } });
@@ -1789,7 +1952,7 @@ const server = http.createServer(async (req, res) => {
       const viewerId = Number(searchParams.get('playerId'));
       const viewer = db.players.get(viewerId);
       try {
-        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), ADMIN_CODES.events, 'fort_images');
+        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), db.getAdminCode('events'), 'fort_images');
         return sendJson(res, 200, { pending: fortsModule.pendingFortImages() });
       } catch (e) { return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message }); }
     }
@@ -1799,7 +1962,7 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const viewer = db.players.get(body.playerId);
       try {
-        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, ADMIN_CODES.events, 'fort_image_review');
+        const who = adminModule.authenticate(body.playerId, viewer && viewer.username, body.adminCode, db.getAdminCode('events'), 'fort_image_review');
         const r = fortsModule.reviewFortImage(Number(body.fortId), Boolean(body.approve));
         adminModule.record(who.playerId, who.username, r.approved ? 'FORT_IMAGE_APPROVED' : 'FORT_IMAGE_REJECTED', { fortId: r.fortId, submittedBy: r.submittedBy });
         return sendJson(res, 200, r);
@@ -1811,7 +1974,7 @@ const server = http.createServer(async (req, res) => {
       const viewerId = Number(searchParams.get('playerId'));
       const viewer = db.players.get(viewerId);
       try {
-        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), ADMIN_CODES.events, 'fort_list');
+        adminModule.authenticate(viewerId, viewer && viewer.username, searchParams.get('adminCode'), db.getAdminCode('events'), 'fort_list');
         return sendJson(res, 200, { forts: fortsModule.allFortsForAdmin() });
       } catch (e) { return sendJson(res, 403, { error: e.code || 'ADMIN_ONLY', message: e.message }); }
     }
@@ -2074,10 +2237,10 @@ const server = http.createServer(async (req, res) => {
 
     // POST /livepvp/challenge { fromPlayerId, toPlayerId, teamDroidIds }
     if (req.method === 'POST' && pathname === '/livepvp/challenge') {
-      const { fromPlayerId, toPlayerId, teamDroidIds } = await readBody(req);
+      const { fromPlayerId, toPlayerId, teamDroidIds, ranked } = await readBody(req);
       presenceModule.touch(fromPlayerId);
       try {
-        const ch = livepvpModule.challenge(fromPlayerId, toPlayerId, teamDroidIds);
+        const ch = livepvpModule.challenge(fromPlayerId, toPlayerId, teamDroidIds, ranked);
         return sendJson(res, 201, { challengeId: ch.id, expiresAt: ch.expiresAt });
       } catch (e) {
         return sendJson(res, 400, { error: e.code || 'LIVE_PVP_ERROR', message: e.message });
@@ -2321,7 +2484,7 @@ const server = http.createServer(async (req, res) => {
     // Apex droids spawnable at all.
     if (req.method === 'POST' && pathname === '/events/apex-hunt') {
       const body = await readBody(req);
-      if (body.adminCode !== ADMIN_CODES.events) {
+      if (body.adminCode !== db.getAdminCode('events')) {
         return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
       }
       try {

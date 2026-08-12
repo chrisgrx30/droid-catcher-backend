@@ -203,6 +203,7 @@ function merge(playerId, droidIdA, droidIdB) {
     if (player.companionDroidId === d.id) throw new BroodError('IS_COMPANION', 'That droid is your active companion');
     if (player.buddyDroidId === d.id) throw new BroodError('IS_BUDDY', 'That droid is your mastery buddy');
     if (d.fortId) throw new BroodError('IN_FORT', 'That droid is garrisoned in a Fort — withdraw it first');
+    if (d.smugglerRun) throw new BroodError('ON_RUN', "That droid is out on a Smuggler's Run");
   });
 
   const speciesA = db.droidSpecies.find((s) => s.id === a.speciesId);
