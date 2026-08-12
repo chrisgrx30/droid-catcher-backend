@@ -29,6 +29,8 @@ const MAP_W = 150;
 const MAP_H = 150;
 const VIEW_RADIUS = 7;          // 15x15 viewport
 const TEAM_SIZE = 6;
+const RIFT_ENTRY_CUBES = 1;   // cost to start a Space Rift mission
+const EARLY_EXTRACT_PENALTY = 0.20; // material loot lost when extracting before all bosses are down
 const REQUIRED_BOSSES = 5;
 const CHEST_COUNT = 10;
 const DEBRIS_COUNT = 24;
@@ -303,6 +305,12 @@ function startMission(playerId, teamDroidIds) {
   if (!Array.isArray(teamDroidIds) || teamDroidIds.length !== TEAM_SIZE) {
     throw new RiftError('BAD_TEAM', `Take exactly ${TEAM_SIZE} droids into the Rift`);
   }
+  // Entry cost (confirmed): a Space Rift run consumes one Rift Cube.
+  // Charged only after the team validates, so a rejected team doesn't
+  // silently eat the cube.
+  if ((player.riftCubes || 0) < RIFT_ENTRY_CUBES) {
+    throw new RiftError('NO_RIFT_CUBE', 'You need a Rift Cube to enter a Space Rift — buy one in the Shop');
+  }
 
   const workshop = require('./workshop');
   const team = teamDroidIds.map((id) => {
@@ -325,6 +333,9 @@ function startMission(playerId, teamDroidIds) {
 
   const seed = (Math.floor(Math.random() * 0xffffffff)) >>> 0;
   const map = buildMap(seed);
+
+  // Team validated and map built — safe to charge now.
+  player.riftCubes -= RIFT_ENTRY_CUBES;
 
   player.riftMission = {
     seed,
@@ -386,6 +397,15 @@ function move(playerId, dir) {
     return { ...viewFor(playerId), triggered: 'boss' };
   }
 
+  if (m.auraStepsLeft > 0) m.auraStepsLeft -= 1;
+
+  // Bubble Shield: suppresses wild spawns for a set number of steps.
+  // Ticks down on every step taken while active.
+  if (m.shieldStepsLeft > 0) {
+    m.shieldStepsLeft -= 1;
+    return { ...viewFor(playerId), shieldActive: true };
+  }
+
   // Wild encounter roll.
   const rand = Math.random();
   if (rand < WILD_ENCOUNTER_CHANCE) {
@@ -400,8 +420,19 @@ function move(playerId, dir) {
 function rollWildDroid(m) {
   // Commons and Uncommons in the world, per the spec. Rares and the
   // Legendary are chest/boss rewards instead, so they stay special.
-  const pool = RIFT_DROIDS.filter((d) => d.rarity === 'common' || d.rarity === 'uncommon');
-  const weights = pool.map((d) => (d.rarity === 'common' ? 4 : 1));
+  // Rift Aura is the exception: while active it pulls Rare and Legendary
+  // droids into the wild pool and skews the weighting toward them.
+  const auraOn = m.auraStepsLeft > 0;
+  const pool = auraOn
+    ? RIFT_DROIDS.slice()
+    : RIFT_DROIDS.filter((d) => d.rarity === 'common' || d.rarity === 'uncommon');
+  const weights = pool.map((d) => {
+    if (!auraOn) return d.rarity === 'common' ? 4 : 1;
+    if (d.rarity === 'common') return 2;
+    if (d.rarity === 'uncommon') return 2;
+    if (d.rarity === 'rare') return 3;
+    return 2; // legendary
+  });
   const total = weights.reduce((a, b) => a + b, 0);
   let roll = Math.random() * total;
   for (let i = 0; i < pool.length; i++) {
@@ -460,7 +491,12 @@ function attack(playerId) {
       m.bossesDefeated.push(enc.defId);
       const reward = bossReward(enc.defId, m);
       enc.log.push(reward.text);
-      m.encounter = null;
+      // Boss counts as defeated immediately (reward + objective progress),
+      // but the encounter stays open so a capture can be attempted at a
+      // deliberately brutal cosmic-tier rate. Clearing it here is what
+      // previously made bosses uncapturable.
+      enc.captureOffered = true;
+      enc.bossDefeated = true;
       return { ...viewFor(playerId), defeated: 'boss', reward };
     }
     // Wild droid beaten: the spec says capture is offered afterwards.
@@ -492,13 +528,62 @@ function wipeOut(player, m) {
   return { finished: true, failed: true, summary };
 }
 
+const ITEM_DURATIONS = { bubbleShields: 50, riftAuras: 50 };
+
+// Consume one of the three Rift consumables mid-mission.
+function useItem(playerId, itemKey) {
+  const player = db.players.get(playerId);
+  if (!player) throw new RiftError('NO_PLAYER', 'Player not found');
+  const m = activeMission(player);
+  if (!m) throw new RiftError('NO_MISSION', 'No mission in progress');
+  if ((player[itemKey] || 0) < 1) throw new RiftError('NO_ITEM', 'You do not have that item');
+
+  if (itemKey === 'bubbleShields') {
+    player.bubbleShields -= 1;
+    m.shieldStepsLeft = ITEM_DURATIONS.bubbleShields;
+    return { ...viewFor(playerId), used: 'bubbleShields', stepsLeft: m.shieldStepsLeft };
+  }
+  if (itemKey === 'riftAuras') {
+    player.riftAuras -= 1;
+    m.auraStepsLeft = ITEM_DURATIONS.riftAuras;
+    return { ...viewFor(playerId), used: 'riftAuras', stepsLeft: m.auraStepsLeft };
+  }
+  if (itemKey === 'bossTrackers') {
+    // Points toward the nearest boss still standing, same idea as the
+    // existing healing-post hint rather than revealing the whole map.
+    const map = buildMap(m.seed);
+    const live = map.bosses.filter((b) => !m.bossesDefeated.includes(b.id));
+    if (!live.length) throw new RiftError('NO_BOSSES', 'Every Rift Boss is already down');
+    player.bossTrackers -= 1;
+    let best = live[0];
+    let bestDist = Infinity;
+    live.forEach((b) => {
+      const dist = Math.abs(b.x - m.x) + Math.abs(b.y - m.y);
+      if (dist < bestDist) { bestDist = dist; best = b; }
+    });
+    const dx = best.x - m.x;
+    const dy = best.y - m.y;
+    const parts = [];
+    if (dy < 0) parts.push(`${Math.abs(dy)} north`);
+    if (dy > 0) parts.push(`${Math.abs(dy)} south`);
+    if (dx < 0) parts.push(`${Math.abs(dx)} west`);
+    if (dx > 0) parts.push(`${Math.abs(dx)} east`);
+    m.bossHint = { name: best.name, distance: bestDist, text: parts.join(', ') || 'right here' };
+    return { ...viewFor(playerId), used: 'bossTrackers', hint: m.bossHint };
+  }
+  throw new RiftError('BAD_ITEM', 'Unknown item');
+}
+
 function run(playerId) {
   const player = db.players.get(playerId);
   const m = activeMission(player);
   if (!m) throw new RiftError('NO_MISSION', 'No mission in progress');
   const enc = m.encounter;
   if (!enc) throw new RiftError('NO_ENCOUNTER', 'Nothing to run from');
-  if (!enc.canRun) throw new RiftError('CANNOT_RUN', 'There is no running from a Rift Boss');
+  // A boss that's already been beaten can be walked away from — you keep
+  // the kill and the reward, you just decline the capture attempt.
+  // Without this a defeated boss would trap the player in the encounter.
+  if (!enc.canRun && !enc.bossDefeated) throw new RiftError('CANNOT_RUN', 'There is no running from a Rift Boss');
   m.encounter = null;
   return viewFor(playerId);
 }
@@ -519,9 +604,26 @@ function capture(playerId, crystalsSpent = 0) {
     db.crystalTransactions.push({ id: db.nextId(), playerId, amount: -spend, source: 'rift_capture', createdAt: Date.now() });
   }
 
-  const base = enc.rarity === 'common' ? 0.55 : enc.rarity === 'uncommon' ? 0.35 : 0.18;
-  const bonus = Math.min(0.35, spend / 300);
+  // Bosses use a cosmic-tier rate (very low) and consume an Ultra Rift
+  // Cell; wild droids consume a normal Rift Cell.
+  const isBoss = enc.kind === 'boss';
+  if (isBoss) {
+    if ((player.ultraRiftCells || 0) < 1) {
+      throw new RiftError('NO_ULTRA_CELL', 'You need an Ultra Rift Cell to capture a boss — buy one in the Shop');
+    }
+  } else if ((player.riftCells || 0) < 1) {
+    throw new RiftError('NO_RIFT_CELL', 'You need a Rift Cell to capture in a Rift — buy them in the Shop');
+  }
+
+  const base = isBoss
+    ? 0.03
+    : enc.rarity === 'common' ? 0.55 : enc.rarity === 'uncommon' ? 0.35 : 0.18;
+  let bonus = isBoss ? Math.min(0.10, spend / 20000) : Math.min(0.35, spend / 300);
+  // Rift Aura also improves capture odds while it's running.
+  if (m.auraStepsLeft > 0) bonus += isBoss ? 0.02 : 0.15;
   const success = Math.random() < base + bonus;
+
+  if (isBoss) player.ultraRiftCells -= 1; else player.riftCells -= 1;
 
   m.encounter = null;
   if (!success) return { ...viewFor(playerId), captured: false };
@@ -544,7 +646,7 @@ function bossReward(bossId, m) {
 // INTERACTABLES
 // ============================================================
 
-function investigate(playerId) {
+function investigate(playerId, opts = {}) {
   const player = db.players.get(playerId);
   const m = activeMission(player);
   if (!m) throw new RiftError('NO_MISSION', 'No mission in progress');
@@ -592,15 +694,28 @@ function investigate(playerId) {
     return { ...viewFor(playerId), found: { kind: 'heal', usesLeft: MAX_HEALING_USES - m.healingUses } };
   }
 
+  if (opts.confirmEarlyExtract) m.confirmEarlyExtract = true;
+
   // Standing on the exit finishes the run — if the bosses are done.
   if (m.x === map.exit.x && m.y === map.exit.y) {
-    if (m.bossesDefeated.length < REQUIRED_BOSSES) {
-      throw new RiftError('BOSSES_REMAIN', `The escape pod is sealed — defeat all ${REQUIRED_BOSSES} Rift Bosses first (${m.bossesDefeated.length}/${REQUIRED_BOSSES})`);
+    // Early extraction is allowed (confirmed) — you keep the run, but
+    // material loot takes a 20% hit. The client asks for confirmation
+    // first via `pendingEarlyExtract` so nobody eats the penalty blind.
+    const early = m.bossesDefeated.length < REQUIRED_BOSSES;
+    if (early && !m.confirmEarlyExtract) {
+      return {
+        ...viewFor(playerId),
+        pendingEarlyExtract: {
+          bossesDefeated: m.bossesDefeated.length,
+          totalBosses: REQUIRED_BOSSES,
+          penaltyPercent: Math.round(EARLY_EXTRACT_PENALTY * 100),
+        },
+      };
     }
     m.status = 'complete';
     m.endedAt = Date.now();
-    const summary = finish(player, m, true);
-    return { finished: true, escaped: true, summary };
+    const summary = finish(player, m, true, early);
+    return { finished: true, escaped: true, earlyExtract: early, summary };
   }
 
   throw new RiftError('NOTHING_HERE', 'Nothing to investigate here');
@@ -610,7 +725,19 @@ function investigate(playerId) {
 // COMPLETION
 // ============================================================
 
-function finish(player, m, escaped) {
+function finish(player, m, escaped, earlyExtract = false) {
+  // Applied before loot is paid out so the summary the player sees
+  // reflects what they actually banked.
+  if (earlyExtract && m.loot && m.loot.materials) {
+    // Materials live under loot.materials — crystals are deliberately
+    // NOT penalised, only material loot, per spec.
+    Object.keys(m.loot.materials).forEach((k) => {
+      const v = m.loot.materials[k];
+      if (typeof v === 'number' && v > 0) {
+        m.loot.materials[k] = Math.floor(v * (1 - EARLY_EXTRACT_PENALTY));
+      }
+    });
+  }
   const map = buildMap(m.seed);
 
   // Loot is granted now, at the end, so a disconnect mid-run can't be
@@ -627,7 +754,10 @@ function finish(player, m, escaped) {
   // Captured droids join the collection, fully healed per the spec.
   const gained = [];
   m.captured.forEach((defId) => {
-    const def = DROID_BY_ID[defId];
+    // Bosses are capturable now, and they live in BOSSES, not
+    // DROID_BY_ID — looking only in DROID_BY_ID would silently drop a
+    // captured boss on the floor at mission end.
+    const def = DROID_BY_ID[defId] || BOSSES.find((b) => b.id === defId);
     if (!def) return;
     const species = db.droidSpecies.find((s) => s.name === def.name);
     if (!species) return;
@@ -771,6 +901,14 @@ function viewFor(playerId) {
     loot: m.loot,
     captured: m.captured.map((id) => (DROID_BY_ID[id] || {}).name).filter(Boolean),
     exitPos: map.exit,
+    shieldStepsLeft: m.shieldStepsLeft || 0,
+    auraStepsLeft: m.auraStepsLeft || 0,
+    bossHint: m.bossHint || null,
+    items: {
+      bubbleShields: player.bubbleShields || 0,
+      riftAuras: player.riftAuras || 0,
+      bossTrackers: player.bossTrackers || 0,
+    },
   };
 }
 
@@ -794,7 +932,7 @@ module.exports = {
   MAP_W, MAP_H, VIEW_RADIUS, TEAM_SIZE, REQUIRED_BOSSES, MAX_HEALING_USES,
   BOSSES, RIFT_DROIDS, DROID_BY_ID,
   generate, buildMap, populate, floodReachable, mulberry32,
-  startMission, abandonMission, move, attack, run, capture, investigate,
+  startMission, abandonMission, move, attack, run, capture, investigate, useItem,
   viewFor, teamCandidates, activeMission,
   RiftError,
 };

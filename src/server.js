@@ -1227,6 +1227,17 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // POST /guilds/rename  { playerId, name } -> leader-only, costs crystals
+    if (req.method === 'POST' && pathname === '/guilds/rename') {
+      const { playerId, name } = await readBody(req);
+      try {
+        const result = db.renameGuild(playerId, name);
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 409, { error: 'GUILD_ERROR', message: e.message });
+      }
+    }
+
     // POST /guilds/:id/join  { playerId }
     if (req.method === 'POST' && pathname.match(/^\/guilds\/\d+\/join$/)) {
       const guildId = Number(pathname.split('/')[2]);
@@ -1735,8 +1746,13 @@ const server = http.createServer(async (req, res) => {
       catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
     }
     if (req.method === 'POST' && pathname === '/rift/investigate') {
-      const { playerId } = await readBody(req);
-      try { return sendJson(res, 200, riftModule.investigate(playerId)); }
+      const { playerId, confirmEarlyExtract } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.investigate(playerId, { confirmEarlyExtract })); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/use-item') {
+      const { playerId, itemKey } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.useItem(playerId, itemKey)); }
       catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
     }
     if (req.method === 'POST' && pathname === '/rift/attack') {

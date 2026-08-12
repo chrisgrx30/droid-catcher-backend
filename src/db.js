@@ -307,6 +307,13 @@ const droidSpecies = [
   { id: id(), name: 'Stellar Phoenix',  alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
   { id: id(), name: 'Gravity Titan',    alignment: 'dark',  rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
   { id: id(), name: 'Eclipse Prime',    alignment: 'dark',  rarity: 'legendary', collection: 'rift', baseCaptureRate: 0.08, baseCrystalRate: 30, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('legendary') },
+  // Rift Bosses — now capturable (cosmic-tier odds, Ultra Rift Cell
+  // required), so they need real Dex entries like any other droid.
+  { id: id(), name: 'Rift Overlord',      alignment: 'dark',  rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'Celestial Sentinel', alignment: 'light', rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'Shadow Titan',       alignment: 'dark',  rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'Rift Warden',        alignment: 'dark',  rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'Storm Crown',        alignment: 'light', rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
 
   // ---- ASTRAL BROOD (10) — merge-exclusive ----
   // spawnWeight 0 and isBroodOnly: these NEVER spawn in the world and
@@ -517,12 +524,36 @@ function rollVariant(rarity = null) {
 // a generic banked currency (not per-color), so any color is available at
 // the moment of evolving regardless of which capture(s) dropped the paint.
 const FUNKY_EVOLVE_PAINT_COST = 10; // default — tune freely, not specified in the original design ask
-const PRIMARY_COLORS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink'];
+const PRIMARY_COLORS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'black', 'white'];
 
 // ---- workshop slot unlock cost ----
 // Slot 0 is free (granted at signup, holds the starter droid). Every
 // additional slot costs 50 more crystals than the last: slot1=50,
 // slot2=100, slot3=150 ... slot9=450.
+// Backfills any player who was saved before the slot count was raised, so
+// existing accounts get the new slots (locked, same as a new player would
+// see them) instead of being permanently capped at the old number.
+function ensureWorkshopSlotCount() {
+  const byPlayer = new Map();
+  for (const slot of workshopSlots.values()) {
+    if (!byPlayer.has(slot.playerId)) byPlayer.set(slot.playerId, []);
+    byPlayer.get(slot.playerId).push(slot);
+  }
+  for (const [playerId, slots] of byPlayer.entries()) {
+    const existing = new Set(slots.map((s) => s.slotIndex));
+    for (let i = 0; i < WORKSHOP_SLOT_COUNT; i++) {
+      if (existing.has(i)) continue;
+      const slot = { id: id(), playerId, slotIndex: i, unlocked: false, multiplier: 1.0 };
+      workshopSlots.set(slot.id, slot);
+    }
+  }
+}
+
+// Total farming slots per player. Raised 10 -> 12; existing saved players
+// are backfilled on load by ensureWorkshopSlotCount() so they aren't left
+// short of the new maximum.
+const WORKSHOP_SLOT_COUNT = 12;
+
 function slotUnlockCost(slotIndex) {
   return 50 * slotIndex;
 }
@@ -873,6 +904,12 @@ const TRADEABLE_MATERIALS = [
   { key: 'zombieJuice', name: 'Zombie Juice' },
   { key: 'lumeCells', name: 'Lume Cells' },
   { key: 'apexCubes', name: 'Apex Cubes' },
+  { key: 'riftCells', name: 'Rift Cells' },
+  { key: 'ultraRiftCells', name: 'Ultra Rift Cells' },
+  { key: 'riftCubes', name: 'Rift Cubes' },
+  { key: 'bubbleShields', name: 'Bubble Shields' },
+  { key: 'riftAuras', name: 'Rift Auras' },
+  { key: 'bossTrackers', name: 'Boss Trackers' },
   { key: 'titanTokens', name: 'Titan Tokens' },
   { key: 'guildTokens', name: 'Guild Tokens' },
   { key: 'joyCoins', name: 'Joy Coins' },
@@ -939,12 +976,43 @@ const MATERIAL_INFO = {
   zombieJuice:  { icon: '🧪', name: 'Zombie Juice',  sources: ['Releasing Void Zombie droids', 'Defeating Voidlord (3-8)'], use: "Evolves the Void Zombie line. 100 trades for a Dark Crystal at the Smuggler." },
   lumeCells:    { icon: '💡', name: 'Lume Cells',    sources: ['Releasing Lumen Sentinel droids', 'Defeating Luminarch (3-8)'], use: "Evolves the Lumen Sentinel line. 100 trades for a Light Stone at the Smuggler." },
   apexCubes:    { icon: '⬢', name: 'Apex Cubes',     sources: ['Any Apex capture attempt — win OR lose (1-5)', 'Defeating an Apex in battle', 'Releasing an Apex droid'], use: 'The only way to level an Apex droid. Level 2 costs 10.' },
+  riftCells:      { icon: '🔹', name: 'Rift Cells',       sources: ['Shop — 1,000 crystals each'], use: 'Spent to capture a droid inside a Rift mission. No cells, no captures.' },
+  ultraRiftCells: { icon: '🔷', name: 'Ultra Rift Cells', sources: ['Shop — 10,000 crystals each'], use: 'Required to attempt a capture on a defeated Rift Boss.' },
+  riftCubes:      { icon: '🧊', name: 'Rift Cubes',       sources: ['Rift loot', 'Titan and Apex wins', 'Shop — 10,000 crystals each'], use: 'Spent to enter a Space Rift mission.' },
+  bubbleShields:  { icon: '🫧', name: 'Bubble Shields',  sources: ['Shop — 50,000 crystals', 'Rare drop from drop-games across modes'], use: 'Stops wild spawns for 50 steps inside a Rift.' },
+  riftAuras:      { icon: '🌀', name: 'Rift Auras',      sources: ['Shop — 50,000 crystals', 'Rare drop from drop-games across modes'], use: 'Boosts Legendary spawn rate and capture odds inside a Rift.' },
+  bossTrackers:   { icon: '🧭', name: 'Boss Trackers',   sources: ['Shop — 50,000 crystals', 'Rare drop from drop-games across modes'], use: 'Points you toward the nearest undefeated Rift Boss.' },
   titanTokens:  { icon: '🏆', name: 'Titan Tokens',  sources: ['8% chance on any Titan victory', 'Shop — 1,000,000 crystals'], use: 'Activates the Joy Stick for 10 minutes.' },
   guildTokens:  { icon: '🛡️', name: 'Guild Tokens',  sources: ['Beating a Titan or Apex alongside a guildmate', 'Shop — 1,000,000 crystals'], use: 'Activates the Joy Stick for 10 minutes.' },
   joyCoins:     { icon: '🕹️', name: 'Joy Coins',     sources: ['Shop — 1,000,000 crystals'], use: 'Activates the Joy Stick for 10 minutes. Purchase-only.' },
 };
 
 const SHOP_CATALOG = [
+  // Rift economy (confirmed pricing).
+  { id: 'rift_cell', name: 'Rift Cell', cost: 1000, type: 'material', grants: { riftCells: 1 } },
+  { id: 'ultra_rift_cell', name: 'Ultra Rift Cell', cost: 10000, type: 'material', grants: { ultraRiftCells: 1 } },
+  { id: 'rift_cube', name: 'Rift Cube', cost: 10000, type: 'material', grants: { riftCubes: 1 } },
+  { id: 'bubble_shield', name: 'Bubble Shield', cost: 50000, type: 'material', grants: { bubbleShields: 1 } },
+  { id: 'rift_aura', name: 'Rift Aura', cost: 50000, type: 'material', grants: { riftAuras: 1 } },
+  { id: 'boss_tracker', name: 'Boss Tracker', cost: 50000, type: 'material', grants: { bossTrackers: 1 } },
+  // Attachments sold individually (confirmed): every Mod Chip / USB Dongle /
+  // Energy Bottle variant is its own listing at a flat 7,500 crystals.
+  { id: 'att_hpmodchip', name: 'HP Mod Chip', cost: 7500, type: 'attachment', attachmentId: 'hpmodchip' },
+  { id: 'att_atkmodchip', name: 'Attack Mod Chip', cost: 7500, type: 'attachment', attachmentId: 'atkmodchip' },
+  { id: 'att_spcmodchip', name: 'Special Mod Chip', cost: 7500, type: 'attachment', attachmentId: 'spcmodchip' },
+  { id: 'att_crymodchip', name: 'Crystal Mod Chip', cost: 7500, type: 'attachment', attachmentId: 'crymodchip' },
+  { id: 'att_rwdmodchip', name: 'Reward Mod Chip', cost: 7500, type: 'attachment', attachmentId: 'rwdmodchip' },
+  { id: 'att_hpusb', name: 'HP USB Dongle', cost: 7500, type: 'attachment', attachmentId: 'hpusb' },
+  { id: 'att_atkusb', name: 'Attack USB Dongle', cost: 7500, type: 'attachment', attachmentId: 'atkusb' },
+  { id: 'att_spcusb', name: 'Special USB Dongle', cost: 7500, type: 'attachment', attachmentId: 'spcusb' },
+  { id: 'att_cryusb', name: 'Crystal USB Dongle', cost: 7500, type: 'attachment', attachmentId: 'cryusb' },
+  { id: 'att_rwdusb', name: 'Reward USB Dongle', cost: 7500, type: 'attachment', attachmentId: 'rwdusb' },
+  { id: 'att_hpebot', name: 'HP Energy Bottle', cost: 7500, type: 'attachment', attachmentId: 'hpebot' },
+  { id: 'att_atkebot', name: 'Attack Energy Bottle', cost: 7500, type: 'attachment', attachmentId: 'atkebot' },
+  { id: 'att_spcebot', name: 'Special Energy Bottle', cost: 7500, type: 'attachment', attachmentId: 'spcebot' },
+  { id: 'att_cryebot', name: 'Crystal Energy Bottle', cost: 7500, type: 'attachment', attachmentId: 'cryebot' },
+  { id: 'att_rwdebot', name: 'Reward Energy Bottle', cost: 7500, type: 'attachment', attachmentId: 'rwdebot' },
+
   { id: 'paint', name: 'Paint', cost: 150, type: 'material', grants: { paint: 1 } },
   { id: 'nova_chip', name: 'Nova Chip', cost: 250, type: 'material', grants: { novaChips: 1 } },
   { id: 'beacon', name: 'Beacon', cost: 300, type: 'material', grants: { beacons: 1 } },
@@ -1014,7 +1082,10 @@ function buyShopBasket(playerId, items) {
   crystalTransactions.push({ id: id(), playerId, amount: -totalCost, source: 'shop_basket_purchase', createdAt: Date.now() });
 
   resolved.forEach(({ item, qty }) => {
-    if (item.type === 'material') {
+    if (item.type === 'attachment') {
+      if (!player.attachments) player.attachments = {};
+      player.attachments[item.attachmentId] = (player.attachments[item.attachmentId] || 0) + qty;
+    } else if (item.type === 'material') {
       if (item.grants.paint) player.paint += item.grants.paint * qty;
       if (item.grants.novaChips) player.novaChips += item.grants.novaChips * qty;
       if (item.grants.beacons) player.beacons += item.grants.beacons * qty;
@@ -1024,6 +1095,12 @@ function buyShopBasket(playerId, items) {
       if (item.grants.lightStones) player.lightStones += item.grants.lightStones * qty;
       if (item.grants.darkCrystals) player.darkCrystals += item.grants.darkCrystals * qty;
       if (item.grants.padRam) player.padRam += item.grants.padRam * qty;
+      if (item.grants.riftCells) player.riftCells = (player.riftCells || 0) + item.grants.riftCells * qty;
+      if (item.grants.ultraRiftCells) player.ultraRiftCells = (player.ultraRiftCells || 0) + item.grants.ultraRiftCells * qty;
+      if (item.grants.riftCubes) player.riftCubes = (player.riftCubes || 0) + item.grants.riftCubes * qty;
+      if (item.grants.bubbleShields) player.bubbleShields = (player.bubbleShields || 0) + item.grants.bubbleShields * qty;
+      if (item.grants.riftAuras) player.riftAuras = (player.riftAuras || 0) + item.grants.riftAuras * qty;
+      if (item.grants.bossTrackers) player.bossTrackers = (player.bossTrackers || 0) + item.grants.bossTrackers * qty;
       if (item.grants.repairKits) player.repairKits += item.grants.repairKits * qty;
     } else if (item.type === 'outfit') {
       player.ownedOutfits.push(item.outfitId);
@@ -1052,7 +1129,10 @@ function buyShopItem(playerId, itemId, quantity = 1) {
   player.crystalBalance -= totalCost;
   crystalTransactions.push({ id: id(), playerId, amount: -totalCost, source: 'shop_purchase', createdAt: Date.now() });
 
-  if (item.type === 'material') {
+  if (item.type === 'attachment') {
+    if (!player.attachments) player.attachments = {};
+    player.attachments[item.attachmentId] = (player.attachments[item.attachmentId] || 0) + qty;
+  } else if (item.type === 'material') {
     if (item.grants.paint) player.paint += item.grants.paint * qty;
     if (item.grants.novaChips) player.novaChips += item.grants.novaChips * qty;
     if (item.grants.beacons) player.beacons += item.grants.beacons * qty;
@@ -1062,6 +1142,12 @@ function buyShopItem(playerId, itemId, quantity = 1) {
     if (item.grants.lightStones) player.lightStones += item.grants.lightStones * qty;
     if (item.grants.darkCrystals) player.darkCrystals += item.grants.darkCrystals * qty;
     if (item.grants.padRam) player.padRam += item.grants.padRam * qty;
+    if (item.grants.riftCells) player.riftCells = (player.riftCells || 0) + item.grants.riftCells * qty;
+    if (item.grants.ultraRiftCells) player.ultraRiftCells = (player.ultraRiftCells || 0) + item.grants.ultraRiftCells * qty;
+    if (item.grants.riftCubes) player.riftCubes = (player.riftCubes || 0) + item.grants.riftCubes * qty;
+    if (item.grants.bubbleShields) player.bubbleShields = (player.bubbleShields || 0) + item.grants.bubbleShields * qty;
+    if (item.grants.riftAuras) player.riftAuras = (player.riftAuras || 0) + item.grants.riftAuras * qty;
+    if (item.grants.bossTrackers) player.bossTrackers = (player.bossTrackers || 0) + item.grants.bossTrackers * qty;
     if (item.grants.repairKits) player.repairKits += item.grants.repairKits * qty;
   } else if (item.type === 'outfit') {
     player.ownedOutfits.push(item.outfitId);
@@ -1519,6 +1605,41 @@ const GUILD_KICK_SAME_GUILD_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days b
 
 const GUILD_CREATE_COST = 250;
 
+const GUILD_RENAME_COST = 1000;
+
+// Case-insensitive so "Nightfangs" and "nightfangs" can't both exist.
+// excludeGuildId lets a guild keep its own name when re-saving.
+function guildNameTaken(name, excludeGuildId = null) {
+  const target = String(name || '').trim().toLowerCase();
+  for (const g of guilds.values()) {
+    if (excludeGuildId && g.id === excludeGuildId) continue;
+    if ((g.name || '').trim().toLowerCase() === target) return true;
+  }
+  return false;
+}
+
+// Leader-only rename, charged to the leader.
+function renameGuild(playerId, newName) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!player.guildId) throw new Error('You are not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (!guild) throw new Error('Guild not found');
+  if (guild.creatorId !== playerId) throw new Error('Only the guild leader can rename the guild');
+  const cleanName = String(newName || '').trim();
+  if (!cleanName) throw new Error('Guild name cannot be empty');
+  if (cleanName === guild.name) throw new Error('That is already the guild name');
+  if (guildNameTaken(cleanName, guild.id)) throw new Error('That guild name is already taken');
+  if ((player.crystalBalance || 0) < GUILD_RENAME_COST) {
+    throw new Error(`Renaming the guild costs ${GUILD_RENAME_COST} crystals`);
+  }
+  player.crystalBalance -= GUILD_RENAME_COST;
+  crystalTransactions.push({ id: id(), playerId, amount: -GUILD_RENAME_COST, source: 'guild_rename', createdAt: Date.now() });
+  const oldName = guild.name;
+  guild.name = cleanName;
+  return { guild, oldName, cost: GUILD_RENAME_COST, crystalBalance: player.crystalBalance };
+}
+
 function createGuild(playerId, name) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
@@ -1526,9 +1647,12 @@ function createGuild(playerId, name) {
   if ((player.crystalBalance || 0) < GUILD_CREATE_COST) {
     throw new Error(`Creating a guild costs ${GUILD_CREATE_COST} crystals`);
   }
+  const cleanName = String(name || '').trim();
+  if (!cleanName) throw new Error('Guild name cannot be empty');
+  if (guildNameTaken(cleanName)) throw new Error('That guild name is already taken');
   player.crystalBalance -= GUILD_CREATE_COST;
   crystalTransactions.push({ id: id(), playerId, amount: -GUILD_CREATE_COST, source: 'guild_create', createdAt: Date.now() });
-  const guild = { id: id(), name, creatorId: playerId, memberIds: [playerId], createdAt: Date.now(), badge: null, notice: '' };
+  const guild = { id: id(), name: cleanName, creatorId: playerId, memberIds: [playerId], createdAt: Date.now(), badge: null, notice: '' };
   guilds.set(guild.id, guild);
   player.guildId = guild.id;
   return guild;
@@ -2157,6 +2281,12 @@ const MATERIAL_CODE_GRANTS = {
   lumeCells: 25,
   // Endgame: one each. Enough to test the mechanic, not to shortcut it.
   apexCubes: 5,
+  riftCells: 0,
+  ultraRiftCells: 0,
+  riftCubes: 0,
+  bubbleShields: 0,
+  riftAuras: 0,
+  bossTrackers: 0,
   titanTokens: 1,
   guildTokens: 1,
   joyCoins: 1,
@@ -2280,6 +2410,12 @@ function createPlayer(username, pin) {
     autoReleaseDuplicates: false,
     autoReleaseIncludeVariants: false,
     apexCubes: 0,
+    riftCells: 0,
+    ultraRiftCells: 0,
+    riftCubes: 0,
+    bubbleShields: 0,
+    riftAuras: 0,
+    bossTrackers: 0,
     titanTokens: 0,
     guildTokens: 0,
     joyCoins: 0,
@@ -2339,8 +2475,8 @@ function createPlayer(username, pin) {
   };
   players.set(player.id, player);
 
-  // give every new player 10 workshop slots (only slot 0 unlocked to start)
-  for (let i = 0; i < 10; i++) {
+  // give every new player WORKSHOP_SLOT_COUNT workshop slots (only slot 0 unlocked to start)
+  for (let i = 0; i < WORKSHOP_SLOT_COUNT; i++) {
     const slot = {
       id: id(),
       playerId: player.id,
@@ -2775,6 +2911,7 @@ function importState(state) {
   (state.ownedDroids || []).forEach((d) => ownedDroids.set(d.id, { ...droidDefaults, ...d }));
 
   (state.workshopSlots || []).forEach((s) => workshopSlots.set(s.id, s));
+  ensureWorkshopSlotCount();
   (state.tradeOffers || []).forEach((t) => tradeOffers.set(t.id, t));
   (state.events || []).forEach((e) => events.set(e.id, e));
   (state.guilds || []).forEach((g) => guilds.set(g.id, g));
@@ -2879,6 +3016,9 @@ module.exports = {
   battles,
   GUILD_MAX_MEMBERS,
   createGuild,
+  renameGuild,
+  guildNameTaken,
+  GUILD_RENAME_COST,
   joinGuild,
   leaveGuild,
   kickFromGuild,

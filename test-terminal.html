@@ -435,6 +435,16 @@
   @keyframes riftPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 
   .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 210px; margin: 0 auto; }
+  .rift-controls { display:flex; align-items:center; gap:14px; justify-content:space-between; }
+  .joy-base { position:relative; width:120px; height:120px; border-radius:50%; flex-shrink:0;
+    background:radial-gradient(circle at 50% 50%, rgba(95,216,224,0.10), rgba(0,0,0,0.35));
+    border:2px solid var(--line); touch-action:none; user-select:none; }
+  .joy-knob { position:absolute; left:50%; top:50%; width:52px; height:52px; margin:-26px 0 0 -26px;
+    border-radius:50%; background:var(--cyan); border:2px solid #04181a; opacity:0.85;
+    box-shadow:0 0 10px rgba(95,216,224,0.5); transition:transform 0.06s linear; pointer-events:none; }
+  .joy-base.active .joy-knob { opacity:1; }
+  .rift-actions { flex:1; display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .rift-actions .dp { width:100%; }
   .dp { margin-top: 0; font-size: 17px; padding: 13px 0; line-height: 1; }
   #dpUp { grid-column: 2; }
   #dpLeft { grid-column: 1; grid-row: 2; }
@@ -1226,6 +1236,7 @@
     <div class="panel" id="rebootPanel" style="margin-top:16px;">
       <div class="panel-title">Re-Boot</div>
       <div id="rebootBody"></div>
+      <div id="rebootBadges" style="margin-top:10px;"></div>
     </div>
 
     <!-- Account controls live at the very bottom of the Player tab:
@@ -1576,19 +1587,26 @@
     <div id="riftEncounter" style="display:none;"></div>
 
     <div class="panel" id="riftControlPanel" style="margin-top:10px;">
-      <div class="dpad">
-        <button class="dp" id="dpUp" data-dir="up">▲</button>
-        <button class="dp" id="dpLeft" data-dir="left">◀</button>
-        <button class="dp dp-mid" id="dpInvestigate">🔍</button>
-        <button class="dp" id="dpRight" data-dir="right">▶</button>
-        <button class="dp" id="dpDown" data-dir="down">▼</button>
+      <div class="rift-controls">
+        <!-- Analog stick, left. Drag it: direction is taken from the
+             angle, so movement never overlaps the action buttons. -->
+        <div class="joy-base" id="joyBase">
+          <div class="joy-knob" id="joyKnob"></div>
+        </div>
+        <!-- Actions, right — deliberately away from the stick so a
+             mis-drag can't trigger Run. -->
+        <div class="rift-actions">
+          <button class="dp dp-mid" id="dpInvestigate">🔍 Search</button>
+        </div>
       </div>
-      <div id="riftActionLabel" style="text-align:center; font-size:9px; color:var(--text-dim); margin-top:4px;"></div>
+      <div id="riftActionLabel" style="text-align:center; font-size:9px; color:var(--text-dim); margin-top:6px;"></div>
     </div>
 
     <div class="panel" id="riftTeamPanel" style="margin-top:12px;">
       <div class="panel-title">Your Team</div>
       <div id="riftTeam"></div>
+      <div id="riftItems" style="margin-top:10px;"></div>
+      <div id="riftHaul" style="margin-top:10px;"></div>
       <button id="btnRiftAbandon" class="ghost" style="margin-top:10px; font-size:9px; padding:7px; color:var(--danger); border-color:var(--danger);">Abandon Mission</button>
     </div>
   </div>
@@ -1667,7 +1685,7 @@
       <button id="btnDailySpin" class="primary" style="margin-top:8px;">Spin</button>
     </div>
 
-    <div class="casino-box" style="margin-top:12px;">
+    <div class="casino-box" id="rouletteBox" style="margin-top:12px;">
       <div class="cb-title">🔴 Roulette</div>
       <label style="margin-top:4px;">Bet amount</label>
       <input type="number" id="rouletteBet" value="500" min="100" step="100">
@@ -1686,7 +1704,7 @@
       <div id="rouletteResult" style="margin-top:8px; font-size:11px; text-align:center;"></div>
     </div>
 
-    <div class="casino-box" style="margin-top:12px;">
+    <div class="casino-box" id="blackjackBox" style="margin-top:12px;">
       <div class="cb-title">🃏 Blackjack</div>
       <div id="blackjackTable">
         <label style="margin-top:4px;">Bet amount</label>
@@ -1865,6 +1883,7 @@
         <option value="droid">Droid</option>
         <option value="paint">Paint</option>
       </select>
+      <input type="text" id="wishSpeciesSearch" placeholder="Search droid name..." style="flex:1; min-width:120px; margin-top:0;">
       <select id="wishSpecies" style="flex:1; min-width:120px;"></select>
       <select id="wishVariant" style="flex:1; min-width:100px;">
         <option value="any">Any variant</option>
@@ -2893,6 +2912,9 @@ function renderSpawns() {
   const oorWrap = document.createElement('div');
   oorWrap.id = 'outOfReachWrap';
   oorWrap.style.display = 'none';
+  // Rebuilt on every sweep, so the background has to be re-applied here
+  // rather than once at startup like the static panels.
+  setTimeout(() => applyPanelBackground('outOfReachWrap', 'outofreach'), 0);
 
   if (!inRangeCount) {
     const none = document.createElement('div');
@@ -3523,8 +3545,7 @@ function buildDroidRow(droid) {
       <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;">
         ${isFainted
           ? '<span style="font-size:9px; color:var(--danger);">💀 Fainted — repair with a Repair Kit first</span>'
-          : `<button class="level-up-btn" style="margin-top:0; width:auto; padding:4px 8px; font-size:9px;" ${droid.nextLevelCost === null ? 'disabled' : ''}>${levelBtnLabel}</button>
-             <button class="release-btn" style="margin-top:0; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Release (${Math.floor((droid.captureCost||0)*1.5)}✦)</button>`}
+          : `<button class="release-btn" style="margin-top:0; width:auto; padding:4px 8px; font-size:9px; color:var(--danger); border-color:var(--danger);">Release (${Math.floor((droid.captureCost||0)*1.5)}✦)</button>`}
         ${repairBtn}
       </div>
     `;
@@ -3549,18 +3570,13 @@ function buildDroidRow(droid) {
     row.querySelector('.droid-icon').onclick = () => showStatsModal(droid);
     row.querySelectorAll('.droid-info-click').forEach((el) => { el.onclick = () => showStatsModal(droid); });
 
-    const levelBtn = row.querySelector('.level-up-btn');
-    if (!levelBtn) return row; // fainted: no action buttons rendered
-    if (droid.nextLevelCost !== null) {
-      levelBtn.onclick = async () => {
-        try {
-          await api('POST', `/droids/${droid.id}/level-up`, { playerId: state.playerId });
-          await refreshWorkshop();
-        } catch (e) {}
-      };
-    }
+    // Level-up now happens through the droid stats popup only, so the row
+    // just has Release. Guard keys off release-btn since that's the only
+    // action button rendered here now (fainted rows render none).
+    const releaseBtn = row.querySelector('.release-btn');
+    if (!releaseBtn) return row; // fainted: no action buttons rendered
 
-    row.querySelector('.release-btn').onclick = async () => {
+    releaseBtn.onclick = async () => {
       if (!confirm(`Release this ${droid.speciesName}? This cannot be undone.`)) return;
       try {
         const result = await api('POST', `/droids/${droid.id}/release`, { playerId: state.playerId });
@@ -3665,6 +3681,8 @@ function showFunkyColorPicker(droid) {
       <option value="blue">Blue</option>
       <option value="purple">Purple</option>
       <option value="pink">Pink</option>
+      <option value="black">Black</option>
+      <option value="white">White</option>
     </select>
     <button class="primary" id="btnConfirmFunkyColor" style="margin-top:12px;">Confirm</button>
     <button class="mb-close" style="margin-top:6px;">Cancel</button>
@@ -4570,8 +4588,16 @@ function renderSelectedTeamPreview() {
   }
   el.style.display = 'block';
   const RARITY_COLOR = { common: 'var(--common)', uncommon: 'var(--uncommon)', rare: 'var(--rare)', legendary: 'var(--legendary)', cosmic: '#ff9df0', galactic: '#7fffe0' };
+  // Team totals so the player can compare loadouts at a glance without
+  // adding up four droids by hand.
+  const teamHp = selected.reduce((sum, d) => sum + (d.hp || 0), 0);
+  const teamAtk = selected.reduce((sum, d) => sum + (d.attack || 0), 0);
   el.innerHTML = `
     <div style="font-size:9px; color:var(--text-dim); margin-bottom:6px;">Your Battle Team (${selected.length}/4)</div>
+    <div style="font-size:10px; margin-bottom:8px;">
+      <span style="color:var(--text-dim);">Total HP</span> <strong style="color:#fff;">${teamHp}</strong>
+      <span style="color:var(--text-dim); margin-left:10px;">Total ATK</span> <strong style="color:#fff;">${teamAtk}</strong>
+    </div>
     <div style="display:flex; gap:10px;">
       ${selected.map((d) => `
         <div style="text-align:center; width:48px; flex-shrink:0;">
@@ -5102,6 +5128,37 @@ async function renderGuild() {
     const guild = await api('GET', `/guilds/${state.guildId}`);
     const isCreator = guild.creatorId === state.playerId;
 
+    // Show the real guild name; leader can tap it to rename (1000 crystals).
+    el.innerHTML = `<div class="trade-card">
+      <strong id="guildNameLabel" style="${isCreator ? 'cursor:pointer; border-bottom:1px dashed var(--cyan);' : ''}"
+        title="${isCreator ? 'Tap to rename (1000✦)' : ''}">${guild.name}</strong>
+      <span style="color:var(--text-dim); font-size:9px;"> #${state.guildId}</span>
+      <div class="tc-actions"><button class="leave-guild-btn">Leave</button></div>
+    </div>`;
+    el.querySelector('.leave-guild-btn').onclick = async () => {
+      try {
+        await api('POST', '/guilds/leave', { playerId: state.playerId });
+        await refreshWorkshop();
+        await renderGuild();
+      } catch (e) {}
+    };
+    if (isCreator) {
+      const nameLabel = el.querySelector('#guildNameLabel');
+      if (nameLabel) nameLabel.onclick = async () => {
+        const newName = prompt(`Rename guild (costs 1000 crystals).\n\nCurrent name: ${guild.name}`, guild.name);
+        if (newName === null) return;
+        if (!newName.trim() || newName.trim() === guild.name) return;
+        try {
+          const r = await api('POST', '/guilds/rename', { playerId: state.playerId, name: newName.trim() });
+          showGuildResultPopup(true, `Guild renamed to "${r.guild.name}" — ${r.cost}✦ spent.`);
+          await refreshWorkshop();
+          await renderGuild();
+        } catch (e) {
+          showGuildResultPopup(false, (e && e.message) || 'Could not rename the guild.');
+        }
+      };
+    }
+
     const badgeLabels = { dark_side: '🌑 Dark Side', light_side: '☀ Light Side' };
     const badgeArea = $('guildBadgeArea');
     if (guild.badge) {
@@ -5358,6 +5415,15 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('adminFortsPanel', 'adminforts');
   applyPanelBackground('guildProgressPanel', 'guildlevel');
   applyPanelBackground('armouryPanel', 'armoury');
+
+  // --- Newly wired panel backgrounds (missing-PNG request) ---
+  applyPanelBackground('smugglerTiersPanel', 'smugglertiers');
+  applyPanelBackground('smugglerHistoryPanel', 'smugglerhauls');
+  applyPanelBackground('liveChallengesPanel', 'challenges');
+  applyPanelBackground('seasonPassesPanel', 'yourpasses');
+  applyPanelBackground('dailySpinBox', 'dailyspin');
+  applyPanelBackground('rouletteBox', 'roulette');
+  applyPanelBackground('blackjackBox', 'blackjack');
   applyPanelBackground('broodChamberPanel', 'broodchamber', 'astral');
   applyPanelBackground('genesisBaysPanel', 'genesisbays', 'astral');
   applyPanelBackground('broodMergePanel', 'broodmerge', 'astral');
@@ -5449,8 +5515,16 @@ function applyVariantTint(img, variant, color) {
   } else if (variant === 'rusty') {
     img.style.filter = 'sepia(0.6) saturate(2) hue-rotate(-20deg) brightness(0.9)';
   } else if (variant === 'funky') {
-    const hueMap = { red: '0deg', orange: '30deg', yellow: '50deg', green: '120deg', cyan: '180deg', blue: '210deg', purple: '270deg', pink: '320deg' };
-    img.style.filter = `sepia(1) saturate(3) hue-rotate(${hueMap[color] || '30deg'}) brightness(1.1)`;
+    // Black and white are achromatic — hue-rotate can't produce them, so
+    // they get their own desaturate + brightness treatment instead.
+    if (color === 'black') {
+      img.style.filter = 'grayscale(1) brightness(0.35) contrast(1.3)';
+    } else if (color === 'white') {
+      img.style.filter = 'grayscale(1) brightness(1.9) contrast(0.85)';
+    } else {
+      const hueMap = { red: '0deg', orange: '30deg', yellow: '50deg', green: '120deg', cyan: '180deg', blue: '210deg', purple: '270deg', pink: '320deg' };
+      img.style.filter = `sepia(1) saturate(3) hue-rotate(${hueMap[color] || '30deg'}) brightness(1.1)`;
+    }
   }
 }
 
@@ -5739,15 +5813,18 @@ function showDexDetailModal(s) {
       </div>
       <button class="primary mb-close" style="margin-top:16px;">Close</button>
     `;
-    box.querySelector('#dexModalIcon').appendChild(createDroidVisual(s, 64));
+    box.querySelector('#dexModalIcon').appendChild(createDroidVisual(s, 96));
   } else {
     box.innerHTML = `
-      <div class="mb-icon">❓</div>
+      <div id="dexModalIcon" style="margin-bottom:10px; filter:grayscale(1) brightness(0.45); opacity:0.75;"></div>
       <div class="mb-title" style="color:var(--text-dim);">Not Yet Caught</div>
       <div class="mb-detail">${s.rarity} · ${s.collection}</div>
       ${s.evolvesFromName ? `<div class="mb-detail" style="color:var(--cyan);">Evolves from ${s.evolvesFromName}</div>` : ''}
       <button class="mb-close" style="margin-top:16px;">Close</button>
     `;
+    // Same art as the caught view, but desaturated via the wrapper's CSS
+    // filter — gives a recognisable silhouette instead of a bare "?".
+    box.querySelector('#dexModalIcon').appendChild(createDroidVisual(s, 96));
   }
   overlay.style.display = 'flex';
   box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
@@ -7363,7 +7440,64 @@ function renderRiftMission(d) {
       <span style="width:64px; text-align:right; color:var(--text-dim); font-size:9px;">${t.hp}/${t.maxHp}</span>
     </div>`).join('');
 
+  renderRiftItems(d);
+  renderRiftHaul(d);
   renderRiftEncounter(d);
+}
+
+// Consumables usable mid-run. Sits above the haul so it reads as
+// "here's what you can do" before "here's what you've got".
+function renderRiftItems(d) {
+  const el = $('riftItems');
+  if (!el) return;
+  const it = d.items || {};
+  const defs = [
+    { key: 'bubbleShields', label: '🫧 Bubble Shield', note: 'no wild spawns, 50 steps', active: d.shieldStepsLeft },
+    { key: 'riftAuras', label: '🌀 Rift Aura', note: 'better rares + capture, 50 steps', active: d.auraStepsLeft },
+    { key: 'bossTrackers', label: '🧭 Boss Tracker', note: 'points to nearest boss', active: 0 },
+  ];
+  el.innerHTML = `
+    <div class="panel-title" style="font-size:10px; margin-bottom:6px;">Items</div>
+    ${defs.map((f) => `
+      <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+        <span style="flex:1; font-size:9px; color:var(--text-dim);">
+          ${f.label} <span style="opacity:0.7;">x${it[f.key] || 0}</span>
+          ${f.active ? `<span style="color:#2a9d4a;"> · active ${f.active} steps</span>` : ''}
+          <br><span style="opacity:0.55;">${f.note}</span>
+        </span>
+        <button class="rift-item-btn ghost" data-key="${f.key}" style="width:auto; margin-top:0; padding:5px 9px; font-size:9px;" ${(it[f.key] || 0) < 1 ? 'disabled' : ''}>Use</button>
+      </div>`).join('')}
+    ${d.bossHint ? `<div style="font-size:9px; color:var(--cyan); margin-top:4px;">🧭 Nearest boss: ${escapeHtml(d.bossHint.name)} — ${escapeHtml(d.bossHint.text)}</div>` : ''}`;
+
+  el.querySelectorAll('.rift-item-btn').forEach((b) => {
+    b.onclick = () => guardedAction('riftitem', async () => {
+      try {
+        const r = await api('POST', '/rift/use-item', { playerId: state.playerId, itemKey: b.dataset.key });
+        if (r.hint) showGuildResultPopup(true, `🧭 Nearest boss: ${r.hint.name}\n${r.hint.text}`);
+        else showGuildResultPopup(true, 'Item activated.');
+        state.rift = r; renderRiftMission(r);
+      } catch (e2) { showGuildResultPopup(false, (e2 && e2.message) || 'Could not use that item.'); }
+    });
+  });
+}
+
+// Running tally of what this mission has earned so far — captures and
+// materials — so the player can judge whether to push on or extract.
+function renderRiftHaul(d) {
+  const el = $('riftHaul');
+  if (!el) return;
+  const caps = d.captured || [];
+  const loot = d.loot || {};
+  const mats = loot.materials || {};
+  const matRows = Object.entries(mats).filter(([, v]) => v > 0);
+  if (!caps.length && !matRows.length && !loot.crystals) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="panel-title" style="font-size:10px; margin-bottom:6px;">This Run</div>
+    <div style="font-size:9px; color:var(--text-dim); line-height:1.6;">
+      <div>🎯 Captured: ${caps.length ? caps.map((c) => escapeHtml(c)).join(', ') : '<span style="opacity:0.6;">none yet</span>'}</div>
+      ${loot.crystals ? `<div>✦ Crystals: ${loot.crystals.toLocaleString()}</div>` : ''}
+      ${matRows.length ? `<div>📦 Materials: ${matRows.map(([k, v]) => `${escapeHtml(k)} x${v}`).join(', ')}</div>` : ''}
+    </div>`;
 }
 
 function renderRiftEncounter(d) {
@@ -7377,7 +7511,10 @@ function renderRiftEncounter(d) {
   el.innerHTML = `
     <div class="rift-battle ${e.kind === 'boss' ? 'boss' : ''}">
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:20px;">${e.kind === 'boss' ? '☠️' : '👾'}</span>
+        <span class="rift-enc-icon" style="font-size:20px; width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <img src="/assets/rift/${e.defId}.png" alt="" style="width:44px; height:44px; object-fit:contain;"
+               onerror="this.remove(); this.parentElement.textContent='${e.kind === 'boss' ? '☠️' : '👾'}';">
+        </span>
         <div style="flex:1;">
           <div style="font-size:12px; color:#fff;">${escapeHtml(e.name)}</div>
           <div style="font-size:8px; color:var(--text-dim);">${e.kind === 'boss' ? 'RIFT BOSS — no escape' : e.rarity} · ${escapeHtml(e.move)}</div>
@@ -7413,6 +7550,14 @@ function renderRiftEncounter(d) {
   });
   const rn = $('btnRiftRun');
   if (rn) rn.onclick = () => guardedAction('riftrun', async () => {
+    // Confirm before fleeing — this button sits next to the movement
+    // controls, so an accidental tap used to throw away the encounter.
+    const enc = (state.rift && state.rift.encounter) || {};
+    const isBeatenBoss = enc.bossDefeated;
+    const msg = isBeatenBoss
+      ? `Leave ${enc.name || 'this boss'} without attempting a capture?\n\nYou keep the kill and the reward, but the capture chance is gone for good.`
+      : `Run from ${enc.name || 'this encounter'}?\n\nYou will lose the chance to capture it.`;
+    if (!confirm(msg)) return;
     try { const r = await api('POST', '/rift/run', { playerId: state.playerId }); state.rift = r; renderRiftMission(r); }
     catch (e2) { showGuildResultPopup(false, (e2 && e2.message) || 'Could not run.'); }
   });
@@ -7443,13 +7588,110 @@ async function riftMove(dir) {
   }
 }
 
-document.querySelectorAll('.dp[data-dir]').forEach((b) => {
-  b.onclick = () => riftMove(b.dataset.dir);
-});
+// ---- Rift joystick ----
+// Drag from the base; the knob follows within a radius and the dominant
+// axis becomes the move direction. Steps are rate-limited while held so
+// a long drag walks steadily instead of firing a burst of requests.
+(function initRiftJoystick() {
+  const base = $('joyBase');
+  const knob = $('joyKnob');
+  if (!base || !knob) return;
+
+  const MAX_R = 34;        // how far the knob travels
+  const DEADZONE = 12;     // ignore tiny wobbles
+  const REPEAT_MS = 260;   // walk speed while held
+
+  let dragging = false;
+  let lastDir = null;
+  let timer = null;
+
+  function centre() {
+    const r = base.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  function setKnob(dx, dy) {
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  }
+
+  function dirFrom(dx, dy) {
+    if (Math.hypot(dx, dy) < DEADZONE) return null;
+    // Dominant axis only — the Rift grid is 4-way, not free movement.
+    return Math.abs(dx) > Math.abs(dy)
+      ? (dx > 0 ? 'right' : 'left')
+      : (dy > 0 ? 'down' : 'up');
+  }
+
+  function startRepeat() {
+    if (timer) return;
+    timer = setInterval(() => { if (lastDir) riftMove(lastDir); }, REPEAT_MS);
+  }
+
+  function stopRepeat() {
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  function onDown(e) {
+    dragging = true;
+    base.classList.add('active');
+    onMove(e);
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const p = e.touches ? e.touches[0] : e;
+    const c = centre();
+    let dx = p.clientX - c.x;
+    let dy = p.clientY - c.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > MAX_R) { dx = (dx / dist) * MAX_R; dy = (dy / dist) * MAX_R; }
+    setKnob(dx, dy);
+
+    const dir = dirFrom(dx, dy);
+    if (dir && dir !== lastDir) {
+      lastDir = dir;
+      riftMove(dir);   // immediate first step, then repeat while held
+      stopRepeat();
+      startRepeat();
+    } else if (!dir) {
+      lastDir = null;
+      stopRepeat();
+    }
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function onUp() {
+    dragging = false;
+    lastDir = null;
+    stopRepeat();
+    base.classList.remove('active');
+    setKnob(0, 0);
+  }
+
+  base.addEventListener('mousedown', onDown);
+  base.addEventListener('touchstart', onDown, { passive: false });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchend', onUp);
+  window.addEventListener('touchcancel', onUp);
+})();
 
 $('dpInvestigate').onclick = () => guardedAction('riftinv', async () => {
   try {
-    const r = await api('POST', '/rift/investigate', { playerId: state.playerId });
+    let r = await api('POST', '/rift/investigate', { playerId: state.playerId });
+    // Early extraction: server asks first so the 20% material penalty is
+    // never taken without the player agreeing to it.
+    if (r.pendingEarlyExtract) {
+      const p = r.pendingEarlyExtract;
+      const ok = confirm(
+        `Extract now with ${p.bossesDefeated}/${p.totalBosses} Rift Bosses defeated?\n\n` +
+        `You will lose ${p.penaltyPercent}% of your MATERIAL loot. Crystals are not affected.\n\n` +
+        `OK to extract, Cancel to keep hunting.`
+      );
+      if (!ok) { state.rift = r; renderRiftMission(r); return; }
+      r = await api('POST', '/rift/investigate', { playerId: state.playerId, confirmEarlyExtract: true });
+    }
     if (r.finished) return showRiftSummary(r.summary);
     if (r.found) {
       const f = r.found;
@@ -7555,7 +7797,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.12.3
+// QOL v0.12.9
 // ============================================================
 
 // ---- guild invites by player ID ----
@@ -9343,7 +9585,7 @@ function renderReboot(d) {
     ? `<div style="font-size:10px; color:var(--cyan); margin-bottom:8px;">Re-Boot ${d.rebootCount}/${d.maxReboots} · +${d.crystalBonusPercent}% crystals · +${d.materialBonusPercent}% materials</div>`
     : '';
   if (!d.canReboot) {
-    el.innerHTML = bonusLine + `<div class="empty">Re-Boot unlocks at Level ${d.maxLevel}.</div>`;
+    el.innerHTML = bonusLine + `<div class="empty">The next Re-Boot unlocks at Level ${d.maxLevel}.</div>`;
     return;
   }
   el.innerHTML = bonusLine + `
@@ -9376,24 +9618,39 @@ async function confirmReboot() {
 
 let badgeFilter = 'level';
 
+// Re-Boot badges live in the Re-Boot panel (not the Pilot Level box).
+// Display-only here: selecting a player icon stays in the Pilot Level tray
+// so there's one place that does it.
+function renderRebootBadges(badges) {
+  const el = $('rebootBadges');
+  if (!el) return;
+  const rows = (badges || []).filter((b) => b.type === 'reboot');
+  if (!rows.length) { el.innerHTML = ''; return; }
+  const earned = rows.filter((b) => b.earned).length;
+  el.innerHTML = `
+    <div style="font-size:9px; color:var(--text-dim); margin:4px 0;">Re-Boot badges ${earned}/${rows.length}</div>
+    <div class="badge-grid">
+      ${rows.map((b) => `
+        <div class="badge-cell ${b.earned ? 'earned' : 'locked'}" title="${b.label} — ${b.requirement}">
+          <img src="/assets/${b.folder}/${b.icon}" onerror="this.style.visibility='hidden';">
+          <div class="badge-cap">${b.label.replace('Re-Boot ', 'RB')}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
 async function renderBadgeTray() {
   const el = $('plBadges');
   if (!el || !state.playerId) return;
   try {
     const d = await api('GET', `/badges/${state.playerId}`);
     state.badges = d;
-    const groups = [
-      { key: 'level', label: 'Levels' },
-      { key: 'reboot', label: 'Re-Boots' },
-      { key: 'achievement', label: 'Achievements' },
-    ];
-    const rows = d.badges.filter((b) => b.type === badgeFilter);
-    const earnedCount = d.badges.filter((b) => b.type === badgeFilter && b.earned).length;
+    renderRebootBadges(d.badges);
+    // Pilot Level box shows LEVEL badges only. Re-Boot badges render in
+    // the Re-Boot panel, achievements have their own panel.
+    const rows = d.badges.filter((b) => b.type === 'level');
+    const earnedCount = rows.filter((b) => b.earned).length;
 
     el.innerHTML = `
-      <div class="badge-tabs">
-        ${groups.map((g) => `<button class="badge-tab ${badgeFilter === g.key ? 'active' : ''}" data-key="${g.key}">${g.label}</button>`).join('')}
-      </div>
       <div style="font-size:9px; color:var(--text-dim); margin:4px 0;">${earnedCount}/${rows.length} unlocked — tap an unlocked badge to use it as your player icon</div>
       <div class="badge-grid">
         ${rows.map((b) => `
@@ -9404,9 +9661,6 @@ async function renderBadgeTray() {
           </div>`).join('')}
       </div>`;
 
-    el.querySelectorAll('.badge-tab').forEach((t) => {
-      t.onclick = () => { badgeFilter = t.dataset.key; renderBadgeTray(); };
-    });
     el.querySelectorAll('.badge-cell').forEach((c) => {
       c.onclick = async () => {
         if (c.dataset.earned !== 'true') {
@@ -10295,14 +10549,23 @@ function showPrototypeResultPopup(droid) {
 // ---- Wishlist ----
 function populateWishSpeciesDropdown() {
   const select = $('wishSpecies');
-  select.innerHTML = state.species.map((s) =>
-    `<option value="${s.id}">${s.alignment === 'light' ? '☀' : s.alignment === 'cosmic' ? '✦' : '🌑'} ${s.name} (${s.rarity})</option>`
-  ).join('');
+  const term = (($('wishSpeciesSearch') || {}).value || '').trim().toLowerCase();
+  const rows = term
+    ? state.species.filter((s) => s.name.toLowerCase().includes(term))
+    : state.species;
+  select.innerHTML = rows.length
+    ? rows.map((s) =>
+        `<option value="${s.id}">${s.alignment === 'light' ? '☀' : s.alignment === 'cosmic' ? '✦' : '🌑'} ${s.name} (${s.rarity})</option>`
+      ).join('')
+    : '<option value="">No droids match that search</option>';
 }
+
+$('wishSpeciesSearch').oninput = () => populateWishSpeciesDropdown();
 
 $('wishType').onchange = () => {
   const isDroid = $('wishType').value === 'droid';
   $('wishSpecies').style.display = isDroid ? 'block' : 'none';
+  $('wishSpeciesSearch').style.display = isDroid ? 'block' : 'none';
   $('wishVariant').style.display = isDroid ? 'block' : 'none';
 };
 
