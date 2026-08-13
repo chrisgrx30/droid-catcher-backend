@@ -1050,9 +1050,9 @@ const server = http.createServer(async (req, res) => {
     // POST /battles/:id/attack-group  { playerId }
     if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/attack-group$/)) {
       const battleId = Number(pathname.split('/')[2]);
-      const { playerId } = await readBody(req);
+      const { playerId, useSpecial } = await readBody(req);
       try {
-        const result = battleModule.attackGroupTitan(battleId, playerId);
+        const result = battleModule.attackGroupTitan(battleId, playerId, { useSpecial });
         return sendJson(res, 200, { battle: battleModule.getBattleView(battleId), logEntry: result.logEntry });
       } catch (e) {
         return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
@@ -1098,9 +1098,9 @@ const server = http.createServer(async (req, res) => {
     // POST /battles/:id/apex-attack  { playerId }
     if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/apex-attack$/)) {
       const battleId = Number(pathname.split('/')[2]);
-      const { playerId } = await readBody(req);
+      const { playerId, useSpecial } = await readBody(req);
       try {
-        const result = battleModule.attackApex(battleId, playerId);
+        const result = battleModule.attackApex(battleId, playerId, { useSpecial });
         return sendJson(res, 200, { battle: battleModule.getBattleView(result.battle.id), logEntry: result.logEntry });
       } catch (e) {
         return sendJson(res, 400, { error: 'APEX_BATTLE_ERROR', message: e.message });
@@ -1373,6 +1373,30 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         return sendJson(res, 400, { error: 'REDEEM_CODE_ERROR', message: e.message });
       }
+    }
+
+    // GET /redeem-codes?adminCode=X -> list codes with usage/expiry status
+    if (req.method === 'GET' && pathname === '/redeem-codes') {
+      if (searchParams.get('adminCode') !== db.getAdminCode('redeemCodes')) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
+      const now = Date.now();
+      const codes = [...db.redeemCodes.values()].map((r) => ({
+        code: r.code,
+        rewardCrystals: r.rewardCrystals || 0,
+        rewardMaterials: r.rewardMaterials || {},
+        rewardAttachments: r.rewardAttachments || {},
+        rewardForgeItems: r.rewardForgeItems || {},
+        rewardSpeciesId: r.rewardSpeciesId || null,
+        maxUses: r.maxUses,
+        uses: (r.usedByPlayerIds || []).length,
+        expiresAt: r.expiresAt || null,
+        expired: Boolean(r.expiresAt && now > r.expiresAt),
+        exhausted: r.maxUses !== null && (r.usedByPlayerIds || []).length >= r.maxUses,
+        note: r.note || '',
+        createdAt: r.createdAt || null,
+      })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      return sendJson(res, 200, { codes });
     }
 
     // POST /admin/validate-code  { adminCode } -> validation only, no side effects

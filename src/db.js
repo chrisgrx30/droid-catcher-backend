@@ -2262,7 +2262,36 @@ function createRedeemCode(opts) {
     const amount = Math.floor(Number(v) || 0);
     if (amount > 0 && validKeys.has(k)) rewardMaterials[k] = amount;
   });
-  const row = { code: key, rewardCrystals, rewardSpeciesId, rewardPaint, rewardNovaChips, rewardMaterials, maxUses, usedByPlayerIds: [] };
+  // Expiry (optional): expiresAt is an epoch ms timestamp. Callers can
+  // pass expiresInHours instead and we work it out here, so the admin UI
+  // can offer simple durations rather than making someone build a date.
+  let expiresAt = opts.expiresAt != null ? Number(opts.expiresAt) : null;
+  if (expiresAt == null && opts.expiresInHours != null) {
+    const hrs = Number(opts.expiresInHours);
+    if (hrs > 0) expiresAt = Date.now() + hrs * 60 * 60 * 1000;
+  }
+
+  // Attachments / forge items, stored as { id: qty } so a bundle can
+  // grant several of the same thing.
+  const rewardAttachments = {};
+  Object.entries(opts.rewardAttachments || {}).forEach(([k, v]) => {
+    const n = Math.floor(Number(v) || 0);
+    if (n > 0) rewardAttachments[k] = n;
+  });
+  const rewardForgeItems = {};
+  Object.entries(opts.rewardForgeItems || {}).forEach(([k, v]) => {
+    const n = Math.floor(Number(v) || 0);
+    if (n > 0) rewardForgeItems[k] = n;
+  });
+
+  const row = {
+    code: key, rewardCrystals, rewardSpeciesId, rewardPaint, rewardNovaChips,
+    rewardMaterials, rewardAttachments, rewardForgeItems,
+    maxUses, expiresAt,
+    note: opts.note || '',
+    createdAt: Date.now(),
+    usedByPlayerIds: [],
+  };
   redeemCodes.set(key, row);
   return row;
 }
@@ -2274,6 +2303,7 @@ function redeemCodeFn(playerId, code) {
   if (!row) throw new Error('Invalid code');
   if (row.usedByPlayerIds.includes(playerId)) throw new Error('You already redeemed this code');
   if (row.maxUses !== null && row.usedByPlayerIds.length >= row.maxUses) throw new Error('This code has been fully redeemed');
+  if (row.expiresAt && Date.now() > row.expiresAt) throw new Error('This code has expired');
 
   row.usedByPlayerIds.push(playerId);
   player.crystalBalance += row.rewardCrystals;
@@ -2286,6 +2316,16 @@ function redeemCodeFn(playerId, code) {
   Object.entries(row.rewardMaterials || {}).forEach(([k, v]) => {
     player[k] = (player[k] || 0) + v;
     materialsGranted[k] = v;
+  });
+
+  // Attachments live on player.attachments; forge items go through the
+  // forge module so its own bookkeeping stays correct.
+  Object.entries(row.rewardAttachments || {}).forEach(([k, v]) => {
+    if (!player.attachments) player.attachments = {};
+    player.attachments[k] = (player.attachments[k] || 0) + v;
+  });
+  Object.entries(row.rewardForgeItems || {}).forEach(([k, v]) => {
+    try { require('./forge').grant(playerId, k, v); } catch (e) {}
   });
 
   let droid = null;

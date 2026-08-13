@@ -223,6 +223,39 @@ function isSpecialReady(battle, droidId) {
   return chargeOf(battle, droidId) >= SPECIAL_CHARGE_REQUIRED;
 }
 
+// Resolves a special against a single boss entity (group Titan / Apex).
+// Force-switch has no meaning against one opponent, so it falls back to
+// its damage component; stun makes the boss skip its counter-attack.
+function resolveBossSpecial(battle, attackerDroid, attackerEnriched, opts) {
+  const special = specialFor(attackerEnriched.rarity);
+  const wants = Boolean(opts && opts.useSpecial);
+  if (!wants) {
+    return { used: false, special, mult: 1, effect: null, charge: addCharge(battle, attackerDroid.id) };
+  }
+  if (!isSpecialReady(battle, attackerDroid.id)) {
+    throw new Error(`${special.name} isn't charged yet (${chargeOf(battle, attackerDroid.id)}/${SPECIAL_CHARGE_REQUIRED})`);
+  }
+  clearCharge(battle, attackerDroid.id);
+
+  let effect = null;
+  let mult = special.damageMult || 0;
+
+  if (special.kind === 'heal') {
+    const healed = Math.round(attackerEnriched.hp * (special.healPercent / 100));
+    attackerDroid.currentHpDamage = Math.max(0, (attackerDroid.currentHpDamage || 0) - healed);
+    effect = { kind: 'heal', healed };
+    mult = 0;
+  } else if (special.kind === 'stun') {
+    battle.bossStunTurns = (battle.bossStunTurns || 0) + special.stunTurns;
+    effect = { kind: 'stun', turns: special.stunTurns };
+  } else if (special.kind === 'switch') {
+    // Nothing to switch to — the damage still lands.
+    effect = { kind: 'switch', to: null, note: 'No effect against a single boss' };
+  }
+
+  return { used: true, special, mult, effect, charge: 0 };
+}
+
 function isFainted(droid) {
   return workshop.enrichDroid(droid).fainted;
 }
@@ -503,7 +536,7 @@ function nextParticipantId(battle, afterPlayerId) {
   return active[(idx + 1) % active.length];
 }
 
-function attackGroupTitan(battleId, playerId) {
+function attackGroupTitan(battleId, playerId, opts = {}) {
   const battle = db.battles.get(battleId);
   if (!battle || !battle.isGroupTitanBattle) throw new Error('Group Titan battle not found');
   if (battle.status === 'forming') throw new Error('This encounter hasn\'t started yet');
@@ -520,8 +553,11 @@ function attackGroupTitan(battleId, playerId) {
     ? 1 + myEnriched.companionBuffPercent / 100
     : 1;
   const variance = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
-  const damage = Math.max(1, Math.round(myEnriched.attack * companionMultiplier * variance));
-  titanDroid.currentHpDamage = (titanDroid.currentHpDamage || 0) + damage;
+  const sp = resolveBossSpecial(battle, myActive, myEnriched, opts);
+  const damage = sp.mult === 0
+    ? 0
+    : Math.max(1, Math.round(myEnriched.attack * companionMultiplier * variance * (sp.used ? sp.mult : 1)));
+  if (damage > 0) titanDroid.currentHpDamage = (titanDroid.currentHpDamage || 0) + damage;
   const titanFainted = workshop.enrichDroid(titanDroid).fainted;
 
   const logEntry = {
@@ -531,6 +567,11 @@ function attackGroupTitan(battleId, playerId) {
     defenderDroidName: titanDroid.titanName,
     damage,
     defenderFainted: titanFainted,
+    usedSpecial: sp.used,
+    specialName: sp.used ? sp.special.name : null,
+    specialEffect: sp.effect,
+    charge: sp.charge,
+    chargeRequired: SPECIAL_CHARGE_REQUIRED,
   };
   battle.log.push(logEntry);
 
@@ -565,13 +606,21 @@ function attackGroupTitan(battleId, playerId) {
     return { battle, logEntry };
   }
 
-  // Titan counters against whoever just attacked
-  const variance2 = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
-  const counterDamage = Math.max(1, Math.round(titanDroid.titanAttack * variance2));
-  myActive.currentHpDamage = (myActive.currentHpDamage || 0) + counterDamage;
-  const myFainted = workshop.enrichDroid(myActive).fainted;
-  logEntry.counterDamage = counterDamage;
-  logEntry.counterFainted = myFainted;
+  // Titan counters against whoever just attacked — unless it's stunned,
+  // which is what makes a stun special actually worth using here.
+  let counterDamage = 0;
+  let myFainted = false;
+  if ((battle.bossStunTurns || 0) > 0) {
+    battle.bossStunTurns -= 1;
+    logEntry.bossStunned = true;
+  } else {
+    const variance2 = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
+    counterDamage = Math.max(1, Math.round(titanDroid.titanAttack * variance2));
+    myActive.currentHpDamage = (myActive.currentHpDamage || 0) + counterDamage;
+    myFainted = workshop.enrichDroid(myActive).fainted;
+    logEntry.counterDamage = counterDamage;
+    logEntry.counterFainted = myFainted;
+  }
 
   if (myFainted) {
     const nextIdx = firstNonFaintedIndex(myTeam);
@@ -896,10 +945,30 @@ function getBattleView(battleId) {
     Object.entries(battle.teamsByParticipant).forEach(([pid, ids]) => {
       teamsView[pid] = enrichTeam(ids);
     });
+    // Charge state for every participant's droids, same shape the PVP
+    // view uses so the client can render one charge bar component.
+    const specialState = {};
+    Object.values(battle.teamsByParticipant).forEach((ids) => {
+      (ids || []).forEach((id) => {
+        const d = db.ownedDroids.get(id);
+        if (!d) return;
+        const sp = specialFor(workshop.enrichDroid(d).rarity);
+        specialState[id] = {
+          name: sp.name,
+          note: sp.note,
+          charge: chargeOf(battle, id),
+          required: SPECIAL_CHARGE_REQUIRED,
+          ready: isSpecialReady(battle, id),
+        };
+      });
+    });
+
     return {
       ...battle,
       teamsByParticipant: teamsView,
       titan: battle.team2Ids ? enrichTeam(battle.team2Ids)[0] : null,
+      specialState,
+      bossStunTurns: battle.bossStunTurns || 0,
     };
   }
 
@@ -1060,7 +1129,7 @@ function startApexBattle(battleId, creatorId) {
   return battle;
 }
 
-function attackApex(battleId, playerId) {
+function attackApex(battleId, playerId, opts = {}) {
   const battle = db.battles.get(battleId);
   if (!battle || !battle.isApexBattle) throw new Error('Apex encounter not found');
   if (battle.status === 'forming') throw new Error('This encounter hasn\'t started yet');
@@ -1075,8 +1144,11 @@ function attackApex(battleId, playerId) {
   const myEnriched = workshop.enrichDroid(myActive);
   const companionMultiplier = workshop.companionBuffMultiplier(playerId, 'damage');
   const variance = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
-  const damage = Math.max(1, Math.round(myEnriched.attack * companionMultiplier * variance));
-  apexDroid.currentHpDamage = (apexDroid.currentHpDamage || 0) + damage;
+  const sp = resolveBossSpecial(battle, myActive, myEnriched, opts);
+  const damage = sp.mult === 0
+    ? 0
+    : Math.max(1, Math.round(myEnriched.attack * companionMultiplier * variance * (sp.used ? sp.mult : 1)));
+  if (damage > 0) apexDroid.currentHpDamage = (apexDroid.currentHpDamage || 0) + damage;
   const apexHpRemaining = Math.max(0, APEX_BATTLE_HP - apexDroid.currentHpDamage);
   const apexDown = apexHpRemaining <= 0;
 
@@ -1088,6 +1160,11 @@ function attackApex(battleId, playerId) {
     damage,
     defenderFainted: apexDown,
     apexHpRemaining,
+    usedSpecial: sp.used,
+    specialName: sp.used ? sp.special.name : null,
+    specialEffect: sp.effect,
+    charge: sp.charge,
+    chargeRequired: SPECIAL_CHARGE_REQUIRED,
   };
   battle.log.push(logEntry);
 
@@ -1116,13 +1193,20 @@ function attackApex(battleId, playerId) {
     return { battle, logEntry };
   }
 
-  // Apex counters whoever just attacked
-  const variance2 = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
-  const counterDamage = Math.max(1, Math.round(apexDroid.titanAttack * variance2));
-  myActive.currentHpDamage = (myActive.currentHpDamage || 0) + counterDamage;
-  const myFainted = workshop.enrichDroid(myActive).fainted;
-  logEntry.counterDamage = counterDamage;
-  logEntry.counterFainted = myFainted;
+  // Apex counters whoever just attacked — unless stunned.
+  let counterDamage = 0;
+  let myFainted = false;
+  if ((battle.bossStunTurns || 0) > 0) {
+    battle.bossStunTurns -= 1;
+    logEntry.bossStunned = true;
+  } else {
+    const variance2 = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
+    counterDamage = Math.max(1, Math.round(apexDroid.titanAttack * variance2));
+    myActive.currentHpDamage = (myActive.currentHpDamage || 0) + counterDamage;
+    myFainted = workshop.enrichDroid(myActive).fainted;
+    logEntry.counterDamage = counterDamage;
+    logEntry.counterFainted = myFainted;
+  }
 
   if (myFainted) {
     const nextIdx = firstNonFaintedIndex(myTeam);

@@ -2015,6 +2015,7 @@
 
       <label>1. Materials</label>
       <div id="giftMaterialGroups"></div>
+      <div id="giftItemGroups"></div>
 
       <label style="margin-top:12px;">2. Droid (optional)</label>
       <select id="giftSpecies" style="font-size:10px;"><option value="">— no droid —</option></select>
@@ -2036,6 +2037,51 @@
       <div id="giftSummary" style="font-size:9px; color:var(--text-dim); margin-top:10px;"></div>
       <button id="btnSendGift" class="gift-pink" style="margin-top:8px;">Send Gift</button>
       <button id="btnCancelGift" class="ghost" style="margin-top:6px; font-size:9px; padding:7px;">Cancel</button>
+    </div>
+  </div>
+
+  <div class="panel" id="adminCodePanel" style="margin-top:16px;">
+    <div class="panel-title">Redeem Code Bundles</div>
+    <button id="btnOpenCodeBuilder">🎟️ Create Redeem Code</button>
+    <div id="codeBuilder" style="display:none; margin-top:10px;">
+      <label>Code</label>
+      <input type="text" id="rcCode" placeholder="e.g. LAUNCH2026">
+
+      <label style="margin-top:8px;">Crystals</label>
+      <input type="number" id="rcCrystals" min="0" value="0">
+
+      <label style="margin-top:8px;">Materials</label>
+      <div id="rcMaterials"></div>
+
+      <label style="margin-top:8px;">Items</label>
+      <div id="rcItems"></div>
+
+      <label style="margin-top:8px;">Droid (optional)</label>
+      <select id="rcSpecies"></select>
+
+      <label style="margin-top:8px;">How long is it valid?</label>
+      <select id="rcExpiry">
+        <option value="">Never expires</option>
+        <option value="24">24 hours</option>
+        <option value="72">3 days</option>
+        <option value="168">7 days</option>
+        <option value="720">30 days</option>
+      </select>
+
+      <label style="margin-top:8px;">Who can use it?</label>
+      <select id="rcLimitMode">
+        <option value="unlimited">Anyone, once each</option>
+        <option value="limited">First come, first served — limited total</option>
+      </select>
+      <input type="number" id="rcMaxUses" min="1" value="100" placeholder="Total redemptions" style="display:none; margin-top:6px;">
+      <div style="font-size:8px; color:var(--text-dim); margin-top:4px;">Every code is already one-per-account. "Limited" also caps the total number of players who can claim it.</div>
+
+      <label style="margin-top:8px;">Note (admin only)</label>
+      <input type="text" id="rcNote" placeholder="What this code is for">
+
+      <button id="btnCreateCode" class="primary" style="margin-top:10px;">Create Code</button>
+      <button id="btnCancelCode" class="ghost" style="margin-top:6px; font-size:9px; padding:7px;">Cancel</button>
+      <div id="rcExistingList" style="margin-top:12px;"></div>
     </div>
   </div>
 
@@ -5164,7 +5210,15 @@ function renderGroupTitanBattle(battle) {
       : eliminated
         ? '<div class="mb-detail" style="margin-top:12px; color:var(--danger);">Your team has fainted — you\'re out for this fight</div>'
         : battle.status === 'active'
-          ? `<button class="${myTurn ? 'btn-active' : 'primary'}" id="btnGroupTitanAttack" style="margin-top:12px;" ${myTurn ? '' : 'disabled'}>${myTurn ? 'Attack!' : 'Waiting for your turn'}</button>`
+          ? `<button class="${myTurn ? 'btn-active' : 'primary'}" id="btnGroupTitanAttack" style="margin-top:12px;" ${myTurn ? '' : 'disabled'}>${myTurn ? 'Attack!' : 'Waiting for your turn'}</button>
+             ${(() => {
+               const ids = battle.teamsByParticipant ? battle.teamsByParticipant[state.playerId] : null;
+               const idx = battle.activeIndexByParticipant ? battle.activeIndexByParticipant[state.playerId] : 0;
+               const myActiveId = ids && ids[idx] && (ids[idx].id || ids[idx]);
+               const sp = myActiveId && (battle.specialState || {})[myActiveId];
+               if (!sp) return '';
+               return `<button class="ghost" id="btnGroupSpecial" style="margin-top:6px; ${sp.ready && myTurn ? 'background:var(--legendary); color:#1a0a24; font-weight:700;' : ''}" ${sp.ready && myTurn ? '' : 'disabled'}>✨ ${escapeHtml(sp.name)} (${sp.charge}/${sp.required})<br><span style="font-size:8px; opacity:0.8;">${escapeHtml(sp.note)}</span></button>`;
+             })()}`
           : ''}
     <div style="margin-top:10px; max-height:150px; overflow-y:auto; font-size:9px; color:var(--text-dim);">
       ${battle.log.slice().reverse().map((l) => `
@@ -5200,6 +5254,29 @@ function renderGroupTitanBattle(battle) {
         await showActiveBattle(battle.id);
         await refreshBattles();
       } catch (e) {}
+    });
+
+    const gSp = el.querySelector('#btnGroupSpecial');
+    if (gSp) gSp.onclick = () => guardedAction('gspecial-' + battle.id, async () => {
+      gSp.disabled = true;
+      try {
+        const endpoint = battle.isApexBattle ? 'apex-attack' : 'attack-group';
+        const r = await api('POST', `/battles/${battle.id}/${endpoint}`, { playerId: state.playerId, useSpecial: true });
+        const le = r.logEntry || {};
+        if (le.specialEffect) {
+          const eff = le.specialEffect;
+          const msg = eff.kind === 'heal' ? `Healed ${eff.healed} HP`
+            : eff.kind === 'stun' ? `Boss stunned for ${eff.turns} turn${eff.turns === 1 ? '' : 's'}`
+            : eff.note || '';
+          if (msg) showGuildResultPopup(true, `✨ ${le.specialName} — ${msg}`);
+        }
+        await refreshWorkshop();
+        await showActiveBattle(battle.id);
+        await refreshBattles();
+      } catch (e) {
+        gSp.disabled = false;
+        showGuildResultPopup(false, (e && e.message) || 'Could not use the special.');
+      }
     });
   }
 }
@@ -6490,6 +6567,133 @@ async function loadAdminLog() {
   }
 }
 
+// ---- Redeem code bundle builder ----
+// Reuses /admin/gift-options for the material/item/species lists so the
+// two admin builders can't offer different things.
+let rcOptions = null;
+
+$('btnOpenCodeBuilder').onclick = async () => {
+  const adminCode = promptAdminCode('redeem codes');
+  if (!adminCode) return;
+  try {
+    rcOptions = await api('GET', `/admin/gift-options?adminCode=${encodeURIComponent(adminCode)}&playerId=${state.playerId}`);
+    rcOptions.adminCode = adminCode;
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Access denied.');
+    return;
+  }
+
+  const mats = Array.isArray(rcOptions.materials) ? rcOptions.materials : (rcOptions.materials.items || []);
+  $('rcMaterials').innerHTML = mats.map((m) => `
+    <div class="gift-mat-row">
+      <span class="gm-name">${escapeHtml(m.name)}</span>
+      <input type="number" min="0" value="0" data-mat="${escapeHtml(m.key)}" class="rc-mat-input">
+    </div>`).join('');
+
+  const groups = rcOptions.items || {};
+  const sections = [
+    { title: 'Attachments', rows: groups.attachments || [] },
+    { title: 'Forge Items', rows: groups.forge || [] },
+  ].filter((s) => s.rows.length);
+  $('rcItems').innerHTML = sections.map((s) => `
+    <div class="gift-group-title">${s.title}</div>
+    ${s.rows.map((r) => `
+      <div class="gift-mat-row">
+        <span class="gm-name">${escapeHtml(r.name)}</span>
+        <input type="number" min="0" value="0" data-item="${escapeHtml(r.id)}" data-kind="${escapeHtml(r.kind)}" class="rc-item-input">
+      </div>`).join('')}`).join('');
+
+  $('rcSpecies').innerHTML = '<option value="">— no droid —</option>'
+    + (rcOptions.species || []).map((sp) => `<option value="${sp.id}">${escapeHtml(sp.name)} (${sp.rarity})</option>`).join('');
+
+  $('codeBuilder').style.display = 'block';
+  $('btnOpenCodeBuilder').style.display = 'none';
+  refreshCodeList();
+};
+
+$('rcLimitMode').onchange = () => {
+  $('rcMaxUses').style.display = $('rcLimitMode').value === 'limited' ? 'block' : 'none';
+};
+
+$('btnCancelCode').onclick = () => {
+  $('codeBuilder').style.display = 'none';
+  $('btnOpenCodeBuilder').style.display = 'block';
+};
+
+async function refreshCodeList() {
+  if (!rcOptions) return;
+  try {
+    const d = await api('GET', `/redeem-codes?adminCode=${encodeURIComponent(rcOptions.adminCode)}`);
+    const rows = d.codes || [];
+    $('rcExistingList').innerHTML = rows.length ? `
+      <div class="gift-group-title">Existing Codes</div>
+      ${rows.slice(0, 25).map((r) => {
+        const status = r.expired ? 'EXPIRED' : r.exhausted ? 'FULLY CLAIMED' : 'ACTIVE';
+        const colour = status === 'ACTIVE' ? 'var(--uncommon)' : 'var(--danger)';
+        const uses = r.maxUses === null ? `${r.uses} claims` : `${r.uses}/${r.maxUses} claimed`;
+        const exp = r.expiresAt ? new Date(r.expiresAt).toLocaleString() : 'never expires';
+        return `<div class="gift-mat-row" style="align-items:flex-start;">
+          <span class="gm-name" style="flex:1;">
+            <strong>${escapeHtml(r.code)}</strong> <span style="color:${colour}; font-size:8px;">${status}</span><br>
+            <span style="color:var(--text-dim); font-size:8px;">${uses} · ${exp}${r.note ? ` · ${escapeHtml(r.note)}` : ''}</span>
+          </span>
+        </div>`;
+      }).join('')}` : '<div class="empty">No codes yet</div>';
+  } catch (e) {}
+}
+
+$('btnCreateCode').onclick = () => guardedAction('mkcode', async () => {
+  const code = $('rcCode').value.trim();
+  if (!code) { showGuildResultPopup(false, 'Enter a code.'); return; }
+
+  const rewardMaterials = {};
+  document.querySelectorAll('.rc-mat-input').forEach((i) => {
+    const v = Math.floor(Number(i.value) || 0);
+    if (v > 0) rewardMaterials[i.dataset.mat] = v;
+  });
+  const rewardAttachments = {};
+  const rewardForgeItems = {};
+  document.querySelectorAll('.rc-item-input').forEach((i) => {
+    const v = Math.floor(Number(i.value) || 0);
+    if (v <= 0) return;
+    if (i.dataset.kind === 'forge') rewardForgeItems[i.dataset.item] = v;
+    else rewardAttachments[i.dataset.item] = v;
+  });
+
+  const rewardCrystals = Math.floor(Number($('rcCrystals').value) || 0);
+  const rewardSpeciesId = Number($('rcSpecies').value) || null;
+  const limited = $('rcLimitMode').value === 'limited';
+  const maxUses = limited ? Math.max(1, Math.floor(Number($('rcMaxUses').value) || 1)) : null;
+  const hrs = $('rcExpiry').value;
+
+  if (!rewardCrystals && !rewardSpeciesId && !Object.keys(rewardMaterials).length
+      && !Object.keys(rewardAttachments).length && !Object.keys(rewardForgeItems).length) {
+    showGuildResultPopup(false, 'The bundle is empty — add crystals, materials, items or a droid.');
+    return;
+  }
+
+  try {
+    await api('POST', '/redeem-codes', {
+      adminCode: rcOptions.adminCode,
+      code,
+      rewardCrystals,
+      rewardSpeciesId,
+      rewardMaterials,
+      rewardAttachments,
+      rewardForgeItems,
+      maxUses,
+      expiresInHours: hrs ? Number(hrs) : null,
+      note: $('rcNote').value,
+    });
+    showGuildResultPopup(true, `🎟️ Code "${code.toUpperCase()}" created.`);
+    $('rcCode').value = '';
+    $('rcNote').value = '';
+    refreshCodeList();
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not create the code.');
+  }
+});
+
 async function openGiftBuilder() {
   const adminCode = promptAdminCode('events');
   if (!adminCode) return;
@@ -6501,16 +6705,25 @@ async function openGiftBuilder() {
     return;
   }
 
-  const byKey = {};
-  giftOptions.materials.forEach((m) => { byKey[m.key] = m.name; });
+  // The endpoint returns materials as { items, groups } — not a flat
+  // array. Reading it as an array is what broke this screen.
+  const matItems = Array.isArray(giftOptions.materials)
+    ? giftOptions.materials
+    : (giftOptions.materials && giftOptions.materials.items) || [];
+  const serverGroups = (!Array.isArray(giftOptions.materials) && giftOptions.materials && giftOptions.materials.groups) || null;
 
-  // Anything not explicitly grouped still gets shown, so a material
-  // added later can't silently vanish from this screen.
-  const grouped = new Set(GIFT_MATERIAL_GROUPS.flatMap((g) => g.keys));
-  const ungrouped = giftOptions.materials.filter((m) => !grouped.has(m.key)).map((m) => m.key);
+  const byKey = {};
+  matItems.forEach((m) => { byKey[m.key] = m.name; });
+
+  // Prefer the server's own grouping so a material added in db.js shows
+  // up here without a matching frontend edit. Anything ungrouped still
+  // gets an "Other" bucket rather than silently vanishing.
+  const baseGroups = serverGroups && serverGroups.length ? serverGroups : GIFT_MATERIAL_GROUPS;
+  const grouped = new Set(baseGroups.flatMap((g) => g.keys));
+  const ungrouped = matItems.filter((m) => !grouped.has(m.key)).map((m) => m.key);
   const groups = ungrouped.length
-    ? [...GIFT_MATERIAL_GROUPS, { title: 'Other', keys: ungrouped }]
-    : GIFT_MATERIAL_GROUPS;
+    ? [...baseGroups, { title: 'Other', keys: ungrouped }]
+    : baseGroups;
 
   $('giftMaterialGroups').innerHTML = groups.map((g) => `
     <div class="gift-group-title">${g.title}</div>
@@ -6518,6 +6731,22 @@ async function openGiftBuilder() {
       <div class="gift-mat-row">
         <span class="gm-name">${byKey[k]}</span>
         <input type="number" min="0" value="0" data-mat="${k}" class="gift-mat-input">
+      </div>`).join('')}
+  `).join('');
+
+  // Attachments and forge items — sendGift already accepts these, but
+  // there was no way to pick them.
+  const itemGroups = giftOptions.items || {};
+  const itemSections = [
+    { title: 'Attachments', rows: itemGroups.attachments || [] },
+    { title: 'Forge Items', rows: itemGroups.forge || [] },
+  ].filter((s) => s.rows.length);
+  $('giftItemGroups').innerHTML = itemSections.map((s) => `
+    <div class="gift-group-title">${s.title}</div>
+    ${s.rows.map((r) => `
+      <div class="gift-mat-row">
+        <span class="gm-name">${escapeHtml(r.name)}${r.rarity ? ` <span style="color:var(--text-dim); font-size:8px;">${escapeHtml(r.rarity)}</span>` : ''}</span>
+        <input type="number" min="0" value="0" data-item="${escapeHtml(r.id)}" data-kind="${escapeHtml(r.kind)}" class="gift-item-input">
       </div>`).join('')}
   `).join('');
 
@@ -6555,12 +6784,23 @@ async function sendGift() {
     const v = Math.floor(Number(inp.value) || 0);
     if (v > 0) materials[inp.dataset.mat] = v;
   });
+  // sendGift takes attachments/forgeItems as arrays of ids, granting one
+  // per entry — so a quantity of 3 is the id repeated three times.
+  const attachments = [];
+  const forgeItems = [];
+  document.querySelectorAll('.gift-item-input').forEach((inp) => {
+    const v = Math.floor(Number(inp.value) || 0);
+    if (v <= 0) return;
+    const target = inp.dataset.kind === 'forge' ? forgeItems : attachments;
+    for (let i = 0; i < v; i++) target.push(inp.dataset.item);
+  });
+
   const speciesId = Number($('giftSpecies').value) || null;
   const crystals = Math.floor(Number($('giftCrystals').value) || 0);
 
   if (!giftSelectedPlayers.size) { showGuildResultPopup(false, 'Select at least one recipient.'); return; }
-  if (!Object.keys(materials).length && !speciesId && !crystals) {
-    showGuildResultPopup(false, 'The gift is empty — add materials, a droid or crystals.');
+  if (!Object.keys(materials).length && !speciesId && !crystals && !attachments.length && !forgeItems.length) {
+    showGuildResultPopup(false, 'The gift is empty — add materials, items, a droid or crystals.');
     return;
   }
 
@@ -6575,6 +6815,8 @@ async function sendGift() {
       materials,
       droid: speciesId ? { speciesId, level: Number($('giftLevel').value) || 1, variant: $('giftVariant').value } : null,
       crystals,
+      attachments,
+      forgeItems,
       note: $('giftNote').value,
     });
     showGuildResultPopup(true, `🎁 Gift sent to ${r.sent} player(s).`);
@@ -7968,7 +8210,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.14.0
+// QOL v0.14.3
 // ============================================================
 
 // ---- guild invites by player ID ----
