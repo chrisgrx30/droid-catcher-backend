@@ -6904,14 +6904,103 @@ function renderNearbyForts() {
   if (!el) return;
   el.innerHTML = nearbyFortsCache.length
     ? nearbyFortsCache.map((f) => `
-        <div class="fort-row ${f.isOwn ? '' : 'enemy'}">
+        <div class="fort-row fort-tap ${f.isOwn ? '' : 'enemy'}" data-fort="${f.id}" style="cursor:pointer;">
           <span>🏰</span>
           <span class="fr-name">${escapeHtml(f.name)}<br>
-            <span style="color:var(--text-dim); font-size:8px;">${escapeHtml(f.guildName)} · ${f.activeDroids}/${f.droidSlots} droids · shield ${f.shieldPercent}%</span>
+            <span style="color:var(--text-dim); font-size:8px;">${escapeHtml(f.guildName)} · ${f.activeDroids}/${f.droidSlots} droids · shield ${f.shieldPercent}% · tap for stats</span>
           </span>
           <span style="color:var(--text-dim); font-size:9px;">${f.distanceMeters}m</span>
         </div>`).join('')
     : '<div style="color:var(--text-dim);">No Forts within 1.5km</div>';
+
+  el.querySelectorAll('.fort-tap').forEach((row) => {
+    row.onclick = () => showFortStats(Number(row.dataset.fort));
+  });
+}
+
+// Fort stats popup — garrison, upgrade slots, and the location image,
+// mirroring the droid stats modal so forts read the same way.
+async function showFortStats(fortId) {
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  box.innerHTML = '<div class="mb-title" style="color:#fff;">Loading…</div>';
+  overlay.style.display = 'flex';
+
+  let f;
+  try {
+    const d = await api('GET', `/forts/${fortId}?playerId=${state.playerId}`);
+    f = d.fort || d;
+  } catch (e) {
+    box.innerHTML = `<div class="mb-title fail">Could not load that Fort</div>
+      <div class="mb-detail">${escapeHtml((e && e.message) || '')}</div>
+      <button class="primary mb-close">Close</button>`;
+    box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+    return;
+  }
+
+  const garrisonRows = (f.garrison || []).length
+    ? f.garrison.map((d) => `
+        <div class="gift-mat-row">
+          <span class="gm-name">${escapeHtml(d.speciesName)} <span style="color:var(--text-dim); font-size:8px;">Lv${d.level} · ${escapeHtml(d.rarity)}</span></span>
+          <span style="font-size:9px; color:${d.fainted ? 'var(--danger)' : 'var(--text-dim)'};">${d.fainted ? 'FAINTED' : `${d.currentHp}/${d.hp}`}</span>
+        </div>`).join('')
+    : '<div class="empty">No droids garrisoned</div>';
+
+  const slotRows = (f.upgradeSlots || []).length
+    ? f.upgradeSlots.map((sl) => `
+        <div class="gift-mat-row">
+          <span class="gm-name">Slot ${sl.index + 1}${sl.takeoverSlot ? ' <span style="color:var(--amber); font-size:8px;">takeover</span>' : ''}</span>
+          <span style="font-size:9px; color:var(--text-dim);">${sl.item ? escapeHtml(sl.item.name) : 'empty'}</span>
+        </div>`).join('')
+    : '<div class="empty">No upgrade slots yet</div>';
+
+  box.innerHTML = `
+    <div class="mb-title" style="color:#fff;">🏰 ${escapeHtml(f.name)}</div>
+    <div class="mb-detail">${escapeHtml(f.guildName)}${f.isOwn ? ' — your guild' : ''} · Level ${f.level}/${f.maxLevel}</div>
+    <div class="stat-grid">
+      <div class="sg-item"><div class="sg-label">Shield</div><div class="sg-val">${f.shieldPercent}%</div></div>
+      <div class="sg-item"><div class="sg-label">Droids</div><div class="sg-val">${f.activeDroids}/${f.droidSlots}</div></div>
+      <div class="sg-item"><div class="sg-label">Token Rate</div><div class="sg-val">${f.tokenRate}</div></div>
+      <div class="sg-item"><div class="sg-label">Defence</div><div class="sg-val">+${f.defenderBonus || 0}%</div></div>
+    </div>
+
+    <div class="gift-group-title" style="margin-top:10px;">Garrison</div>
+    <div style="text-align:left;">${garrisonRows}</div>
+
+    <div class="gift-group-title" style="margin-top:10px;">Upgrade Slots</div>
+    <div style="text-align:left;">${slotRows}</div>
+
+    ${f.image ? `<img src="${escapeHtml(f.image)}" alt="" style="width:100%; max-height:150px; object-fit:cover; border-radius:4px; margin-top:10px;">`
+      : f.imagePending ? '<div style="font-size:9px; color:var(--amber); margin-top:10px;">Location image submitted — awaiting admin approval</div>'
+      : '<div style="font-size:9px; color:var(--text-dim); margin-top:10px;">No location image yet</div>'}
+    ${f.isOwn ? '<button class="ghost" id="fortUploadBtn" style="margin-top:8px; font-size:9px;">📷 Upload Location Image</button>' : ''}
+    <input type="file" id="fortImageInput" accept="image/*" style="display:none;">
+
+    <button class="primary mb-close" style="margin-top:12px;">Close</button>`;
+
+  box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+
+  const upBtn = box.querySelector('#fortUploadBtn');
+  if (upBtn) {
+    const input = box.querySelector('#fortImageInput');
+    upBtn.onclick = () => input.click();
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      // Submitted as a data URL — the server holds it pending approval.
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          await api('POST', `/forts/${fortId}/image`, { playerId: state.playerId, dataUrl: reader.result });
+          showGuildResultPopup(true, 'Image submitted — an admin will review it.');
+          overlay.style.display = 'none';
+        } catch (e) {
+          showGuildResultPopup(false, (e && e.message) || 'Could not submit that image.');
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+  }
 }
 
 let fortMarkers = [];
@@ -8210,7 +8299,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.14.3
+// QOL v0.14.4
 // ============================================================
 
 // ---- guild invites by player ID ----

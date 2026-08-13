@@ -2011,6 +2011,18 @@ const server = http.createServer(async (req, res) => {
       catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
     }
 
+    // GET /forts/:id?playerId=N  -> full stats for one Fort
+    if (req.method === 'GET' && pathname.match(/^\/forts\/\d+$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const viewerId = Number(searchParams.get('playerId'));
+      const viewer = db.players.get(viewerId);
+      const fort = fortsModule.forts.get(fortId);
+      if (!fort) return sendJson(res, 404, { error: 'NO_FORT', message: 'Fort not found' });
+      return sendJson(res, 200, {
+        fort: fortsModule.fortView(fort, viewer ? viewer.guildId : null),
+      });
+    }
+
     // POST /forts/:id/image { playerId, dataUrl }  -> submit for review
     if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/image$/)) {
       const fortId = Number(pathname.split('/')[2]);
