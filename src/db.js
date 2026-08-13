@@ -554,6 +554,24 @@ const PRIMARY_COLORS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'pur
 // Backfills any player who was saved before the slot count was raised, so
 // existing accounts get the new slots (locked, same as a new player would
 // see them) instead of being permanently capped at the old number.
+// Same idea as ensureWorkshopSlotCount — existing saves get any newly
+// added Processor slots (locked) rather than being stuck at the old count.
+function ensureProcessorSlotCount() {
+  const byPlayer = new Map();
+  for (const slot of processorSlots.values()) {
+    if (!byPlayer.has(slot.playerId)) byPlayer.set(slot.playerId, []);
+    byPlayer.get(slot.playerId).push(slot);
+  }
+  for (const [playerId, slots] of byPlayer.entries()) {
+    const existing = new Set(slots.map((s) => s.slotIndex));
+    for (let i = 0; i < PROCESSOR_SLOT_COUNT; i++) {
+      if (existing.has(i)) continue;
+      const slot = { id: id(), playerId, slotIndex: i, unlocked: false, eggId: null, hatchReadyAt: null };
+      processorSlots.set(slot.id, slot);
+    }
+  }
+}
+
 function ensureWorkshopSlotCount() {
   const byPlayer = new Map();
   for (const slot of workshopSlots.values()) {
@@ -1495,7 +1513,7 @@ function isCellBeaconBoosted(cell, now = Date.now()) {
 // uses) is what makes owning multiple slots matter: slots let you
 // incubate several eggs in parallel, the cooldown paces how fast you can
 // earn new eggs to fill them.
-const PROCESSOR_SLOT_COUNT = 5;
+const PROCESSOR_SLOT_COUNT = 6;
 const PROCESSOR_SLOT_COSTS = [500, 1000, 1500, 2000, 2500];
 const FACTORY_MINIGAME_COST = 100; // crystals per attempt, win or lose
 const FACTORY_START_HATCH_COST = 100; // crystals to assign an egg to a slot and begin incubation
@@ -1626,7 +1644,7 @@ const GUILD_KICK_SAME_GUILD_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days b
 
 const GUILD_CREATE_COST = 250;
 
-const GUILD_RENAME_COST = 1000;
+const GUILD_RENAME_COST = 10000;
 
 // Case-insensitive so "Nightfangs" and "nightfangs" can't both exist.
 // excludeGuildId lets a guild keep its own name when re-saving.
@@ -3019,15 +3037,9 @@ function importState(state) {
 
   // Players saved before Processor slots existed won't have any — seed
   // the standard 5 locked slots for them too, same as a brand-new player.
-  for (const player of players.values()) {
-    const hasSlots = [...processorSlots.values()].some((s) => s.playerId === player.id);
-    if (!hasSlots) {
-      for (let i = 0; i < PROCESSOR_SLOT_COUNT; i++) {
-        const slot = { id: id(), playerId: player.id, slotIndex: i, unlocked: false, eggId: null, hatchReadyAt: null };
-        processorSlots.set(slot.id, slot);
-      }
-    }
-  }
+  // Tops up to PROCESSOR_SLOT_COUNT. The old version only seeded players
+  // with ZERO slots, so raising the count left existing accounts short.
+  ensureProcessorSlotCount();
 
   // Recompute the id counter so newly-created rows never collide with
   // restored ones, regardless of what was in flight when the snapshot was taken.

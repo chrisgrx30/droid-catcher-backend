@@ -651,7 +651,12 @@ function run(playerId) {
   // A boss that's already been beaten can be walked away from — you keep
   // the kill and the reward, you just decline the capture attempt.
   // Without this a defeated boss would trap the player in the encounter.
-  if (!enc.canRun && !enc.bossDefeated) throw new RiftError('CANNOT_RUN', 'There is no running from a Rift Boss');
+  // You can always walk away from an encounter that's already been won —
+  // whether that's a beaten boss or a defeated wild droid you can't
+  // afford to capture. Only an ACTIVE boss fight blocks running.
+  if (!enc.canRun && !enc.bossDefeated && !enc.captureOffered) {
+    throw new RiftError('CANNOT_RUN', 'There is no running from a Rift Boss');
+  }
   m.encounter = null;
   return viewFor(playerId);
 }
@@ -984,6 +989,10 @@ function viewFor(playerId) {
     hasJetPack: !!m.hasJetPack,
     flags: m.flags || [],
     flagsLeft: typeof m.flagsLeft === 'number' ? m.flagsLeft : RIFT_FLAG_COUNT,
+    cells: {
+      riftCells: player.riftCells || 0,
+      ultraRiftCells: player.ultraRiftCells || 0,
+    },
     items: {
       bubbleShields: player.bubbleShields || 0,
       riftAuras: player.riftAuras || 0,

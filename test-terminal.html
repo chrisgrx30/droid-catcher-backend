@@ -1578,6 +1578,7 @@
         <span id="riftHeals">Heals 0/5</span>
         <span id="riftChests">Chests 0/10</span>
         <span id="riftSteps">Steps 0</span>
+        <span id="riftCells">🔹 0 · 🔷 0</span>
         <span id="riftLoot" style="margin-left:auto; color:var(--amber);"></span>
       </div>
       <div id="riftHealHint" style="font-size:9px; color:#4cb8e8; margin-top:4px;"></div>
@@ -7842,6 +7843,11 @@ function renderRiftMission(d) {
   $('riftHeals').textContent = `✚ Heals ${d.healingUses}/${d.maxHealing}`;
   $('riftChests').textContent = `📦 Chests ${d.chestsOpened}/${d.totalChests}`;
   $('riftSteps').textContent = `👣 ${d.steps}`;
+  // Cell counts up top — you need these to capture anything, so they
+  // belong next to the objectives rather than buried in the inventory.
+  const cells = d.cells || {};
+  $('riftCells').textContent = `🔹 ${cells.riftCells || 0} · 🔷 ${cells.ultraRiftCells || 0}`;
+  $('riftCells').title = `${cells.riftCells || 0} Rift Cells (wild captures) · ${cells.ultraRiftCells || 0} Ultra Rift Cells (bosses)`;
   $('riftLoot').textContent = d.loot.crystals ? `${d.loot.crystals.toLocaleString()}✦ gathered` : '';
 
   // Compass hint only, and only when the team is hurt enough to need it.
@@ -8036,8 +8042,16 @@ function renderRiftEncounter(d) {
     } catch (e2) { showGuildResultPopup(false, (e2 && e2.message) || 'Capture failed.'); }
   });
   const skip = $('btnRiftSkip');
+  // "Leave it" used to call /rift/capture with 0 crystals, which now
+  // fails if you have no Rift Cells — leaving you stuck in the encounter
+  // with no way out. Declining should just clear it, never spend a cell.
   if (skip) skip.onclick = () => guardedAction('riftskip', async () => {
-    try { const r = await api('POST', '/rift/capture', { playerId: state.playerId, crystalsSpent: 0 }); state.rift = r; renderRiftMission(r); } catch (e2) {}
+    try {
+      const r = await api('POST', '/rift/run', { playerId: state.playerId });
+      state.rift = r; renderRiftMission(r);
+    } catch (e2) {
+      showGuildResultPopup(false, (e2 && e2.message) || 'Could not leave that encounter.');
+    }
   });
 }
 
@@ -8299,7 +8313,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.14.4
+// QOL v0.14.5
 // ============================================================
 
 // ---- guild invites by player ID ----
