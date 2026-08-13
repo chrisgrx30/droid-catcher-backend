@@ -30,6 +30,7 @@ const MAP_H = 150;
 const VIEW_RADIUS = 7;          // 15x15 viewport
 const TEAM_SIZE = 6;
 const RIFT_ENTRY_CUBES = 1;   // cost to start a Space Rift mission
+const RIFT_FLAG_COUNT = 10;   // markers a player can drop per mission
 const EARLY_EXTRACT_PENALTY = 0.20; // material loot lost when extracting before all bosses are down
 const REQUIRED_BOSSES = 5;
 const CHEST_COUNT = 10;
@@ -69,6 +70,12 @@ const BOSSES = [
   { id: 'shadow_titan', name: 'Shadow Titan', move: 'Dark Annihilation', hp: 850, attack: 80, alignment: 'dark' },
   { id: 'rift_warden', name: 'Rift Warden', move: 'Reality Shatter', hp: 1000, attack: 90, alignment: 'dark' },
   { id: 'storm_crown', name: 'Storm Crown', move: 'Tempest Strike', hp: 1250, attack: 105, alignment: 'light' },
+  // --- Second boss set ---
+  { id: 'the_voidfang', name: 'The Voidfang', move: 'Null Pulse', hp: 700, attack: 72, alignment: 'dark' },
+  { id: 'lumen_guardian', name: 'Lumen Guardian', move: 'Solar Lance', hp: 780, attack: 68, alignment: 'light' },
+  { id: 'rift_behemoth', name: 'Rift Behemoth', move: 'Meteor Strike', hp: 900, attack: 85, alignment: 'dark' },
+  { id: 'the_nexus_queen', name: 'The Nexus Queen', move: 'Mind Siphon', hp: 1050, attack: 95, alignment: 'dark' },
+  { id: 'stellar_sentinel', name: 'Stellar Sentinel', move: 'Gravity Crush', hp: 1300, attack: 110, alignment: 'light' },
 ];
 
 const RIFT_DROIDS = [
@@ -87,6 +94,22 @@ const RIFT_DROIDS = [
   { id: 'stellar_phoenix', name: 'Stellar Phoenix', rarity: 'rare', move: 'Nova Rise', hp: 240, attack: 45, alignment: 'light' },
   { id: 'gravity_titan', name: 'Gravity Titan', rarity: 'rare', move: 'Gravity Wave', hp: 300, attack: 38, alignment: 'dark' },
   { id: 'eclipse_prime', name: 'Eclipse Prime', rarity: 'legendary', move: 'Paradox Strike', hp: 520, attack: 65, alignment: 'dark' },
+  // --- Second droid set ---
+  { id: 'rift_relay', name: 'Rift Relay', rarity: 'common', move: 'Pulse Burst', hp: 58, attack: 13, alignment: 'light' },
+  { id: 'void_hopper', name: 'Void Hopper', rarity: 'common', move: 'Shadow Leap', hp: 52, attack: 15, alignment: 'dark' },
+  { id: 'fracture_bug', name: 'Fracture Bug', rarity: 'common', move: 'Piercing Sting', hp: 48, attack: 16, alignment: 'dark' },
+  { id: 'rift_scout', name: 'Rift Scout', rarity: 'common', move: 'Disrupt Wave', hp: 65, attack: 12, alignment: 'light' },
+  { id: 'lumina_pixie', name: 'Lumina Pixie', rarity: 'common', move: 'Light Burst', hp: 50, attack: 14, alignment: 'light' },
+  { id: 'obsidian_stalker', name: 'Obsidian Stalker', rarity: 'uncommon', move: 'Shadow Pounce', hp: 138, attack: 25, alignment: 'dark' },
+  { id: 'rift_crusher', name: 'Rift Crusher', rarity: 'uncommon', move: 'Core Slam', hp: 155, attack: 21, alignment: 'dark' },
+  { id: 'sky_vortex', name: 'Sky Vortex', rarity: 'uncommon', move: 'Vortex Pull', hp: 120, attack: 27, alignment: 'light' },
+  { id: 'solaris_wasp', name: 'Solaris Wasp', rarity: 'uncommon', move: 'Sting Storm', hp: 115, attack: 28, alignment: 'light' },
+  { id: 'abyss_drake', name: 'Abyss Drake', rarity: 'uncommon', move: 'Void Breath', hp: 150, attack: 23, alignment: 'dark' },
+  { id: 'celestial_knight', name: 'Celestial Knight', rarity: 'rare', move: 'Nova Slash', hp: 270, attack: 43, alignment: 'light' },
+  { id: 'rift_phoenix', name: 'Rift Phoenix', rarity: 'rare', move: 'Solar Flare', hp: 245, attack: 46, alignment: 'light' },
+  { id: 'titan_charger', name: 'Titan Charger', rarity: 'rare', move: 'Rift Rush', hp: 310, attack: 39, alignment: 'dark' },
+  { id: 'echo_sentinel', name: 'Echo Sentinel', rarity: 'rare', move: 'Reality Shift', hp: 255, attack: 44, alignment: 'light' },
+  { id: 'singularity_core', name: 'Singularity Core', rarity: 'legendary', move: 'Quantum Storm', hp: 540, attack: 68, alignment: 'light' },
 ];
 const DROID_BY_ID = {};
 RIFT_DROIDS.forEach((d) => { DROID_BY_ID[d.id] = d; });
@@ -234,7 +257,15 @@ function populate(map) {
   // progression backbone rather than clustering in one corner.
   const bosses = [];
   const maxDist = MAP_W + MAP_H;
-  BOSSES.forEach((b, i) => {
+  // There are more bosses defined than any single run uses, so each run
+  // draws REQUIRED_BOSSES of them from the seeded RNG — different lineup
+  // per mission, still deterministic for a given seed.
+  const bossPool = BOSSES.slice();
+  const chosenBosses = [];
+  while (chosenBosses.length < REQUIRED_BOSSES && bossPool.length) {
+    chosenBosses.push(bossPool.splice(Math.floor(rand() * bossPool.length), 1)[0]);
+  }
+  chosenBosses.forEach((b, i) => {
     const band = Math.floor((maxDist * 0.25) + (i * maxDist * 0.11));
     let pos = null;
     for (let tries = 0; tries < 1200 && !pos; tries++) {
@@ -352,6 +383,12 @@ function startMission(playerId, teamDroidIds) {
     loot: { crystals: 0, materials: {} },
     captured: [],
     encounter: null,
+    // Jet pack: awarded on reaching the extract point with bosses still
+    // alive. Lets you teleport back to the exit later instead of walking.
+    hasJetPack: false,
+    // Player-dropped markers. 10 per mission, permanent once placed.
+    flags: [],
+    flagsLeft: RIFT_FLAG_COUNT,
   };
   return viewFor(playerId);
 }
@@ -574,6 +611,37 @@ function useItem(playerId, itemKey) {
   throw new RiftError('BAD_ITEM', 'Unknown item');
 }
 
+// Drop a marker on the current tile. Permanent — cannot be picked up.
+function dropFlag(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new RiftError('NO_PLAYER', 'Player not found');
+  const m = activeMission(player);
+  if (!m) throw new RiftError('NO_MISSION', 'No mission in progress');
+  if (!m.flags) { m.flags = []; m.flagsLeft = RIFT_FLAG_COUNT; }
+  if (m.flagsLeft <= 0) throw new RiftError('NO_FLAGS', 'You have used all 10 flags');
+  if (m.flags.some((f) => f.x === m.x && f.y === m.y)) {
+    throw new RiftError('FLAG_HERE', 'There is already a flag on this tile');
+  }
+  m.flags.push({ x: m.x, y: m.y });
+  m.flagsLeft -= 1;
+  return { ...viewFor(playerId), flagDropped: true, flagsLeft: m.flagsLeft };
+}
+
+// Teleport straight to the extract point using the jet pack.
+function useJetPack(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new RiftError('NO_PLAYER', 'Player not found');
+  const m = activeMission(player);
+  if (!m) throw new RiftError('NO_MISSION', 'No mission in progress');
+  if (!m.hasJetPack) throw new RiftError('NO_JETPACK', 'You have not found a jet pack yet');
+  if (m.encounter) throw new RiftError('IN_BATTLE', 'Finish the encounter first');
+  const map = buildMap(m.seed);
+  m.x = map.exit.x;
+  m.y = map.exit.y;
+  m.hasJetPack = false; // single use
+  return { ...viewFor(playerId), jetPackUsed: true };
+}
+
 function run(playerId) {
   const player = db.players.get(playerId);
   const m = activeMission(player);
@@ -702,6 +770,14 @@ function investigate(playerId, opts = {}) {
     // material loot takes a 20% hit. The client asks for confirmation
     // first via `pendingEarlyExtract` so nobody eats the penalty blind.
     const early = m.bossesDefeated.length < REQUIRED_BOSSES;
+    // First time you find the extract point without finishing the
+    // bosses, you pick up a jet pack — so you can go back to hunting and
+    // teleport here later rather than walking the map twice.
+    let jetPackAwarded = false;
+    if (early && !m.hasJetPack) {
+      m.hasJetPack = true;
+      jetPackAwarded = true;
+    }
     if (early && !m.confirmEarlyExtract) {
       return {
         ...viewFor(playerId),
@@ -710,6 +786,7 @@ function investigate(playerId, opts = {}) {
           totalBosses: REQUIRED_BOSSES,
           penaltyPercent: Math.round(EARLY_EXTRACT_PENALTY * 100),
         },
+        jetPackAwarded,
       };
     }
     m.status = 'complete';
@@ -904,6 +981,9 @@ function viewFor(playerId) {
     shieldStepsLeft: m.shieldStepsLeft || 0,
     auraStepsLeft: m.auraStepsLeft || 0,
     bossHint: m.bossHint || null,
+    hasJetPack: !!m.hasJetPack,
+    flags: m.flags || [],
+    flagsLeft: typeof m.flagsLeft === 'number' ? m.flagsLeft : RIFT_FLAG_COUNT,
     items: {
       bubbleShields: player.bubbleShields || 0,
       riftAuras: player.riftAuras || 0,
@@ -932,7 +1012,7 @@ module.exports = {
   MAP_W, MAP_H, VIEW_RADIUS, TEAM_SIZE, REQUIRED_BOSSES, MAX_HEALING_USES,
   BOSSES, RIFT_DROIDS, DROID_BY_ID,
   generate, buildMap, populate, floodReachable, mulberry32,
-  startMission, abandonMission, move, attack, run, capture, investigate, useItem,
+  startMission, abandonMission, move, attack, run, capture, investigate, useItem, dropFlag, useJetPack,
   viewFor, teamCandidates, activeMission,
   RiftError,
 };

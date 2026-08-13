@@ -278,6 +278,40 @@ function settleEarnings(playerId, now = Date.now()) {
 
 // Assign a droid to a workshop slot — settles first so rate changes only
 // apply going forward, never retroactively.
+// Fills every empty unlocked slot with the highest crystals/min droids
+// available. Delegates each placement to assignDroidToSlot so all the
+// existing guards (garrisoned, on a run, locked slot, already occupied)
+// still apply — no duplicated rules that could drift apart.
+function autoAssignSlots(playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new Error('Player not found');
+
+  const emptySlots = [...db.workshopSlots.values()]
+    .filter((s) => s.playerId === playerId && s.unlocked)
+    .filter((s) => ![...db.ownedDroids.values()].some((d) => d.workshopSlotId === s.id))
+    .sort((a, b) => b.multiplier - a.multiplier); // best slots get best droids
+
+  if (!emptySlots.length) return { assigned: [], message: 'No empty unlocked slots' };
+
+  const candidates = [...db.ownedDroids.values()]
+    .filter((d) => d.playerId === playerId && !d.workshopSlotId && !d.fortId && !d.smugglerRun && !d.locked)
+    .map((d) => ({ droid: d, rate: droidPotentialCrystalsPerMinute(d) }))
+    .sort((a, b) => b.rate - a.rate);
+
+  const assigned = [];
+  for (const slot of emptySlots) {
+    const next = candidates.shift();
+    if (!next) break;
+    try {
+      assignDroidToSlot(playerId, next.droid.id, slot.id);
+      assigned.push({ droidId: next.droid.id, slotId: slot.id, rate: Math.round(next.rate * 100) / 100 });
+    } catch (e) {
+      // Skip anything the real assign path rejects and keep going.
+    }
+  }
+  return { assigned, message: assigned.length ? `Assigned ${assigned.length} droid${assigned.length === 1 ? '' : 's'}` : 'No eligible droids to assign' };
+}
+
 function assignDroidToSlot(playerId, droidId, slotId) {
   // A garrisoned droid can't also farm — that's the cost of holding
   // territory. Checked here as well as in forts.js so neither system
@@ -807,6 +841,7 @@ module.exports = {
   calculateOfflineProjection,
   settleEarnings,
   assignDroidToSlot,
+  autoAssignSlots,
   unassignDroid,
   unlockSlot,
   levelUpDroid,

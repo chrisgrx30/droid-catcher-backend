@@ -435,6 +435,7 @@
   @keyframes riftPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 
   .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 210px; margin: 0 auto; }
+  .rt-flagged { box-shadow: inset 0 0 0 2px rgba(42,157,74,0.85); }
   .rift-controls { display:flex; align-items:center; gap:14px; justify-content:space-between; }
   .joy-base { position:relative; width:120px; height:120px; border-radius:50%; flex-shrink:0;
     background:radial-gradient(circle at 50% 50%, rgba(95,216,224,0.10), rgba(0,0,0,0.35));
@@ -1358,6 +1359,7 @@
 
   <div class="panel" id="workshopSlotsPanel" style="margin-top:16px;">
     <div class="panel-title" style="margin-bottom:6px;">Workshop Slots <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(tap a farming slot to level up or unassign)</span></div>
+    <button id="btnAutoAssign" class="ghost" style="margin-bottom:8px; font-size:9px;">⚡ Auto-Assign Best Droids</button>
     <div class="slot-grid-detailed" id="slotGrid"></div>
   </div>
 </div>
@@ -1491,6 +1493,7 @@
     <div class="xp-bar"><div class="xp-fill" id="guildCoinFill"></div></div>
     <div id="guildCoinText" style="font-size:9px; color:var(--text-dim); margin-top:4px;">—</div>
     <button id="btnGuildCheckIn" style="margin-top:8px;">Check In — 1,000✦</button>
+    <button id="btnGuildBoost" class="ghost" style="margin-top:6px; font-size:9px;">⬆ Boost Guild Level (spend 1 token)</button>
   </div>
 
   <div class="panel" id="armouryPanel" style="margin-top:16px;">
@@ -1597,6 +1600,8 @@
              mis-drag can't trigger Run. -->
         <div class="rift-actions">
           <button class="dp dp-mid" id="dpInvestigate">🔍 Search</button>
+          <button class="dp ghost" id="dpFlag" style="font-size:11px; padding:9px 0;">🚩 Flag</button>
+          <button class="dp ghost" id="dpJetPack" style="font-size:11px; padding:9px 0; display:none;">🚀 Jet Pack</button>
         </div>
       </div>
       <div id="riftActionLabel" style="text-align:center; font-size:9px; color:var(--text-dim); margin-top:6px;"></div>
@@ -3529,7 +3534,7 @@ function buildDroidRow(droid) {
 
     row.innerHTML = `
       <div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0;">
-        <span class="spawn-rarity ${droid.rarity}" style="font-size:8px;">${droid.rarity}</span>
+        <span class="spawn-rarity ${droid.rarity}" style="font-size:8px;">${droid.rarity}</span>${state.companionDroid && state.companionDroid.id === droid.id ? '<span title="Current buddy droid" style="font-size:10px;">🤝</span>' : ''}
         <div style="display:flex; align-items:center; gap:6px;">
           <input type="checkbox" class="droid-checkbox" ${selectedDroidIds.has(droid.id) ? 'checked' : ''}>
           <span class="droid-icon" style="flex-shrink:0; cursor:pointer;"></span>
@@ -3970,7 +3975,34 @@ function showStatsModal(droid) {
   const applyBtn = box.querySelector('.lvl-apply');
   if (applyBtn) applyBtn.onclick = () => guardedAction('lvl' + droid.id, () => applyLevels(lvlN));
   const maxBtn = box.querySelector('.lvl-max');
-  if (maxBtn) maxBtn.onclick = () => guardedAction('lvlmax' + droid.id, () => applyLevels(20));
+  if (maxBtn) maxBtn.onclick = () => {
+    // MAX can drain a very large amount of crystals in one tap, so show
+    // what it will actually cost and how far it gets before spending.
+    const cap = 20;
+    const from = droid.level || 1;
+    if (from >= cap) { showGuildResultPopup(false, 'This droid is already at the level cap.'); return; }
+    let total = 0;
+    let reachable = from;
+    // Balance isn't kept in state — read the value the header already
+    // shows. Falls back to unlimited so the preview never blocks the
+    // action if the element is missing; the server still enforces cost.
+    const balEl = $('statCrystals');
+    const parsed = balEl ? Number(String(balEl.textContent).replace(/[^0-9]/g, '')) : NaN;
+    const balance = Number.isFinite(parsed) ? parsed : Infinity;
+    for (let lv = from; lv < cap; lv++) {
+      const cost = levelCostFor(lv, droid.rarity);
+      if (total + cost > balance) break;
+      total += cost;
+      reachable = lv + 1;
+    }
+    if (reachable === from) {
+      showGuildResultPopup(false, `Not enough crystals for even one level (needs ${levelCostFor(from, droid.rarity).toLocaleString()}✦).`);
+      return;
+    }
+    const short = reachable < cap ? `\n\nThis only reaches Level ${reachable} of ${cap} — you don't have enough crystals for the rest.` : '';
+    if (!confirm(`Level ${droid.speciesName} from ${from} to ${reachable}?\n\nCost: ${total.toLocaleString()}✦${short}`)) return;
+    guardedAction('lvlmax' + droid.id, () => applyLevels(reachable - from));
+  };
 
   const hideTradeBtnEl = box.querySelector('.hide-trade-btn');
   if (hideTradeBtnEl) {
@@ -4082,10 +4114,22 @@ function renderCompanion() {
       }
     }
 
+    // Full detail card: icon, stats, and mastery progress, so the buddy
+    // droid doesn't need a trip to the stats modal to read.
+    const masteryLine = c.masteryLevel
+      ? `<div style="color:var(--text-dim); font-size:9px;">Mastery Lv${c.masteryLevel}${c.masteryNextTierName ? ` → next: ${escapeHtml(c.masteryNextTierName)}${c.masteryTubeCost ? ` (${c.masteryTubeCost} Tubes)` : ''}` : ' — max tier'}</div>`
+      : '';
     el.innerHTML = `
       <div class="trade-card">
-        <div>✦ ${c.speciesName} · Lv${c.level}${c.variant !== 'standard' ? ` · <span class="variant-tag ${c.variant}">${c.variant}</span>` : ''}</div>
-        <div style="color:var(--text-dim); font-size:9px; margin-top:3px;">${buffLabel}</div>
+        <div style="display:flex; gap:10px; align-items:flex-start;">
+          <span class="companion-icon" style="flex-shrink:0;"></span>
+          <div style="flex:1; min-width:0;">
+            <div>✦ ${c.speciesName} · Lv${c.level}${c.variant !== 'standard' ? ` · <span class="variant-tag ${c.variant}">${c.variant}</span>` : ''} <span class="spawn-rarity ${c.rarity}" style="font-size:8px;">${c.rarity}</span></div>
+            <div style="color:var(--text-dim); font-size:9px; margin-top:3px;">${buffLabel}</div>
+            <div style="color:var(--text-dim); font-size:9px;">HP ${c.currentHp}/${c.hp} · ATK ${c.attack}</div>
+            ${masteryLine}
+          </div>
+        </div>
         ${activationHTML}
         <div class="tc-actions">
           <button class="companion-stats-btn ghost">Stats</button>
@@ -4095,6 +4139,9 @@ function renderCompanion() {
         </div>
       </div>
     `;
+    const compIcon = el.querySelector('.companion-icon');
+    if (compIcon) compIcon.appendChild(createDroidVisual(c, 52));
+
     el.querySelector('.unequip-companion-btn').onclick = async () => {
       try {
         await api('POST', '/companion/unassign', { playerId: state.playerId });
@@ -4967,7 +5014,16 @@ function renderActiveBattle(battle) {
     ${hpBar(myActive)}
     ${battle.status === 'finished'
       ? `<div class="mb-title ${battle.winnerId === state.playerId ? 'success' : 'fail'}" style="margin-top:12px;">${battle.winnerId === state.playerId ? '🏆 You won!' : 'You lost'}</div>${battle.isTitanBattle && battle.scaffitanCaptureAvailable && !battle.scaffitanCaptureUsed && battle.winnerId === state.playerId ? `<button class="btn-active" id="btnCatchTitan" style="margin-top:8px;">✨ Catch the Titan!</button>` : ''}<button class="ghost" id="btnEndBattleView" style="margin-top:8px;">End</button>`
-      : `<button class="${myTurn ? 'btn-active' : 'primary'}" id="btnBattleAttack" style="margin-top:12px;" ${myTurn ? '' : 'disabled'}>${myTurn ? 'Attack!' : "Opponent's turn — check back soon"}</button>`}
+      : `<button class="${myTurn ? 'btn-active' : 'primary'}" id="btnBattleAttack" style="margin-top:12px;" ${myTurn ? '' : 'disabled'}>${myTurn ? 'Attack!' : "Opponent's turn — check back soon"}</button>
+         ${(() => {
+           const myIds = isP1 ? battle.team1Ids : battle.team2Ids;
+           const activeId = myIds[isP1 ? battle.activeIndex1 : battle.activeIndex2];
+           const sp = (battle.specialState || {})[activeId];
+           if (!sp) return '';
+           const bar = `${sp.charge}/${sp.required}`;
+           return `<button class="ghost" id="btnBattleSpecial" style="margin-top:6px; ${sp.ready && myTurn ? 'background:var(--legendary); color:#1a0a24; font-weight:700;' : ''}" ${sp.ready && myTurn ? '' : 'disabled'}>✨ ${escapeHtml(sp.name)} (${bar})<br><span style="font-size:8px; opacity:0.8;">${escapeHtml(sp.note)}</span></button>
+                   <button class="ghost" id="btnBattleSwap" style="margin-top:6px; font-size:9px;" ${myTurn ? '' : 'disabled'}>🔄 Swap Droid (uses turn)</button>`;
+         })()}`}
     <div style="margin-top:10px; max-height:150px; overflow-y:auto; font-size:9px; color:var(--text-dim);">
       ${battle.log.slice().reverse().map((l) => `
         <div>${l.attackerDroidName} hit ${l.defenderDroidName} for ${l.damage}${l.defenderFainted ? ' — fainted!' : ''}</div>
@@ -5003,6 +5059,62 @@ function renderActiveBattle(battle) {
         await refreshBattles();
       } catch (e) { atkBtn.disabled = false; }
     });
+
+    const spBtn = el.querySelector('#btnBattleSpecial');
+    if (spBtn) spBtn.onclick = () => guardedAction('special-' + battle.id, async () => {
+      spBtn.disabled = true;
+      try {
+        const r = await api('POST', `/battles/${battle.id}/attack`, { playerId: state.playerId, useSpecial: true });
+        const le = r.logEntry || {};
+        if (le.specialEffect) {
+          const eff = le.specialEffect;
+          const msg = eff.kind === 'heal' ? `Healed ${eff.healed} HP`
+            : eff.kind === 'stun' ? `Opponent stunned for ${eff.turns} turn${eff.turns === 1 ? '' : 's'}`
+            : eff.kind === 'switch' ? `Forced switch to ${eff.to}` : '';
+          if (msg) showGuildResultPopup(true, `✨ ${le.specialName} — ${msg}`);
+        }
+        await refreshWorkshop();
+        await showActiveBattle(battle.id);
+        await refreshBattles();
+      } catch (e) {
+        spBtn.disabled = false;
+        showGuildResultPopup(false, (e && e.message) || 'Could not use the special.');
+      }
+    });
+
+    const swBtn = el.querySelector('#btnBattleSwap');
+    if (swBtn) swBtn.onclick = () => {
+      const myIds = isP1 ? battle.team1Ids : battle.team2Ids;
+      const myTeam = isP1 ? battle.team1 : battle.team2;
+      const activeIdx = isP1 ? battle.activeIndex1 : battle.activeIndex2;
+      const options = (myTeam || []).map((d, i) => ({ d, i })).filter((o) => o.i !== activeIdx && !o.d.fainted);
+      if (!options.length) { showGuildResultPopup(false, 'No other healthy droids to swap to.'); return; }
+      const overlay = $('captureResultOverlay');
+      const box = $('captureResultBox');
+      box.innerHTML = `
+        <div class="mb-title" style="color:#fff;">🔄 Swap Droid</div>
+        <div class="mb-detail">This uses your turn.</div>
+        <div style="text-align:left; margin-top:8px;">
+          ${options.map((o) => `<div class="merge-pick" data-id="${myIds[o.i]}">
+            <span class="mp-name">${escapeHtml(o.d.speciesName)}</span>
+            <span style="color:var(--text-dim); font-size:9px;">Lv${o.d.level} · ${o.d.currentHp}/${o.d.hp}</span>
+          </div>`).join('')}
+        </div>
+        <button class="ghost mb-close" style="margin-top:10px;">Cancel</button>`;
+      overlay.style.display = 'flex';
+      box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+      box.querySelectorAll('.merge-pick').forEach((row) => {
+        row.onclick = async () => {
+          overlay.style.display = 'none';
+          try {
+            await api('POST', `/battles/${battle.id}/swap`, { playerId: state.playerId, droidId: Number(row.dataset.id) });
+            await refreshWorkshop();
+            await showActiveBattle(battle.id);
+            await refreshBattles();
+          } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not swap.'); }
+        };
+      });
+    };
   }
 }
 
@@ -7004,6 +7116,15 @@ $('btnGuildCheckIn').onclick = () => guardedAction('checkin', async () => {
   } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not check in.'); }
 });
 
+$('btnGuildBoost').onclick = () => guardedAction('gboost', async () => {
+  try {
+    const r = await api('POST', '/guild-boost', { playerId: state.playerId });
+    showGuildResultPopup(true, `🛡️ Guild boosted to level ${r.guildLevel}! ${r.coins} token${r.coins === 1 ? '' : 's'} left.`);
+    await refreshGuildProgress();
+    await refreshWorkshop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not boost.'); }
+});
+
 // ---- armoury ----
 async function refreshArmoury() {
   if (!state.playerId) return;
@@ -7422,7 +7543,11 @@ function renderRiftMission(d) {
         else ico = `<span class="rt-ico ${o.used ? 'used' : ''}">${RIFT_ICON[o.kind] || ''}</span>`;
       }
       if (isPlayer) ico = '<span class="rt-ico rt-player">🧑‍🚀</span>';
-      html += `<div class="rt ${isWall ? 'wall' : 'floor'}" style="background-image:url('/assets/rift/${tile}.png');">${ico}</div>`;
+      // Player-dropped flags tint the tile green so visited ground is
+      // obvious at a glance, and show a marker when nothing else is there.
+      const flagged = (d.flags || []).some((f) => f.x === x && f.y === y);
+      if (flagged && !ico) ico = '<span class="rt-ico">🚩</span>';
+      html += `<div class="rt ${isWall ? 'wall' : 'floor'}${flagged ? ' rt-flagged' : ''}" style="background-image:url('/assets/rift/${tile}.png');">${ico}</div>`;
     }
   }
   grid.innerHTML = html;
@@ -7430,6 +7555,15 @@ function renderRiftMission(d) {
   // ---- action button label ----
   const labels = { chest: 'Open Chest', crystal: 'Collect Crystals', debris: 'Search Debris', heal: 'Use Healing Post', exit: 'ESCAPE' };
   $('riftActionLabel').textContent = d.standingOn ? labels[d.standingOn] : 'Nothing here';
+
+  const flagBtn = $('dpFlag');
+  if (flagBtn) {
+    const left = typeof d.flagsLeft === 'number' ? d.flagsLeft : 0;
+    flagBtn.textContent = `🚩 Flag (${left})`;
+    flagBtn.disabled = left <= 0;
+  }
+  const jpBtn = $('dpJetPack');
+  if (jpBtn) jpBtn.style.display = d.hasJetPack ? 'block' : 'none';
   $('dpInvestigate').style.opacity = d.standingOn ? '1' : '0.45';
 
   // ---- team ----
@@ -7588,6 +7722,23 @@ async function riftMove(dir) {
   }
 }
 
+// Mirrors slotUnlockCost/levelUpCost in src/db.js — kept in sync manually.
+// Used only to PREVIEW cost before a MAX level-up; the server remains the
+// source of truth and re-validates every individual level.
+const CLIENT_LEVEL_COST_MULT = { common: 1, uncommon: 1.5, rare: 2.5, legendary: 4, cosmic: 5, galactic: 6, apex: 8 };
+function levelCostFor(currentLevel, rarity) {
+  const mult = CLIENT_LEVEL_COST_MULT[rarity] != null ? CLIENT_LEVEL_COST_MULT[rarity] : 1;
+  return Math.round(10 * Math.pow(currentLevel, 1.6) * mult);
+}
+
+$('btnAutoAssign').onclick = () => guardedAction('autoassign', async () => {
+  try {
+    const r = await api('POST', '/workshop/auto-assign', { playerId: state.playerId });
+    showGuildResultPopup(true, r.message);
+    await refreshWorkshop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not auto-assign.'); }
+});
+
 // ---- Rift joystick ----
 // Drag from the base; the knob follows within a radius and the dominant
 // axis becomes the move direction. Steps are rate-limited while held so
@@ -7677,11 +7828,31 @@ async function riftMove(dir) {
   window.addEventListener('touchcancel', onUp);
 })();
 
+$('dpFlag').onclick = () => guardedAction('riftflag', async () => {
+  try {
+    const r = await api('POST', '/rift/flag', { playerId: state.playerId });
+    showGuildResultPopup(true, `🚩 Flag dropped — ${r.flagsLeft} left.`);
+    state.rift = r; renderRiftMission(r);
+  } catch (e2) { showGuildResultPopup(false, (e2 && e2.message) || 'Could not drop a flag.'); }
+});
+
+$('dpJetPack').onclick = () => guardedAction('riftjp', async () => {
+  if (!confirm('Use the jet pack to teleport to the extract point?\n\nSingle use — you will not get another this run.')) return;
+  try {
+    const r = await api('POST', '/rift/jetpack', { playerId: state.playerId });
+    showGuildResultPopup(true, '🚀 Teleported to the extract point.');
+    state.rift = r; renderRiftMission(r);
+  } catch (e2) { showGuildResultPopup(false, (e2 && e2.message) || 'Could not use the jet pack.'); }
+});
+
 $('dpInvestigate').onclick = () => guardedAction('riftinv', async () => {
   try {
     let r = await api('POST', '/rift/investigate', { playerId: state.playerId });
     // Early extraction: server asks first so the 20% material penalty is
     // never taken without the player agreeing to it.
+    if (r.jetPackAwarded) {
+      showGuildResultPopup(true, '🚀 Jet Pack acquired!\n\nYou can now teleport straight back here once, so go finish the bosses.');
+    }
     if (r.pendingEarlyExtract) {
       const p = r.pendingEarlyExtract;
       const ok = confirm(
@@ -7797,7 +7968,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.12.9
+// QOL v0.14.0
 // ============================================================
 
 // ---- guild invites by player ID ----
@@ -7936,22 +8107,53 @@ function openTeamPicker(afterSet) {
   const usable = (state.droids || []).filter((d) => !d.fainted && !d.fortId && d.activity !== 'fort' && d.activity !== 'smuggler');
   const picked = new Set([...(selectedBattleTeam || [])].filter((id) => usable.some((d) => d.id === id)));
 
+  // Filter state lives outside draw() so it survives re-renders when a
+  // droid is picked. Large collections made the flat list unusable.
+  let teamSearch = '';
+  let teamRarity = 'all';
+  const RARITIES = ['all', 'common', 'uncommon', 'rare', 'legendary', 'cosmic', 'galactic', 'apex'];
+
   const draw = () => {
     const chosenSpecies = new Set(usable.filter((d) => picked.has(d.id)).map((d) => d.speciesName));
+    const term = teamSearch.trim().toLowerCase();
+    const visible = usable.filter((d) =>
+      (teamRarity === 'all' || d.rarity === teamRarity) &&
+      (!term || d.speciesName.toLowerCase().includes(term))
+    );
     box.innerHTML = `
       <div class="mb-title" style="color:#fff;">⚔️ Battle Team</div>
       <div class="mb-detail">Pick 4 droids — all different species. (${picked.size}/4)</div>
+      <input type="text" id="teamSearch" placeholder="Search name..." value="${escapeHtml(teamSearch)}" style="margin-top:8px;">
+      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px;">
+        ${RARITIES.filter((r) => r === 'all' || usable.some((d) => d.rarity === r)).map((r) =>
+          `<button class="team-rar ghost" data-r="${r}" style="width:auto; margin-top:0; padding:4px 8px; font-size:8px; ${teamRarity === r ? 'background:var(--cyan); color:#04181a;' : ''}">${r}</button>`
+        ).join('')}
+      </div>
+      <div style="font-size:8px; color:var(--text-dim); margin-top:6px;">Showing ${visible.length} of ${usable.length}</div>
       <div style="max-height:250px; overflow-y:auto; text-align:left; margin-top:8px;">
-        ${usable.map((d) => {
+        ${visible.map((d) => {
           const dupe = !picked.has(d.id) && chosenSpecies.has(d.speciesName);
           return `<div class="merge-pick ${picked.has(d.id) ? 'selected' : ''}" data-id="${d.id}" style="${dupe ? 'opacity:0.35;' : ''}">
             <span class="mp-name">${escapeHtml(d.speciesName)} <span class="spawn-rarity ${d.rarity}" style="font-size:8px;">${d.rarity}</span>${dupe ? ' <span style="font-size:8px;color:var(--danger);">same species</span>' : ''}</span>
             <span style="color:var(--text-dim); font-size:9px;">Lv${d.level} · ${d.currentHp}/${d.hp}</span>
           </div>`;
-        }).join('') || '<div class="empty">No droids available to fight</div>'}
+        }).join('') || `<div class="empty">${usable.length ? 'No droids match that filter' : 'No droids available to fight'}</div>`}
       </div>
       <button id="teamSave" class="primary" style="margin-top:12px;" ${picked.size === 4 ? '' : 'disabled'}>Save Team</button>
       <button id="teamCancel" class="ghost" style="margin-top:6px;">Cancel</button>`;
+    const searchEl = box.querySelector('#teamSearch');
+    if (searchEl) {
+      searchEl.oninput = () => {
+        teamSearch = searchEl.value;
+        const pos = searchEl.selectionStart;
+        draw();
+        const again = box.querySelector('#teamSearch');
+        if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (e) {} }
+      };
+    }
+    box.querySelectorAll('.team-rar').forEach((b) => {
+      b.onclick = () => { teamRarity = b.dataset.r; draw(); };
+    });
     box.querySelectorAll('.merge-pick').forEach((row) => {
       row.onclick = () => {
         const id = Number(row.dataset.id);
@@ -8604,7 +8806,8 @@ function renderSiegeCard(s) {
         ${atk && s.droidBoxState === 'attack' ? (
           s.sortieInProgress
             ? (s.sortie.playerId === state.playerId
-                ? `<button class="siege-attack" data-fort="${s.fortId}" style="margin-top:8px; background:var(--danger); border-color:var(--danger); color:#fff; font-weight:700;">ATTACK (turn ${s.sortie.turn})</button>`
+                ? `<button class="siege-attack" data-fort="${s.fortId}" style="margin-top:8px; background:var(--danger); border-color:var(--danger); color:#fff; font-weight:700;">ATTACK (turn ${s.sortie.turn})</button>
+                   <button class="siege-retreat ghost" data-fort="${s.fortId}" style="margin-top:6px; font-size:9px;">🏳️ Retreat</button>`
                 : `<div style="font-size:9px; color:var(--amber); margin-top:6px;">${escapeHtml(s.sortie.username)} is attacking — wait for their sortie to end</div>`)
             : `<button class="siege-sortie" data-fort="${s.fortId}" style="margin-top:8px;">Send Attack — ${s.attackCost.toLocaleString()}✦</button>`
         ) : ''}
@@ -8654,6 +8857,16 @@ function wireSiegeButtons() {
     b.onclick = () => guardedAction('siegeatk-' + b.dataset.fort, async () => {
       try { await api('POST', `/forts/${b.dataset.fort}/attack`, { playerId: state.playerId }); await refreshSieges(); await refreshWorkshop(); }
       catch (e) { showGuildResultPopup(false, (e && e.message) || 'Attack failed.'); }
+    });
+  });
+  el.querySelectorAll('.siege-retreat').forEach((b) => {
+    b.onclick = () => guardedAction('retreat-' + b.dataset.fort, async () => {
+      if (!confirm('Retreat from this assault?\n\nDamage you have already dealt to the garrison stays — you just stop taking hits. The attack cost is not refunded.')) return;
+      try {
+        await api('POST', `/forts/${b.dataset.fort}/retreat`, { playerId: state.playerId });
+        showGuildResultPopup(true, '🏳️ Retreated — damage dealt remains.');
+        await refreshSieges(); await refreshWorkshop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not retreat.'); }
     });
   });
   el.querySelectorAll('.siege-shield').forEach((b) => {

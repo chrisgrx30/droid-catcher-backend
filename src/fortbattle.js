@@ -187,6 +187,28 @@ function startSortie(fortId, playerId, teamDroidIds) {
   return viewSiege(fort, siege, player.guildId);
 }
 
+// Pull out of an in-progress sortie. Damage already dealt to the
+// garrison stays — retreating is about saving your own droids, not
+// undoing the assault. The attack cost is not refunded.
+function retreat(fortId, playerId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new SiegeError('NO_PLAYER', 'Player not found');
+  const fort = forts.forts.get(fortId);
+  if (!fort) throw new SiegeError('NO_FORT', 'Fort not found');
+  const siege = activeSiegeFor(fortId);
+  if (!siege) throw new SiegeError('NO_SIEGE', 'No assault is running on that Fort');
+  if (siege.attackerGuildId !== player.guildId) throw new SiegeError('NOT_YOUR_SIEGE', 'Another guild is assaulting this Fort');
+  const sortie = siege.sortie;
+  if (!sortie || sortie.status !== 'active') throw new SiegeError('NO_SORTIE', 'You are not mid-attack');
+  if (sortie.playerId !== playerId) throw new SiegeError('NOT_YOUR_SORTIE', 'That is another attacker\'s sortie');
+
+  sortie.status = 'retreated';
+  sortie.endedAt = Date.now();
+  siege.updatedAt = Date.now();
+  notifyDefenders(fort, 'siege:retreat', { fortId, by: player.username });
+  return { ...viewSiege(fort, siege, player.guildId), retreated: true };
+}
+
 function attack(fortId, playerId) {
   const player = db.players.get(playerId);
   const fort = forts.forts.get(fortId);
@@ -529,7 +551,7 @@ function siegesForPlayer(playerId) {
 module.exports = {
   INITIATE_COST, ATTACK_COST, SHIELD_REPAIR_COST, DROID_REVIVE_COST,
   sieges,
-  initiate, startSortie, attack, attackShield,
+  initiate, startSortie, retreat, attack, attackShield,
   reviveDroid, repairShield, capture,
   siegeFor, siegesForPlayer, activeSiegeFor,
   fortDefenceMultipliers,

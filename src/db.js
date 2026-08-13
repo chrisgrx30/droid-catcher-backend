@@ -314,6 +314,27 @@ const droidSpecies = [
   { id: id(), name: 'Shadow Titan',       alignment: 'dark',  rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
   { id: id(), name: 'Rift Warden',        alignment: 'dark',  rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
   { id: id(), name: 'Storm Crown',        alignment: 'light', rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  // --- Second rift set (20) ---
+  { id: id(), name: 'The Voidfang',      alignment: 'dark',  rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'Lumen Guardian',    alignment: 'light', rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'Rift Behemoth',     alignment: 'dark',  rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'The Nexus Queen',   alignment: 'dark',  rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'Stellar Sentinel',  alignment: 'light', rarity: 'cosmic', collection: 'rift', baseCaptureRate: 0.03, baseCrystalRate: 40, spawnWeight: 0, eventOnly: true, riftOnly: true, riftBoss: true, ...statsFor('cosmic') },
+  { id: id(), name: 'Rift Relay',        alignment: 'light', rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Void Hopper',       alignment: 'dark',  rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Fracture Bug',      alignment: 'dark',  rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Rift Scout',        alignment: 'light', rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Lumina Pixie',      alignment: 'light', rarity: 'common',    collection: 'rift', baseCaptureRate: 0.55, baseCrystalRate: 2,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('common') },
+  { id: id(), name: 'Obsidian Stalker',  alignment: 'dark',  rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 5,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Rift Crusher',      alignment: 'dark',  rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 5,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Sky Vortex',        alignment: 'light', rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 5,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Solaris Wasp',      alignment: 'light', rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 5,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Abyss Drake',       alignment: 'dark',  rarity: 'uncommon',  collection: 'rift', baseCaptureRate: 0.35, baseCrystalRate: 5,  spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('uncommon') },
+  { id: id(), name: 'Celestial Knight',  alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 12, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Rift Phoenix',      alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 12, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Titan Charger',     alignment: 'dark',  rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 12, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Echo Sentinel',     alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 12, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Singularity Core',  alignment: 'light', rarity: 'legendary', collection: 'rift', baseCaptureRate: 0.08, baseCrystalRate: 30, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('legendary') },
 
   // ---- ASTRAL BROOD (10) — merge-exclusive ----
   // spawnWeight 0 and isBroodOnly: these NEVER spawn in the world and
@@ -1841,6 +1862,50 @@ const GUILD_CHECKIN_COST = 1000;
 const GUILD_LEVEL_COINS = [20, 29, 42, 61, 88, 128, 185, 268, 389, 564];
 const MAX_GUILD_LEVEL = 10;
 
+// Spends banked coins into levels. Shared by daily check-in and the
+// manual boost so both use identical progression rules.
+function applyGuildCoinLevels(guild) {
+  guild.level = guild.level || 0;
+  const levelsGained = [];
+  let need = guildCoinsForLevel(guild.level);
+  while (need !== null && guild.checkInCoins >= need && guild.level < MAX_GUILD_LEVEL) {
+    guild.checkInCoins -= need;
+    guild.level += 1;
+    levelsGained.push(guild.level);
+    guild.unlockedBadges = guild.unlockedBadges || [];
+    if (!guild.unlockedBadges.includes(guild.level)) guild.unlockedBadges.push(guild.level);
+    need = guildCoinsForLevel(guild.level);
+  }
+  return levelsGained;
+}
+
+// Manual boost: any member spends 1 guild token (a check-in coin) to
+// push progress, outside the once-a-day check-in limit.
+function boostGuildLevel(playerId) {
+  const player = players.get(playerId);
+  if (!player) throw new Error('Player not found');
+  if (!player.guildId) throw new Error('You are not in a guild');
+  const guild = guilds.get(player.guildId);
+  if (!guild) throw new Error('Guild not found');
+  guild.level = guild.level || 0;
+  if (guild.level >= MAX_GUILD_LEVEL) throw new Error('Guild is already at max level');
+  if ((guild.checkInCoins || 0) < 1) throw new Error('No guild tokens banked — members need to check in first');
+
+  const levelsGained = applyGuildCoinLevels(guild);
+  if (!levelsGained.length) {
+    // Coins exist but not enough for the next level yet — say so
+    // plainly rather than silently doing nothing.
+    throw new Error(`Not enough tokens yet — Level ${guild.level + 1} needs ${guildCoinsForLevel(guild.level)}, guild has ${guild.checkInCoins}`);
+  }
+  return {
+    guildLevel: guild.level,
+    coins: guild.checkInCoins,
+    coinsToNext: guildCoinsForLevel(guild.level),
+    levelsGained,
+    unlockedBadges: guild.unlockedBadges || [],
+  };
+}
+
 function guildCoinsForLevel(level) {
   return GUILD_LEVEL_COINS[level] ?? null; // coins needed to go from `level` to level+1
 }
@@ -1867,16 +1932,7 @@ function guildCheckIn(playerId) {
   guild.checkInCoins = (guild.checkInCoins || 0) + 1;
   guild.level = guild.level || 0;
 
-  const levelsGained = [];
-  let need = guildCoinsForLevel(guild.level);
-  while (need !== null && guild.checkInCoins >= need && guild.level < MAX_GUILD_LEVEL) {
-    guild.checkInCoins -= need;
-    guild.level += 1;
-    levelsGained.push(guild.level);
-    guild.unlockedBadges = guild.unlockedBadges || [];
-    if (!guild.unlockedBadges.includes(guild.level)) guild.unlockedBadges.push(guild.level);
-    need = guildCoinsForLevel(guild.level);
-  }
+  const levelsGained = applyGuildCoinLevels(guild);
 
   return {
     guildLevel: guild.level,
@@ -3017,6 +3073,7 @@ module.exports = {
   GUILD_MAX_MEMBERS,
   createGuild,
   renameGuild,
+  boostGuildLevel,
   guildNameTaken,
   GUILD_RENAME_COST,
   joinGuild,

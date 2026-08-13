@@ -579,6 +579,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     // POST /workshop/assign  { playerId, droidId, slotId }
+    if (req.method === 'POST' && pathname === '/workshop/auto-assign') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, workshopModule.autoAssignSlots(playerId)); }
+      catch (e) { return sendJson(res, 409, { error: 'WORKSHOP_ERROR', message: e.message }); }
+    }
     if (req.method === 'POST' && pathname === '/workshop/assign') {
       const { playerId, droidId, slotId } = await readBody(req);
       const droid = workshopModule.assignDroidToSlot(playerId, droidId, slotId);
@@ -1148,12 +1153,24 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // POST /battles/:id/attack  { playerId }
+    // POST /battles/:id/swap  { playerId, droidId }
+    if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/swap$/)) {
+      const battleId = Number(pathname.split('/')[2]);
+      const { playerId, droidId } = await readBody(req);
+      try {
+        const result = battleModule.swapDroid(battleId, playerId, droidId);
+        return sendJson(res, 200, { battle: battleModule.getBattleView(battleId), logEntry: result.logEntry });
+      } catch (e) {
+        return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
+      }
+    }
+
+    // POST /battles/:id/attack  { playerId, useSpecial }
     if (req.method === 'POST' && pathname.match(/^\/battles\/\d+\/attack$/)) {
       const battleId = Number(pathname.split('/')[2]);
-      const { playerId } = await readBody(req);
+      const { playerId, useSpecial } = await readBody(req);
       try {
-        const result = battleModule.attack(battleId, playerId);
+        const result = battleModule.attack(battleId, playerId, { useSpecial });
         return sendJson(res, 200, { battle: battleModule.getBattleView(battleId), logEntry: result.logEntry });
       } catch (e) {
         return sendJson(res, 409, { error: 'BATTLE_ERROR', message: e.message });
@@ -1611,6 +1628,11 @@ const server = http.createServer(async (req, res) => {
       try { return sendJson(res, 200, db.guildCheckIn(playerId)); }
       catch (e) { return sendJson(res, 400, { error: 'CHECKIN_ERROR', message: e.message }); }
     }
+    if (req.method === 'POST' && pathname === '/guild-boost') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, db.boostGuildLevel(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: 'BOOST_ERROR', message: e.message }); }
+    }
     if (req.method === 'POST' && pathname === '/guild-badge') {
       const { playerId, level } = await readBody(req);
       try { return sendJson(res, 200, db.setGuildBadge(playerId, level)); }
@@ -1748,6 +1770,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && pathname === '/rift/investigate') {
       const { playerId, confirmEarlyExtract } = await readBody(req);
       try { return sendJson(res, 200, riftModule.investigate(playerId, { confirmEarlyExtract })); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/flag') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.dropFlag(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/rift/jetpack') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, riftModule.useJetPack(playerId)); }
       catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
     }
     if (req.method === 'POST' && pathname === '/rift/use-item') {
@@ -2023,6 +2055,14 @@ const server = http.createServer(async (req, res) => {
       const fortId = Number(pathname.split('/')[2]);
       const { playerId, teamDroidIds } = await readBody(req);
       try { return sendJson(res, 200, fortBattleModule.startSortie(fortId, playerId, teamDroidIds)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/retreat { playerId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/retreat$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, fortBattleModule.retreat(fortId, playerId)); }
       catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
     }
 

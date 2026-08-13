@@ -178,6 +178,51 @@ const APEX_MAX_PARTICIPANTS = 6;
 // what this implies for how long an Apex takes to level.
 const APEX_BATTLE_REWARDS = { repairKits: 2, beacons: 2, paint: 10, novaChips: 10 };
 
+// ---- Special attacks ----
+// Every droid charges a special by landing normal attacks. Effects and
+// power scale with rarity, so a Common's special is a mild edge while a
+// Legendary's swings a fight. Charge lives on the battle, not the droid,
+// so it resets naturally between battles.
+const SPECIAL_CHARGE_REQUIRED = 4; // normal attacks needed to charge
+
+const SPECIAL_BY_RARITY = {
+  common:    { name: 'Power Strike',   kind: 'damage', damageMult: 1.6, note: '1.6x damage' },
+  uncommon:  { name: 'Rally',          kind: 'heal',   healPercent: 25, note: 'heals 25% max HP' },
+  rare:      { name: 'Stunning Blow',  kind: 'stun',   damageMult: 1.4, stunTurns: 1, note: '1.4x damage, stuns 1 turn' },
+  legendary: { name: 'Overload',       kind: 'damage', damageMult: 2.2, note: '2.2x damage' },
+  cosmic:    { name: 'Force Switch',   kind: 'switch', damageMult: 1.5, note: '1.5x damage, forces opponent swap' },
+  galactic:  { name: 'Nova Cascade',   kind: 'stun',   damageMult: 2.0, stunTurns: 2, note: '2x damage, stuns 2 turns' },
+  apex:      { name: 'Annihilate',     kind: 'damage', damageMult: 3.0, note: '3x damage' },
+};
+
+function specialFor(rarity) {
+  return SPECIAL_BY_RARITY[rarity] || SPECIAL_BY_RARITY.common;
+}
+
+// Charge is tracked per battle per droid id.
+function chargeMapFor(battle) {
+  if (!battle.specialCharge) battle.specialCharge = {};
+  return battle.specialCharge;
+}
+
+function chargeOf(battle, droidId) {
+  return chargeMapFor(battle)[droidId] || 0;
+}
+
+function addCharge(battle, droidId) {
+  const m = chargeMapFor(battle);
+  m[droidId] = Math.min(SPECIAL_CHARGE_REQUIRED, (m[droidId] || 0) + 1);
+  return m[droidId];
+}
+
+function clearCharge(battle, droidId) {
+  chargeMapFor(battle)[droidId] = 0;
+}
+
+function isSpecialReady(battle, droidId) {
+  return chargeOf(battle, droidId) >= SPECIAL_CHARGE_REQUIRED;
+}
+
 function isFainted(droid) {
   return workshop.enrichDroid(droid).fainted;
 }
@@ -627,7 +672,45 @@ function createBattle(player1Id, player2Id, team1Ids, team2Ids) {
   return battle;
 }
 
-function attack(battleId, playerId) {
+// Swap the active droid. Costs your turn — the opponent goes next.
+function swapDroid(battleId, playerId, droidId) {
+  const battle = db.battles.get(battleId);
+  if (!battle) throw new Error('Battle not found');
+  if (battle.status !== 'active') throw new Error('This battle has already ended');
+  if (battle.turnPlayerId !== playerId) throw new Error("It's not your turn");
+
+  const isPlayer1 = playerId === battle.player1Id;
+  const teamIds = isPlayer1 ? battle.team1Ids : battle.team2Ids;
+  const idxKey = isPlayer1 ? 'activeIndex1' : 'activeIndex2';
+  const target = teamIds.indexOf(droidId);
+  if (target === -1) throw new Error('That droid is not on your team');
+  if (target === battle[idxKey]) throw new Error('That droid is already active');
+  const droid = db.ownedDroids.get(droidId);
+  if (!droid || isFainted(droid)) throw new Error('That droid has fainted');
+
+  battle[idxKey] = target;
+  const logEntry = {
+    turn: battle.log.length + 1,
+    attackerPlayerId: playerId,
+    swappedTo: workshop.enrichDroid(droid).speciesName,
+  };
+  battle.log.push(logEntry);
+
+  // Swapping uses the turn, so honour any stun the opponent owes.
+  const nextPlayerId = isPlayer1 ? battle.player2Id : battle.player1Id;
+  battle.stunnedUntilTurn = battle.stunnedUntilTurn || {};
+  if ((battle.stunnedUntilTurn[nextPlayerId] || 0) > 0) {
+    battle.stunnedUntilTurn[nextPlayerId] -= 1;
+    logEntry.opponentStunnedSkipped = true;
+    battle.turnPlayerId = playerId;
+  } else {
+    battle.turnPlayerId = nextPlayerId;
+  }
+  battle.updatedAt = Date.now();
+  return { battle, logEntry };
+}
+
+function attack(battleId, playerId, opts = {}) {
   const battle = db.battles.get(battleId);
   if (!battle) throw new Error('Battle not found');
   if (battle.status === 'pending_acceptance') throw new Error('This challenge hasn\'t been accepted yet');
@@ -649,10 +732,55 @@ function attack(battleId, playerId) {
     ? 1 + attackerEnriched.companionBuffPercent / 100
     : 1;
   const variance = 1 + (Math.random() * 2 - 1) * DAMAGE_VARIANCE;
-  const damage = Math.max(1, Math.round(attackerEnriched.attack * companionMultiplier * variance));
 
-  defenderDroid.currentHpDamage = (defenderDroid.currentHpDamage || 0) + damage;
+  // Special attack: only if charged and requested. Consumes the charge.
+  const wantsSpecial = Boolean(opts.useSpecial);
+  const special = specialFor(attackerEnriched.rarity);
+  let usedSpecial = false;
+  let specialEffect = null;
+  if (wantsSpecial) {
+    if (!isSpecialReady(battle, attackerDroid.id)) {
+      throw new Error(`${special.name} isn't charged yet (${chargeOf(battle, attackerDroid.id)}/${SPECIAL_CHARGE_REQUIRED})`);
+    }
+    usedSpecial = true;
+    clearCharge(battle, attackerDroid.id);
+  }
+
+  const mult = usedSpecial ? (special.damageMult || 0) : 1;
+  let damage = Math.max(usedSpecial && special.kind === 'heal' ? 0 : 1,
+    Math.round(attackerEnriched.attack * companionMultiplier * variance * mult));
+
+  if (usedSpecial && special.kind === 'heal') {
+    // Heals the attacker instead of dealing damage.
+    damage = 0;
+    const maxHp = attackerEnriched.hp;
+    const healed = Math.round(maxHp * (special.healPercent / 100));
+    attackerDroid.currentHpDamage = Math.max(0, (attackerDroid.currentHpDamage || 0) - healed);
+    specialEffect = { kind: 'heal', healed };
+  }
+
+  if (damage > 0) defenderDroid.currentHpDamage = (defenderDroid.currentHpDamage || 0) + damage;
   const defenderFainted = isFainted(defenderDroid);
+
+  if (usedSpecial && special.kind === 'stun' && !defenderFainted) {
+    // Stun makes the defender lose their next turn(s).
+    battle.stunnedUntilTurn = battle.stunnedUntilTurn || {};
+    const victimId = isPlayer1 ? battle.player2Id : battle.player1Id;
+    battle.stunnedUntilTurn[victimId] = (battle.stunnedUntilTurn[victimId] || 0) + special.stunTurns;
+    specialEffect = { kind: 'stun', turns: special.stunTurns };
+  }
+
+  if (usedSpecial && special.kind === 'switch' && !defenderFainted) {
+    // Force the opponent's next living droid forward.
+    const alt = defenderTeam.findIndex((d, i) => i !== battle[defenderIdxKey] && !isFainted(d));
+    if (alt !== -1) {
+      battle[defenderIdxKey] = alt;
+      specialEffect = { kind: 'switch', to: workshop.enrichDroid(defenderTeam[alt]).speciesName };
+    }
+  }
+
+  // Normal attacks build charge; specials don't charge themselves.
+  const chargeNow = usedSpecial ? 0 : addCharge(battle, attackerDroid.id);
 
   const logEntry = {
     turn: battle.log.length + 1,
@@ -661,6 +789,11 @@ function attack(battleId, playerId) {
     defenderDroidName: workshop.enrichDroid(defenderDroid).speciesName,
     damage,
     defenderFainted,
+    usedSpecial,
+    specialName: usedSpecial ? special.name : null,
+    specialEffect,
+    charge: chargeNow,
+    chargeRequired: SPECIAL_CHARGE_REQUIRED,
   };
   battle.log.push(logEntry);
 
@@ -693,7 +826,17 @@ function attack(battleId, playerId) {
     battle[defenderIdxKey] = nextIdx;
   }
 
-  battle.turnPlayerId = isPlayer1 ? battle.player2Id : battle.player1Id;
+  // Stun: if the opponent owes stunned turns, they're skipped and the
+  // turn comes straight back — that's what makes the effect real.
+  const nextPlayerId = isPlayer1 ? battle.player2Id : battle.player1Id;
+  battle.stunnedUntilTurn = battle.stunnedUntilTurn || {};
+  if ((battle.stunnedUntilTurn[nextPlayerId] || 0) > 0) {
+    battle.stunnedUntilTurn[nextPlayerId] -= 1;
+    logEntry.opponentStunnedSkipped = true;
+    battle.turnPlayerId = playerId; // stunned side loses this turn
+  } else {
+    battle.turnPlayerId = nextPlayerId;
+  }
   battle.updatedAt = Date.now();
 
   // No human plays the Titan's side — it counter-attacks immediately
@@ -760,10 +903,28 @@ function getBattleView(battleId) {
     };
   }
 
+  // Per-droid special/charge state so the client can show a charge bar
+  // and enable the special button at the right moment.
+  const specialState = {};
+  [...(battle.team1Ids || []), ...(battle.team2Ids || [])].forEach((id) => {
+    const d = db.ownedDroids.get(id);
+    if (!d) return;
+    const rarity = workshop.enrichDroid(d).rarity;
+    const sp = specialFor(rarity);
+    specialState[id] = {
+      name: sp.name,
+      note: sp.note,
+      charge: chargeOf(battle, id),
+      required: SPECIAL_CHARGE_REQUIRED,
+      ready: isSpecialReady(battle, id),
+    };
+  });
+
   return {
     ...battle,
     team1: enrichTeam(battle.team1Ids),
     team2: battle.team2Ids ? enrichTeam(battle.team2Ids) : null,
+    specialState,
   };
 }
 
@@ -1032,4 +1193,4 @@ function battleItemsFor(playerId) {
   };
 }
 
-module.exports = { BATTLE_EQUIPMENT, equipBattleItem, consumeBattleItem, battleItemsFor, TITAN_ROSTER, pickTitan, awardTitanExtras, TITAN_TOKEN_DROP_CHANCE, validateTeam, firstNonFaintedIndex, DAMAGE_VARIANCE, createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };
+module.exports = { BATTLE_EQUIPMENT, equipBattleItem, consumeBattleItem, battleItemsFor, TITAN_ROSTER, pickTitan, awardTitanExtras, TITAN_TOKEN_DROP_CHANCE, validateTeam, firstNonFaintedIndex, DAMAGE_VARIANCE, createChallenge, acceptChallenge, declineChallenge, createBattle, createSoloTitanBattle, createGroupTitanChallenge, joinGroupTitanBattle, startGroupTitanBattle, attackGroupTitan, attemptScaffitanCapture, attack, swapDroid, specialFor, isSpecialReady, chargeOf, SPECIAL_CHARGE_REQUIRED, SPECIAL_BY_RARITY, getBattleView, getBattlesForPlayer, isFainted, currentHp, createApexChallenge, joinApexBattle, startApexBattle, attackApex, APEX_ENTRY_FEE, APEX_BATTLE_HP, APEX_MAX_PARTICIPANTS };
