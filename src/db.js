@@ -1103,7 +1103,7 @@ function buyShopBasket(playerId, items) {
   if (!Array.isArray(items) || !items.length) throw new Error('Basket is empty');
 
   const resolved = items.map(({ itemId, quantity }) => {
-    const item = SHOP_CATALOG.find((i) => i.id === itemId);
+    const item = shopItemById(itemId);
     if (!item) throw new Error(`Unknown item: ${itemId}`);
     if (item.type === 'outfit' && player.ownedOutfits.includes(item.outfitId)) {
       throw new Error(`Already own ${item.name}`);
@@ -1156,7 +1156,7 @@ function buyShopBasket(playerId, items) {
 function buyShopItem(playerId, itemId, quantity = 1) {
   const player = players.get(playerId);
   if (!player) throw new Error('Player not found');
-  const item = SHOP_CATALOG.find((i) => i.id === itemId);
+  const item = shopItemById(itemId);
   if (!item) throw new Error('Item not found');
   if (item.type === 'outfit' && player.ownedOutfits.includes(item.outfitId)) {
     throw new Error('You already own this outfit');
@@ -1828,7 +1828,10 @@ function playerLeaderboardStats(playerId) {
   const dex = getDex(playerId);
   const owned = [...ownedDroids.values()].filter((d) => d.playerId === playerId);
   return {
-    encountered: dex.entries.filter((e) => e.seen || e.caught).length,
+    // Was filtering on `e.seen`, which getDex never set — so this had
+    // been silently identical to the caught count. Now uses the real
+    // encountered flag.
+    encountered: dex.entries.filter((e) => e.encountered || e.caught).length,
     caught: dex.totalCaught,
     droidsOwned: owned.length,
     battlesPlayed: player.battlesPlayed || 0,
@@ -2488,6 +2491,7 @@ function createPlayer(username, pin) {
     hasStarterDroid: false,
     padLevel: 0,
     dexSeen: [],         // speciesIds ever successfully captured — survives trading the droid away later
+    dexEncountered: [],  // speciesIds ever ENCOUNTERED (spawn seen / fought) but not necessarily caught
     dexVariantsSeen: [],  // "speciesId:variant" strings, for platinum/rusty/funky dex badges
     novaChips: 0,
     paint: 0,
@@ -2723,10 +2727,22 @@ function checkCollectionCompletionRewards(playerId) {
   });
 }
 
+// Records that a player has SEEN a species without catching it. Reveals
+// the name in the Dex but keeps it visually uncaught, and feeds the
+// separate "seen" leaderboard count.
+function markDexEncountered(playerId, speciesId) {
+  const player = players.get(playerId);
+  if (!player) return;
+  if (!player.dexEncountered) player.dexEncountered = [];
+  if (!player.dexEncountered.includes(speciesId)) player.dexEncountered.push(speciesId);
+}
+
 function markDexSeen(playerId, speciesId, variant, color) {
   const player = players.get(playerId);
   if (!player) return;
   if (!player.dexSeen.includes(speciesId)) player.dexSeen.push(speciesId);
+  if (!player.dexEncountered) player.dexEncountered = [];
+  if (!player.dexEncountered.includes(speciesId)) player.dexEncountered.push(speciesId);
   if (variant && variant !== 'standard') {
     const key = `${speciesId}:${variant}`;
     if (!player.dexVariantsSeen.includes(key)) player.dexVariantsSeen.push(key);
@@ -2744,6 +2760,7 @@ function markDexSeen(playerId, speciesId, variant, color) {
 function getDex(playerId) {
   const player = players.get(playerId);
   const seen = player ? player.dexSeen : [];
+  const encountered = player ? (player.dexEncountered || []) : [];
   const variantsSeen = player ? player.dexVariantsSeen : [];
 
   // Evolution targets (e.g. Bushy) are placed right after their origin
@@ -2784,6 +2801,9 @@ function getDex(playerId) {
     return {
       ...s,
       caught: seen.includes(s.id),
+      // Encountered but not caught — the Dex reveals the name and shows
+      // it greyed rather than as a total unknown.
+      encountered: encountered.includes(s.id),
       variantsCaught: ['platinum', 'rusty', 'funky'].filter((v) => variantsSeen.includes(`${s.id}:${v}`)),
       funkyColorsCaught,
       evolvesFromName: evolvesFromMap[s.id] || null,
@@ -2857,6 +2877,74 @@ function deletePlayerAdmin(playerId) {
 // come back after a restore) and `captureAttempts` (pure audit log, not
 // needed for gameplay continuity, would grow the snapshot unboundedly).
 // crystalTransactions is capped to the most recent 1000 for the same reason.
+// ---- Admin balance overrides ----
+// Live tuning without a redeploy. Overrides are stored separately from
+// the base catalogs and applied on read, so the defaults in code stay
+// intact and any override can be cleared to fall back to them.
+const balanceOverrides = {
+  shopPrices: {},      // shopItemId -> new cost
+  shopDisabled: [],    // shopItemIds hidden from the store
+  shopCustom: [],      // admin-added shop rows
+  modeCosts: {},       // modeKey -> { itemKey, quantity }
+  spawnDisabled: [],   // speciesIds excluded from world spawns
+  // Global multipliers, 1 = unchanged. Applied at the point of
+  // calculation so they affect every source consistently.
+  rates: {
+    capture: 1,   // capture success chance
+    crystal: 1,   // crystals per minute from farming
+    xp: 1,        // player XP gain
+    drop: 1,      // material drop chances
+  },
+};
+
+// Clamped so a typo can't make something impossible or infinite.
+function rateMultiplier(kind) {
+  const v = Number((balanceOverrides.rates || {})[kind]);
+  if (!Number.isFinite(v) || v <= 0) return 1;
+  return Math.min(20, Math.max(0.01, v));
+}
+
+// Shop catalog with admin edits applied.
+function effectiveShopCatalog() {
+  const base = SHOP_CATALOG
+    .filter((i) => !balanceOverrides.shopDisabled.includes(i.id))
+    .map((i) => {
+      const price = balanceOverrides.shopPrices[i.id];
+      return price != null ? { ...i, cost: price } : i;
+    });
+  return [...base, ...balanceOverrides.shopCustom];
+}
+
+function shopItemById(itemId) {
+  return effectiveShopCatalog().find((i) => i.id === itemId) || null;
+}
+
+// Entry cost for a mode, e.g. { itemKey: 'riftCubes', quantity: 1 }.
+function modeCost(modeKey, fallbackItem, fallbackQty) {
+  const o = balanceOverrides.modeCosts[modeKey];
+  if (o && o.itemKey) return { itemKey: o.itemKey, quantity: Math.max(0, Number(o.quantity) || 0) };
+  return { itemKey: fallbackItem, quantity: fallbackQty };
+}
+
+function isSpawnDisabled(speciesId) {
+  return balanceOverrides.spawnDisabled.includes(speciesId);
+}
+
+function setBalanceOverrides(patch) {
+  if (patch.shopPrices) Object.assign(balanceOverrides.shopPrices, patch.shopPrices);
+  if (Array.isArray(patch.shopDisabled)) balanceOverrides.shopDisabled = patch.shopDisabled;
+  if (Array.isArray(patch.shopCustom)) balanceOverrides.shopCustom = patch.shopCustom;
+  if (patch.modeCosts) Object.assign(balanceOverrides.modeCosts, patch.modeCosts);
+  if (Array.isArray(patch.spawnDisabled)) balanceOverrides.spawnDisabled = patch.spawnDisabled;
+  if (patch.rates) Object.assign(balanceOverrides.rates, patch.rates);
+  return balanceOverrides;
+}
+
+function clearShopPrice(itemId) {
+  delete balanceOverrides.shopPrices[itemId];
+  return balanceOverrides;
+}
+
 function exportState() {
   return {
     players: [...players.values()],
@@ -2876,6 +2964,7 @@ function exportState() {
     forts: require('./forts').exportForts(),
     ladder: require('./ladder').exportLadder(),
     featureToggles: { ...featureToggles },
+    balanceOverrides: JSON.parse(JSON.stringify(balanceOverrides)),
     adminCodes: { ...adminCodes },
     seasons: require('./seasonpass').exportSeasons(),
     adminLog: require('./admin').adminLog.slice(-2000),
@@ -2890,6 +2979,17 @@ function importState(state) {
   try { require('./forts').importForts(state.forts); } catch (e) {}
   try { require('./ladder').importLadder(state.ladder); } catch (e) {}
   try { Object.assign(featureToggles, state.featureToggles || {}); } catch (e) {}
+  try {
+    const bo = state.balanceOverrides;
+    if (bo) {
+      balanceOverrides.shopPrices = bo.shopPrices || {};
+      balanceOverrides.shopDisabled = bo.shopDisabled || [];
+      balanceOverrides.shopCustom = bo.shopCustom || [];
+      balanceOverrides.modeCosts = bo.modeCosts || {};
+      balanceOverrides.spawnDisabled = bo.spawnDisabled || [];
+      balanceOverrides.rates = Object.assign({ capture: 1, crystal: 1, xp: 1, drop: 1 }, bo.rates || {});
+    }
+  } catch (e) {}
   try { Object.assign(adminCodes, state.adminCodes || {}); } catch (e) {}
   try { require('./seasonpass').importSeasons(state.seasons); } catch (e) {}
   try {
@@ -2922,6 +3022,7 @@ function importState(state) {
     hasStarterDroid: false,
     padLevel: 0,
     dexSeen: [],
+    dexEncountered: [],
     dexVariantsSeen: [],
     novaChips: 0,
     paint: 0,
@@ -3226,6 +3327,15 @@ module.exports = {
   setAutoReleaseIncludeVariants,
   grantStarterDroid,
   markDexSeen,
+  markDexEncountered,
+  balanceOverrides,
+  effectiveShopCatalog,
+  shopItemById,
+  modeCost,
+  isSpawnDisabled,
+  rateMultiplier,
+  setBalanceOverrides,
+  clearShopPrice,
   getDex,
   exportState,
   importState,

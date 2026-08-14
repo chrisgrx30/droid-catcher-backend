@@ -112,7 +112,8 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   player.lastCaptureAttemptAt = now;
 
   let successChance =
-    species.baseCaptureRate * crystalBonus(crystalsSpent) * padSkillMultiplier(padAccuracy, player.padLevel);
+    species.baseCaptureRate * crystalBonus(crystalsSpent) * padSkillMultiplier(padAccuracy, player.padLevel)
+    * db.rateMultiplier('capture'); // admin balance multiplier
   // Achievement/cosmetic/attachment catch-rate buffs are applied here,
   // through the central engine, so they're capped relative to the base
   // rate rather than added as raw percentage points. That's what keeps
@@ -228,13 +229,13 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
       ach.track(playerId, isDay ? 'dayCatches' : 'nightCatches');
     } catch (e) {}
 
-    gotPaint = Math.random() < PAINT_DROP_CHANCE;
+    gotPaint = Math.random() < PAINT_DROP_CHANCE * db.rateMultiplier('drop');
     if (gotPaint) player.paint += 1;
 
-    if (species.name === 'Shambler' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
+    if (species.name === 'Shambler' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE * db.rateMultiplier('drop')) {
       player.zombieJuice = (player.zombieJuice || 0) + 1;
       gotChainMaterial = 'zombieJuice';
-    } else if (species.name === 'Illume' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
+    } else if (species.name === 'Illume' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE * db.rateMultiplier('drop')) {
       player.lumeCells = (player.lumeCells || 0) + 1;
       gotChainMaterial = 'lumeCells';
     }

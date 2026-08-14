@@ -38,7 +38,7 @@ function droidCrystalsPerMinute(droid) {
   // buff engine so they're capped alongside every other source.
   const owner = db.players.get(droid.playerId);
   const crystalBuff = owner ? buffs.multiplierFor(owner, 'crystalRate') : 1;
-  return species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier * crystalBuff;
+  return species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier * crystalBuff * db.rateMultiplier('crystal');
 }
 
 // Same formula, but assuming a base (1.0) slot multiplier — used to show
@@ -49,7 +49,7 @@ function droidPotentialCrystalsPerMinute(droid) {
   const species = speciesById(droid.speciesId);
   if (!species) return 0;
   const variantMultiplier = db.VARIANT_CRYSTAL_MULTIPLIER[droid.variant] ?? 1.0;
-  return species.baseCrystalRate * levelMultiplier(droid.level) * variantMultiplier;
+  return species.baseCrystalRate * levelMultiplier(droid.level) * variantMultiplier * db.rateMultiplier('crystal');
 }
 
 // Enriches a raw owned_droids row with species/rate info for API responses.
@@ -579,7 +579,7 @@ function releaseDroid(playerId, droidId) {
     db.crystalTransactions.push({ id: db.nextId(), playerId, amount: refund, source: 'droid_release', createdAt: Date.now() });
   }
 
-  const gotNovaChip = Math.random() < NOVA_CHIP_DROP_CHANCE;
+  const gotNovaChip = Math.random() < NOVA_CHIP_DROP_CHANCE * db.rateMultiplier('drop');
   if (gotNovaChip) player.novaChips += 1;
 
   let gotChainMaterial = null;
@@ -590,10 +590,10 @@ function releaseDroid(playerId, droidId) {
     apexCubesDropped = db.rollApexCubeDrop();
     player.apexCubes = (player.apexCubes || 0) + apexCubesDropped;
   }
-  if (species && species.collection === 'void_zombie' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
+  if (species && species.collection === 'void_zombie' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE * db.rateMultiplier('drop')) {
     player.zombieJuice = (player.zombieJuice || 0) + 1;
     gotChainMaterial = 'zombieJuice';
-  } else if (species && species.collection === 'lumen_sentinel' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE) {
+  } else if (species && species.collection === 'lumen_sentinel' && Math.random() < CHAIN_MATERIAL_DROP_CHANCE * db.rateMultiplier('drop')) {
     player.lumeCells = (player.lumeCells || 0) + 1;
     gotChainMaterial = 'lumeCells';
   }
@@ -626,7 +626,7 @@ function releaseDroidsBulk(playerId, droidIds) {
     const species = speciesById(droid.speciesId);
     const refund = Math.floor((droid.captureCost || 0) * db.RELEASE_REFUND_MULTIPLIER);
     totalRefund += refund;
-    if (Math.random() < NOVA_CHIP_DROP_CHANCE) novaChipsGained += 1;
+    if (Math.random() < NOVA_CHIP_DROP_CHANCE * db.rateMultiplier('drop')) novaChipsGained += 1;
     if (player.companionDroidId === droidId) player.companionDroidId = null;
     releasedNames.push(species?.name || 'Unknown');
     db.ownedDroids.delete(droidId);

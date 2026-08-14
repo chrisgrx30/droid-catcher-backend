@@ -562,6 +562,8 @@ const server = http.createServer(async (req, res) => {
         padRam: player.padRam,
         repairKits: player.repairKits,
         energyTubes: player.energyTubes,
+        riftCells: player.riftCells || 0,
+        ultraRiftCells: player.ultraRiftCells || 0,
         displayedBadge: player.displayedBadge,
         padRamNeededNext: db.padRequiresRam(player.padLevel + 1),
         timeWarps: player.timeWarps,
@@ -920,7 +922,7 @@ const server = http.createServer(async (req, res) => {
 
     // GET /shop -> the full catalog (materials + outfits)
     if (req.method === 'GET' && pathname === '/shop') {
-      return sendJson(res, 200, { items: db.SHOP_CATALOG });
+      return sendJson(res, 200, { items: db.effectiveShopCatalog() });
     }
 
     // POST /shop/buy-basket  { playerId, items: [{itemId, quantity}] }
@@ -1397,6 +1399,40 @@ const server = http.createServer(async (req, res) => {
         createdAt: r.createdAt || null,
       })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       return sendJson(res, 200, { codes });
+    }
+
+    // GET /admin/balance?adminCode=X -> current overrides + what can be tuned
+    if (req.method === 'GET' && pathname === '/admin/balance') {
+      if (searchParams.get('adminCode') !== db.getAdminCode('events')) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
+      return sendJson(res, 200, {
+        overrides: db.balanceOverrides,
+        shop: db.effectiveShopCatalog(),
+        baseShop: db.SHOP_CATALOG.map((i) => ({ id: i.id, name: i.name, cost: i.cost, type: i.type })),
+        materials: db.TRADEABLE_MATERIALS,
+        modes: [
+          { key: 'rift', label: 'Space Rift entry', defaultItem: 'riftCubes', defaultQty: 1 },
+          { key: 'riftCapture', label: 'Rift wild capture', defaultItem: 'riftCells', defaultQty: 1 },
+          { key: 'riftBossCapture', label: 'Rift boss capture', defaultItem: 'ultraRiftCells', defaultQty: 1 },
+        ],
+        species: db.droidSpecies
+          .filter((s) => !s.eventOnly && !s.riftOnly)
+          .map((s) => ({ id: s.id, name: s.name, rarity: s.rarity, collection: s.collection, spawnWeight: s.spawnWeight,
+                         disabled: db.isSpawnDisabled(s.id) })),
+      });
+    }
+
+    // POST /admin/balance  { adminCode, ...patch }
+    if (req.method === 'POST' && pathname === '/admin/balance') {
+      const body = await readBody(req);
+      if (body.adminCode !== db.getAdminCode('events')) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
+      const { adminCode, clearPrice, ...patch } = body;
+      if (clearPrice) db.clearShopPrice(clearPrice);
+      else db.setBalanceOverrides(patch);
+      return sendJson(res, 200, { overrides: db.balanceOverrides, shop: db.effectiveShopCatalog() });
     }
 
     // POST /admin/validate-code  { adminCode } -> validation only, no side effects

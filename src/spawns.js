@@ -77,6 +77,8 @@ function weightedRandomSpecies(refLng, beaconActive = false, cellKey = null) {
   const daytime = isDaytime(refLng);
   const now = Date.now();
   const weights = db.droidSpecies.map((sp) => {
+    // Admin can switch individual droids off from the balance panel.
+    if (db.isSpawnDisabled(sp.id)) return 0;
     let w = sp.spawnWeight;
     if (daytime) {
       if (sp.alignment === 'light') w *= ALIGNMENT_BIAS;
@@ -281,6 +283,9 @@ function getNearbySpawns(lat, lng, radiusMeters = 500, playerId = null) {
     const dist = geo.distanceMeters(lat, lng, spawn.lat, spawn.lng);
     if (dist <= radiusMeters) {
       const species = db.droidSpecies.find((s) => s.id === spawn.speciesId);
+      // Seeing it on a scan counts as encountered — reveals the name in
+      // the Dex without marking it caught.
+      if (playerId && species) db.markDexEncountered(playerId, species.id);
       results.push({
         id: spawn.id,
         speciesId: species.id,

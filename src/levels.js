@@ -123,8 +123,9 @@ function awardXp(playerId, action, amount) {
   const player = db.players.get(playerId);
   if (!player) return null;
 
-  const gain = amount != null ? amount : (XP_ACTIONS[action] || 0);
-  if (!gain) return null;
+  const rawGain = amount != null ? amount : (XP_ACTIONS[action] || 0);
+  if (!rawGain) return null;
+  const gain = Math.max(1, Math.round(rawGain * db.rateMultiplier('xp')));
   if (player.playerLevel >= MAX_LEVEL) {
     // Still track lifetime XP past the cap — Re-Boot resets the level
     // but lifetime is useful for achievements and leaderboards.

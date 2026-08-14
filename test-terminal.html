@@ -435,7 +435,12 @@
   @keyframes riftPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 
   .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 210px; margin: 0 auto; }
+  .dex-card.seen { border-style: dashed; opacity: 0.85; }
+  .dex-card.seen .dc-name { color: var(--text-dim); font-style: italic; }
   .rt-flagged { box-shadow: inset 0 0 0 2px rgba(42,157,74,0.85); }
+  /* Corner marker so it never hides the tile's own icon. */
+  .rt-flag-marker { position: absolute; top: -2px; right: -1px; font-size: 9px; line-height: 1; pointer-events: none; text-shadow: 0 0 3px #000; }
+  .rt { position: relative; }
   .rift-controls { display:flex; align-items:center; gap:14px; justify-content:space-between; }
   .joy-base { position:relative; width:120px; height:120px; border-radius:50%; flex-shrink:0;
     background:radial-gradient(circle at 50% 50%, rgba(95,216,224,0.10), rgba(0,0,0,0.35));
@@ -580,16 +585,23 @@
   /* ---- control pad plug-ins ---- */
   .plugin-row { display: flex; gap: 8px; margin-top: 8px; }
   .plugin-btn {
-    flex: 1; margin-top: 0; padding: 9px 6px;
+    flex: 1; margin-top: 0; padding: 12px 6px;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
     line-height: 1.2;
   }
   .plugin-btn.growth { background: #4cb8e8; border-color: #4cb8e8; color: #04181a; }
   .plugin-btn.timewarp { background: #c8ced6; border-color: #c8ced6; color: #1a1d20; }
   .plugin-btn:disabled { background: var(--panel-raised); border-color: var(--line); color: var(--text-dim); }
-  .plugin-btn .pb-icon { font-size: 16px; }
-  .plugin-btn .pb-label { font-size: 10px; font-weight: 700; }
-  .plugin-btn .pb-sub { font-size: 8px; opacity: 0.8; }
+  /* Icons bumped well up — at 16px these read as decoration rather than
+     the main thing you're tapping. */
+  .plugin-btn .pb-icon {
+    font-size: 30px; line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.45));
+  }
+  .plugin-btn .pb-label { font-size: 11px; font-weight: 700; }
+  .plugin-btn .pb-sub { font-size: 9px; opacity: 0.9; font-weight: 600; }
+  /* Greyed-out state kept legible rather than washed out. */
+  .plugin-btn:disabled .pb-icon { opacity: 0.55; filter: grayscale(1); }
   .plugin-btn.active { box-shadow: 0 0 10px rgba(76,184,232,0.7); }
 
   .map-legend { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
@@ -1371,6 +1383,11 @@
     <div style="font-size:10px; color:var(--text-dim); margin-bottom:10px;">Companions don't farm crystals themselves — instead, whichever one you equip gives your whole pilot a passive buff. Only one active at a time.</div>
     <div id="companionSlot"><div class="empty">No companion equipped</div></div>
   </div>
+  <div class="panel" id="buddyPanel" style="margin-top:16px;">
+    <div class="panel-title">Mastery Buddy</div>
+    <div id="buddyBody"><div class="empty">No buddy droid assigned</div></div>
+  </div>
+
   <div class="panel" id="yourCompanionsPanel" style="margin-top:16px;">
     <div class="panel-title" style="margin-bottom:6px;">Your Companions</div>
     <input type="text" id="companionFilter" placeholder="Filter by species…" style="font-size:10px; margin-bottom:8px;">
@@ -1431,6 +1448,7 @@
   <div class="panel" id="warehouseMainPanel">
     <div class="panel-title">Owned Droids <span style="color:var(--text-dim); font-weight:400; text-transform:none; font-size:9px;">(not farming — rarity, species, variant)</span></div>
     <input type="text" id="warehouseSearch" placeholder="Search by name...">
+    <select id="warehouseJump" style="margin-top:6px;"><option value="">Jump to droid…</option></select>
     <div style="display:flex; gap:6px; margin:10px 0;">
       <button id="btnSelectAllDroids" class="ghost" style="margin-top:0;">Select All</button>
       <button id="btnReleaseSelected" class="ghost" style="margin-top:0; color:var(--danger); border-color:var(--danger);">Release Selected</button>
@@ -2038,6 +2056,33 @@
       <div id="giftSummary" style="font-size:9px; color:var(--text-dim); margin-top:10px;"></div>
       <button id="btnSendGift" class="gift-pink" style="margin-top:8px;">Send Gift</button>
       <button id="btnCancelGift" class="ghost" style="margin-top:6px; font-size:9px; padding:7px;">Cancel</button>
+    </div>
+  </div>
+
+  <div class="panel" id="adminBalancePanel" style="margin-top:16px;">
+    <div class="panel-title">Game Balance</div>
+    <button id="btnOpenBalance">⚖️ Adjust Balance</button>
+    <div id="balanceBuilder" style="display:none; margin-top:10px;">
+
+      <div class="gift-group-title">Global Rates</div>
+      <div style="font-size:8px; color:var(--text-dim); margin-bottom:4px;">1 = normal. 2 = double. 0.5 = half. Clamped to 0.01–20.</div>
+      <div id="balRates"></div>
+
+      <div class="gift-group-title" style="margin-top:12px;">Shop Prices</div>
+      <div style="font-size:8px; color:var(--text-dim); margin-bottom:4px;">Change a price, or untick to hide an item from the store. Blank price = use default.</div>
+      <div id="balShop"></div>
+
+      <div class="gift-group-title" style="margin-top:12px;">Mode Entry Costs</div>
+      <div style="font-size:8px; color:var(--text-dim); margin-bottom:4px;">Which item a mode consumes, and how many. Quantity 0 makes it free.</div>
+      <div id="balModes"></div>
+
+      <div class="gift-group-title" style="margin-top:12px;">World Spawns</div>
+      <div style="font-size:8px; color:var(--text-dim); margin-bottom:4px;">Untick to stop a droid spawning in Override. Does not affect events or Rifts.</div>
+      <input type="text" id="balSpawnSearch" placeholder="Filter droids…" style="margin-bottom:6px;">
+      <div id="balSpawns" style="max-height:260px; overflow-y:auto;"></div>
+
+      <button id="btnSaveBalance" class="primary" style="margin-top:12px;">Save Changes</button>
+      <button id="btnCloseBalance" class="ghost" style="margin-top:6px; font-size:9px; padding:7px;">Close</button>
     </div>
   </div>
 
@@ -3296,8 +3341,11 @@ async function refreshWorkshop() {
     state.growths = data.growths;
     state.repairKits = data.repairKits;
     state.energyTubes = data.energyTubes;
+    state.riftCells = data.riftCells || 0;
+    state.ultraRiftCells = data.ultraRiftCells || 0;
     state.equippedCosmetics = data.equippedCosmetics;
     renderBuffSummary(data.buffs);
+    refreshBuddyPanel();
     renderOfflineProjection(data.offlineProjection);
     $('statCritChance').textContent = Math.round(data.critChance * 100) + '%';
     $('padUpgradeCost').textContent = data.nextPadUpgradeCost;
@@ -3466,6 +3514,7 @@ function sortedDroidsForDisplay() {
 let selectedDroidIds = new Set();
 
 function renderDroids() {
+  refreshWarehouseJump();
   const list = $('droidList');
   const searchTerm = ($('warehouseSearch').value || '').trim().toLowerCase();
   // Busy droids (Fort garrison, companion, buddy, dealer) are now shown
@@ -4080,6 +4129,27 @@ function showReleaseResultPopup(names, totalRefund, novaChipsGained, scaffitanTu
 }
 
 $('warehouseSearch').oninput = () => renderDroids();
+
+// Dropdown of everything currently in the warehouse, with counts.
+// Picking one filters the list to it — quicker than typing on mobile.
+function refreshWarehouseJump() {
+  const sel = $('warehouseJump');
+  if (!sel) return;
+  const counts = {};
+  (state.droids || []).filter((d) => !d.workshopSlotId).forEach((d) => {
+    counts[d.speciesName] = (counts[d.speciesName] || 0) + 1;
+  });
+  const names = Object.keys(counts).sort();
+  const current = sel.value;
+  sel.innerHTML = `<option value="">Jump to droid… (${names.length} species)</option>`
+    + names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)} ×${counts[n]}</option>`).join('');
+  if (names.includes(current)) sel.value = current;
+}
+
+$('warehouseJump').onchange = () => {
+  $('warehouseSearch').value = $('warehouseJump').value;
+  renderDroids();
+};
 
 $('autoReleaseToggle').onchange = async (e) => {
   try {
@@ -5632,6 +5702,7 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('guildLeaderboardPanel', 'guildleaderboard');
   applyPanelBackground('guildChatPanel', 'guildchat');
   applyPanelBackground('companionMainPanel', 'companion');
+  applyPanelBackground('buddyPanel', 'buddy');
   applyPanelBackground('yourCompanionsPanel', 'yourcompanions');
   applyPanelBackground('inventoryMainPanel', 'inventory');
   applyPanelBackground('shopMainPanel', 'shop');
@@ -5784,7 +5855,9 @@ async function refreshDex() {
   if (!state.playerId) return;
   try {
     const data = await api('GET', `/players/${state.playerId}/dex`);
-    $('dexProgress').textContent = `${data.totalCaught} / ${data.totalSpecies} (${data.percentComplete}%)`;
+    // Show seen alongside caught so partial progress is visible.
+    const seenCount = (data.entries || []).filter((e) => e.encountered || e.caught).length;
+    $('dexProgress').textContent = `${data.totalCaught} caught · ${seenCount} seen / ${data.totalSpecies} (${data.percentComplete}%)`;
     state.dexCaughtIds = new Set(data.entries.filter((e) => e.caught).map((e) => e.id));
     state.dexCaughtVariants = new Set();
     data.entries.forEach((e) => (e.variantsCaught || []).forEach((v) => state.dexCaughtVariants.add(`${e.id}:${v}`)));
@@ -5812,7 +5885,7 @@ const DEX_GROUP_ORDER = ['mythical', 'nature', 'wildcard', 'football', 'void_zom
 
 function buildDexCard(s) {
   const card = document.createElement('div');
-  card.className = 'dex-card ' + (s.caught ? 'caught' : 'uncaught');
+  card.className = 'dex-card ' + (s.caught ? 'caught' : s.encountered ? 'uncaught seen' : 'uncaught');
   card.style.cursor = 'pointer';
   const caughtVariants = s.variantsCaught || [];
   const rustyCaught = caughtVariants.includes('rusty');
@@ -5821,7 +5894,7 @@ function buildDexCard(s) {
   card.innerHTML = `
     ${s.isEvolutionOnly ? '<span title="Only obtained by evolving another species" style="position:absolute; top:4px; left:4px; font-size:9px; font-weight:700; color:var(--cyan); background:rgba(95,216,224,0.15); border:1px solid var(--cyan-dim); border-radius:3px; width:14px; height:14px; display:flex; align-items:center; justify-content:center;">e</span>' : ''}
     <div class="dc-icon"></div>
-    <div class="dc-name">${s.caught ? s.name : '???'}</div>
+    <div class="dc-name">${s.caught || s.encountered ? s.name : '???'}</div>
     <div class="dc-rarity ${s.rarity}">${s.rarity}</div>
     <div class="variant-dots">
       <span class="variant-dot rusty ${rustyCaught ? 'caught' : ''}" title="Rusty${rustyCaught ? ' — caught' : ' — not yet caught'}"></span>
@@ -6080,12 +6153,12 @@ function renderEventDex(entries) {
   grid.innerHTML = '';
   deckMap[state.activeEventDeck].forEach((s) => {
     const card = document.createElement('div');
-    card.className = 'dex-card ' + (s.caught ? 'caught' : 'uncaught');
+    card.className = 'dex-card ' + (s.caught ? 'caught' : s.encountered ? 'uncaught seen' : 'uncaught');
     card.style.cursor = 'pointer';
     const caughtVariants = s.variantsCaught || [];
     card.innerHTML = `
       <div class="dc-icon"></div>
-      <div class="dc-name">${s.caught ? s.name : '???'}</div>
+      <div class="dc-name">${s.caught || s.encountered ? s.name : '???'}</div>
       <div class="dc-rarity ${s.rarity}">${s.rarity}</div>
       <div class="variant-dots">
         <span class="variant-dot rusty ${caughtVariants.includes('rusty') ? 'caught' : ''}" title="Rusty"></span>
@@ -6567,6 +6640,140 @@ async function loadAdminLog() {
     showGuildResultPopup(false, (e && e.message) || 'Could not load the log.');
   }
 }
+
+// ---- Admin balance panel ----
+// Live game tuning. Everything here is an override layered over the code
+// defaults, so clearing a field restores the original value.
+let balData = null;
+let balSpawnFilter = '';
+
+$('btnOpenBalance').onclick = async () => {
+  const adminCode = promptAdminCode('balance');
+  if (!adminCode) return;
+  try {
+    balData = await api('GET', `/admin/balance?adminCode=${encodeURIComponent(adminCode)}`);
+    balData.adminCode = adminCode;
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Access denied.');
+    return;
+  }
+  renderBalance();
+  $('balanceBuilder').style.display = 'block';
+  $('btnOpenBalance').style.display = 'none';
+};
+
+$('btnCloseBalance').onclick = () => {
+  $('balanceBuilder').style.display = 'none';
+  $('btnOpenBalance').style.display = 'block';
+};
+
+$('balSpawnSearch').oninput = () => {
+  balSpawnFilter = $('balSpawnSearch').value.trim().toLowerCase();
+  renderBalanceSpawns();
+};
+
+function renderBalance() {
+  const o = balData.overrides || {};
+  const disabled = new Set(o.shopDisabled || []);
+  const prices = o.shopPrices || {};
+
+  $('balShop').innerHTML = (balData.baseShop || []).map((i) => `
+    <div class="gift-mat-row">
+      <label style="flex:1; display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" class="bal-shop-on" data-id="${escapeHtml(i.id)}" ${disabled.has(i.id) ? '' : 'checked'}>
+        <span class="gm-name">${escapeHtml(i.name)} <span style="color:var(--text-dim); font-size:8px;">default ${i.cost}✦</span></span>
+      </label>
+      <input type="number" min="0" class="bal-shop-price" data-id="${escapeHtml(i.id)}"
+             value="${prices[i.id] != null ? prices[i.id] : ''}" placeholder="${i.cost}" style="width:90px;">
+    </div>`).join('');
+
+  const rates = o.rates || {};
+  const RATE_DEFS = [
+    { key: 'capture', label: 'Capture Rate', note: 'chance of a successful catch' },
+    { key: 'crystal', label: 'Crystal Rate', note: 'crystals per minute from farming' },
+    { key: 'xp', label: 'XP Multiplier', note: 'player XP from every action' },
+    { key: 'drop', label: 'Drop Rate', note: 'Paint, Nova Chips, chain materials' },
+  ];
+  $('balRates').innerHTML = RATE_DEFS.map((r) => `
+    <div class="gift-mat-row">
+      <span class="gm-name" style="flex:1;">${r.label}<br><span style="color:var(--text-dim); font-size:8px;">${r.note}</span></span>
+      <input type="number" step="0.05" min="0.01" max="20" class="bal-rate" data-key="${r.key}"
+             value="${rates[r.key] != null ? rates[r.key] : 1}" style="width:80px;">
+    </div>`).join('');
+
+  const modeCosts = o.modeCosts || {};
+  $('balModes').innerHTML = (balData.modes || []).map((m) => {
+    const cur = modeCosts[m.key] || {};
+    const itemKey = cur.itemKey || m.defaultItem;
+    const qty = cur.quantity != null ? cur.quantity : m.defaultQty;
+    return `<div class="gift-mat-row">
+      <span class="gm-name" style="flex:1;">${escapeHtml(m.label)}</span>
+      <select class="bal-mode-item" data-key="${escapeHtml(m.key)}" style="width:130px;">
+        ${(balData.materials || []).map((mat) =>
+          `<option value="${escapeHtml(mat.key)}" ${mat.key === itemKey ? 'selected' : ''}>${escapeHtml(mat.name)}</option>`).join('')}
+      </select>
+      <input type="number" min="0" class="bal-mode-qty" data-key="${escapeHtml(m.key)}" value="${qty}" style="width:60px;">
+    </div>`;
+  }).join('');
+
+  renderBalanceSpawns();
+}
+
+function renderBalanceSpawns() {
+  const rows = (balData.species || []).filter((s) =>
+    !balSpawnFilter || s.name.toLowerCase().includes(balSpawnFilter));
+  $('balSpawns').innerHTML = rows.length ? rows.map((s) => `
+    <div class="gift-mat-row">
+      <label style="flex:1; display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" class="bal-spawn-on" data-id="${s.id}" ${s.disabled ? '' : 'checked'}>
+        <span class="gm-name">${escapeHtml(s.name)}
+          <span style="color:var(--text-dim); font-size:8px;">${escapeHtml(s.rarity)} · weight ${s.spawnWeight}</span></span>
+      </label>
+    </div>`).join('') : '<div class="empty">No droids match</div>';
+}
+
+$('btnSaveBalance').onclick = () => guardedAction('savebal', async () => {
+  const shopPrices = {};
+  const clearedPrices = [];
+  document.querySelectorAll('.bal-shop-price').forEach((i) => {
+    const raw = i.value.trim();
+    if (raw === '') clearedPrices.push(i.dataset.id);
+    else shopPrices[i.dataset.id] = Math.max(0, Math.floor(Number(raw) || 0));
+  });
+  const shopDisabled = [...document.querySelectorAll('.bal-shop-on')]
+    .filter((c) => !c.checked).map((c) => c.dataset.id);
+
+  const modeCosts = {};
+  document.querySelectorAll('.bal-mode-qty').forEach((q) => {
+    const key = q.dataset.key;
+    const sel = document.querySelector(`.bal-mode-item[data-key="${key}"]`);
+    modeCosts[key] = { itemKey: sel ? sel.value : null, quantity: Math.max(0, Math.floor(Number(q.value) || 0)) };
+  });
+
+  const rates = {};
+  document.querySelectorAll('.bal-rate').forEach((i) => {
+    const v = Number(i.value);
+    rates[i.dataset.key] = Number.isFinite(v) && v > 0 ? v : 1;
+  });
+
+  const spawnDisabled = [...document.querySelectorAll('.bal-spawn-on')]
+    .filter((c) => !c.checked).map((c) => Number(c.dataset.id));
+
+  try {
+    // Cleared prices are removed one at a time so they fall back to the
+    // code default rather than being stored as 0.
+    for (const id of clearedPrices) {
+      await api('POST', '/admin/balance', { adminCode: balData.adminCode, clearPrice: id });
+    }
+    const r = await api('POST', '/admin/balance', {
+      adminCode: balData.adminCode, shopPrices, shopDisabled, modeCosts, spawnDisabled, rates,
+    });
+    balData.overrides = r.overrides;
+    showGuildResultPopup(true, 'Balance changes saved and live.');
+  } catch (e) {
+    showGuildResultPopup(false, (e && e.message) || 'Could not save balance changes.');
+  }
+});
 
 // ---- Redeem code bundle builder ----
 // Reuses /admin/gift-options for the material/item/species lists so the
@@ -7883,7 +8090,13 @@ function renderRiftMission(d) {
       // Player-dropped flags tint the tile green so visited ground is
       // obvious at a glance, and show a marker when nothing else is there.
       const flagged = (d.flags || []).some((f) => f.x === x && f.y === y);
-      if (flagged && !ico) ico = '<span class="rt-ico">🚩</span>';
+      // Always show the flag, even when something else occupies the tile
+      // (including the player standing on it). Previously it only drew on
+      // otherwise-empty tiles, so dropping one under yourself looked like
+      // nothing happened.
+      if (flagged) {
+        ico += '<span class="rt-flag-marker">🚩</span>';
+      }
       html += `<div class="rt ${isWall ? 'wall' : 'floor'}${flagged ? ' rt-flagged' : ''}" style="background-image:url('/assets/rift/${tile}.png');">${ico}</div>`;
     }
   }
@@ -8084,6 +8297,43 @@ $('btnAutoAssign').onclick = () => guardedAction('autoassign', async () => {
   } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not auto-assign.'); }
 });
 
+// Mastery buddy: icon, stats, and progress toward the mastery cap.
+async function refreshBuddyPanel() {
+  const el = $('buddyBody');
+  if (!el || !state.playerId) return;
+  let d;
+  try { d = await api('GET', `/mastery/${state.playerId}`); } catch (e) { return; }
+
+  if (!d.buddyDroidId) {
+    el.innerHTML = `<div class="empty">No buddy droid assigned — set one from any droid's stats page (needs Level ${d.requiredLevel}+)</div>`;
+    return;
+  }
+  const droid = (state.droids || []).find((x) => x.id === d.buddyDroidId);
+  const pct = Math.min(100, Math.round((d.mastery / d.masteryCap) * 100));
+  const atCap = d.mastery >= d.masteryCap;
+
+  el.innerHTML = `
+    <div class="trade-card">
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <span class="buddy-icon" style="flex-shrink:0;"></span>
+        <div style="flex:1; min-width:0;">
+          <div>★ ${droid ? escapeHtml(droid.speciesName) : 'Buddy droid'}${droid ? ` · Lv${droid.level}` : ''}
+            ${droid ? `<span class="spawn-rarity ${droid.rarity}" style="font-size:8px;">${droid.rarity}</span>` : ''}</div>
+          ${droid ? `<div style="color:var(--text-dim); font-size:9px;">HP ${droid.currentHp}/${droid.hp} · ATK ${droid.attack}</div>` : ''}
+          <div style="color:var(--text-dim); font-size:9px;">Mastery ${d.mastery}/${d.masteryCap} · +${Math.round((d.statMultiplier - 1) * 100)}% stats</div>
+          <div style="color:var(--text-dim); font-size:9px;">${atCap ? 'Fully mastered' : (d.hoursUntilNextLevel != null ? `Next level in ~${d.hoursUntilNextLevel}h` : 'Progressing')}</div>
+        </div>
+      </div>
+      <div style="margin-top:8px; height:8px; background:var(--panel-raised); border-radius:4px; overflow:hidden;">
+        <div style="width:${pct}%; height:100%; background:${atCap ? 'var(--legendary)' : 'var(--cyan)'};"></div>
+      </div>
+      <div style="font-size:8px; color:var(--text-dim); margin-top:3px;">${pct}% to max mastery</div>
+    </div>`;
+
+  const icon = el.querySelector('.buddy-icon');
+  if (icon && droid) icon.appendChild(createDroidVisual(droid, 52));
+}
+
 // ---- Rift joystick ----
 // Drag from the base; the knob follows within a radius and the dominant
 // axis becomes the move direction. Steps are rate-limited while held so
@@ -8263,6 +8513,15 @@ $('btnRiftLaunch').onclick = async () => {
       };
     });
     box.querySelector('#riftGo').onclick = async () => {
+      // Warn if they're going in unable to capture anything. Not a block —
+      // a run for loot and boss kills is still perfectly valid.
+      const cells = Number(state.riftCells || 0);
+      const ultra = Number(state.ultraRiftCells || 0);
+      if (cells < 1 && ultra < 1) {
+        if (!confirm('You have no Rift Cells or Ultra Rift Cells.\n\nYou can still fight, loot and beat bosses — but you will not be able to capture anything.\n\nEnter anyway?')) return;
+      } else if (cells < 1) {
+        if (!confirm('You have no Rift Cells, so you cannot capture wild droids.\n\nYou can still capture bosses with your Ultra Rift Cells.\n\nEnter anyway?')) return;
+      }
       try {
         const r = await api('POST', '/rift/start', { playerId: state.playerId, teamDroidIds: [...picked] });
         overlay.style.display = 'none';
@@ -8313,7 +8572,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.14.5
+// QOL v0.15.2
 // ============================================================
 
 // ---- guild invites by player ID ----

@@ -339,8 +339,10 @@ function startMission(playerId, teamDroidIds) {
   // Entry cost (confirmed): a Space Rift run consumes one Rift Cube.
   // Charged only after the team validates, so a rejected team doesn't
   // silently eat the cube.
-  if ((player.riftCubes || 0) < RIFT_ENTRY_CUBES) {
-    throw new RiftError('NO_RIFT_CUBE', 'You need a Rift Cube to enter a Space Rift — buy one in the Shop');
+  // Entry cost is admin-tunable from the balance panel.
+  const entry = db.modeCost('rift', 'riftCubes', RIFT_ENTRY_CUBES);
+  if (entry.quantity > 0 && (player[entry.itemKey] || 0) < entry.quantity) {
+    throw new RiftError('NO_RIFT_CUBE', `You need ${entry.quantity} ${entry.itemKey} to enter a Space Rift — buy them in the Shop`);
   }
 
   const workshop = require('./workshop');
@@ -366,7 +368,7 @@ function startMission(playerId, teamDroidIds) {
   const map = buildMap(seed);
 
   // Team validated and map built — safe to charge now.
-  player.riftCubes -= RIFT_ENTRY_CUBES;
+  if (entry.quantity > 0) player[entry.itemKey] -= entry.quantity;
 
   player.riftMission = {
     seed,
@@ -1005,7 +1007,10 @@ function viewFor(playerId) {
 function teamCandidates(playerId) {
   const workshop = require('./workshop');
   return [...db.ownedDroids.values()]
-    .filter((d) => d.playerId === playerId && !d.fortId)
+    // Mirror every rejection startMission makes, so nothing appears in
+    // the picker that would be refused on launch. Previously droids out
+    // on a Smuggler's Run were listed but couldn't actually be taken.
+    .filter((d) => d.playerId === playerId && !d.fortId && !d.smugglerRun)
     .map((d) => {
       const e = workshop.enrichDroid(d);
       return {
