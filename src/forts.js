@@ -606,6 +606,7 @@ function claimDailyTokens(playerId) {
   const today = new Date().toISOString().slice(0, 10);
   const now = Date.now();
   let granted = 0;
+  let grantedCrystals = 0;
   const fromForts = [];
 
   guildFortsOf(player.guildId).forEach((fort) => {
@@ -615,14 +616,49 @@ function claimDailyTokens(playerId) {
     const rate = fort.tokenRate || 1;
     fort.tokenClaims[playerId] = today;
     granted += rate;
-    fromForts.push({ fortId: fort.id, name: fort.name, tokens: rate });
+
+    // Crystal Generator tier (L5+) and any built Crystal Generators pay
+    // out crystals alongside the daily tokens.
+    let crystals = 0;
+    if (fortHas(fort, 'crystalYield')) crystals += 500 * (fort.level || 1);
+    crystals += defenceBonuses(fort).crystals;
+    if (crystals > 0) {
+      player.crystalBalance = (player.crystalBalance || 0) + crystals;
+      db.crystalTransactions.push({
+        id: db.nextId(), playerId, amount: crystals,
+        source: 'fort_yield', createdAt: now,
+      });
+      grantedCrystals += crystals;
+    }
+
+    // Repair Station tier (L3+) — the garrison mends itself between
+    // claims rather than needing Repair Kits spent on it.
+    let repaired = 0;
+    if (fortHas(fort, 'autoRepair')) {
+      garrisonOf(fort).forEach((id) => {
+        const d = db.ownedDroids.get(id);
+        if (d && (d.currentHpDamage || 0) > 0) {
+          d.currentHpDamage = 0;
+          repaired++;
+          try { require('./memory').bump(d, 'timesHealed'); } catch (e) {}
+        }
+      });
+    }
+
+    // Rift Shield structures regenerate the Fort's shield daily.
+    const regen = defenceBonuses(fort).regen;
+    if (regen > 0 && fort.shield < fort.maxShield) {
+      fort.shield = Math.min(fort.maxShield, fort.shield + Math.round(fort.maxShield * regen));
+    }
+
+    fromForts.push({ fortId: fort.id, name: fort.name, tokens: rate, crystals, repaired });
   });
 
   if (!granted) {
     throw new FortError('NOTHING_TO_CLAIM', "You've already claimed today, or your Forts' reward windows have expired");
   }
   player.guildTokens = (player.guildTokens || 0) + granted;
-  return { granted, fromForts, guildTokens: player.guildTokens };
+  return { granted, grantedCrystals, fromForts, guildTokens: player.guildTokens, crystalBalance: player.crystalBalance };
 }
 
 // Extending the reward window — 100,000 crystals for another 7 days.

@@ -84,6 +84,20 @@ function fortDefenceMultipliers(fort) {
   let hp = 1 + (fort.defenderBonus || 0) + adj;
   let atk = 1 + (fort.defenderBonus || 0) + adj;
   let shield = 1 + adj;
+
+  // Built defence structures — Turret raises damage, Guard Droid reduces
+  // damage taken (modelled as effective HP), Wall raises shield.
+  try {
+    const bonuses = forts.defenceBonuses(fort);
+    atk += bonuses.damage || 0;
+    hp += bonuses.defence || 0;
+    shield += bonuses.shield || 0;
+    // Battle Arena tier (L11+) — the garrison trains here.
+    if (forts.fortHas(fort, 'arenaDefence')) {
+      atk += 0.15;
+      hp += 0.15;
+    }
+  } catch (e) { /* defence bonuses are additive extras, never fatal */ }
   (fort.upgradeSlots || []).forEach((slot) => {
     if (!slot || !slot.itemId) return;
     try {

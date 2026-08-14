@@ -120,6 +120,18 @@ class RiftError extends Error {
   constructor(code, message) { super(message); this.code = code; }
 }
 
+// Rift Scanner tier (Fort L9+) improves Rift loot for the whole guild.
+// Reads the player's guild Forts; any one qualifying is enough.
+function riftLootMultiplier(playerId) {
+  try {
+    const player = db.players.get(playerId);
+    if (!player || !player.guildId) return 1;
+    const forts = require('./forts');
+    const owned = [...forts.forts.values()].filter((f) => f.guildId === player.guildId);
+    return owned.some((f) => forts.fortHas(f, 'riftBonus')) ? 1.25 : 1;
+  } catch (e) { return 1; }
+}
+
 // ============================================================
 // MAP GENERATION
 // ============================================================
@@ -371,6 +383,7 @@ function startMission(playerId, teamDroidIds) {
   if (entry.quantity > 0) player[entry.itemKey] -= entry.quantity;
 
   player.riftMission = {
+    playerId,
     seed,
     status: 'active',
     startedAt: Date.now(),
@@ -709,10 +722,12 @@ function capture(playerId, crystalsSpent = 0) {
 
 function bossReward(bossId, m) {
   const crystals = 2000 + Math.floor(Math.random() * 3000);
+  const scanner = riftLootMultiplier(m.playerId);
+  crystals = Math.round(crystals * scanner);
   m.loot.crystals += crystals;
   const mats = ['novaChips', 'paint', 'repairKits', 'augmentCores'];
   const mat = mats[Math.floor(Math.random() * mats.length)];
-  const amount = 1 + Math.floor(Math.random() * 3);
+  const amount = Math.max(1, Math.round((1 + Math.floor(Math.random() * 3)) * scanner));
   m.loot.materials[mat] = (m.loot.materials[mat] || 0) + amount;
   return { crystals, material: mat, amount, text: `Recovered ${crystals} crystals and ${amount} ${mat}.` };
 }
