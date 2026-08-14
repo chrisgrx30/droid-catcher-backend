@@ -837,6 +837,21 @@ function finish(player, m, escaped, earlyExtract = false) {
 
   // Captured droids join the collection, fully healed per the spec.
   const gained = [];
+  // Droid Memory — every droid that went in records the mission, and
+  // any bosses this run brought down.
+  try {
+    const memory = require('./memory');
+    (m.team || []).forEach((t) => {
+      const d = db.ownedDroids.get(t.droidId || t.id);
+      if (!d) return;
+      memory.bumpMany(d, {
+        riftMissions: 1,
+        missionsCompleted: 1,
+        bossesDefeated: (m.bossesDefeated || []).length,
+      });
+    });
+  } catch (e) {}
+
   m.captured.forEach((defId) => {
     // Bosses are capturable now, and they live in BOSSES, not
     // DROID_BY_ID — looking only in DROID_BY_ID would silently drop a

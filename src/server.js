@@ -14,6 +14,7 @@ const db = require('./db');
 const spawnsModule = require('./spawns');
 const captureModule = require('./capture');
 const joystickModule = require('./joystick');
+const memoryModule = require('./memory');
 const levelsModule = require('./levels');
 const buffsModule = require('./buffs');
 const attachmentsModule = require('./attachments');
@@ -1433,6 +1434,47 @@ const server = http.createServer(async (req, res) => {
       if (clearPrice) db.clearShopPrice(clearPrice);
       else db.setBalanceOverrides(patch);
       return sendJson(res, 200, { overrides: db.balanceOverrides, shop: db.effectiveShopCatalog() });
+    }
+
+    // GET /memory/:droidId -> full Droid Memory view
+    if (req.method === 'GET' && pathname.match(/^\/memory\/\d+$/)) {
+      const droidId = Number(pathname.split('/')[2]);
+      const view = memoryModule.viewFor(droidId);
+      if (!view) return sendJson(res, 404, { error: 'NO_DROID', message: 'Droid not found' });
+      return sendJson(res, 200, view);
+    }
+
+    // GET /chronicle/:playerId -> player history summary + standout droids
+    if (req.method === 'GET' && pathname.match(/^\/chronicle\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      const player = db.players.get(playerId);
+      if (!player) return sendJson(res, 404, { error: 'NO_PLAYER', message: 'Player not found' });
+      const owned = [...db.ownedDroids.values()].filter((d) => d.playerId === playerId);
+      const dex = db.getDex(playerId);
+      const sectors = new Set();
+      owned.forEach((d) => { if (d.history && d.history.capturedSector) sectors.add(d.history.capturedSector); });
+      const totals = owned.reduce((acc, d) => {
+        const h = d.history || {};
+        acc.battles += h.battles || 0;
+        acc.bossesDefeated += h.bossesDefeated || 0;
+        acc.riftMissions += h.riftMissions || 0;
+        acc.crystalsGenerated += h.crystalsGenerated || 0;
+        acc.riftStormsSurvived += h.riftStormsSurvived || 0;
+        return acc;
+      }, { battles: 0, bossesDefeated: 0, riftMissions: 0, crystalsGenerated: 0, riftStormsSurvived: 0 });
+      const legends = memoryModule.topDroidsFor(playerId, 3);
+      return sendJson(res, 200, {
+        playerId,
+        username: player.username,
+        sectorsDiscovered: sectors.size,
+        droidsCaptured: dex.totalCaught,
+        droidsOwned: owned.length,
+        battlesWon: player.battlesWon || 0,
+        battlesPlayed: player.battlesPlayed || 0,
+        veteranDroids: owned.filter((d) => memoryModule.statusFor(d).isVeteran).length,
+        totals,
+        legends,
+      });
     }
 
     // POST /admin/validate-code  { adminCode } -> validation only, no side effects

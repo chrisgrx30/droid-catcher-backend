@@ -244,7 +244,10 @@ function calculateEarnings(playerId, now = Date.now()) {
     if (!slot || !species) continue;
 
     const variantMultiplier = db.VARIANT_CRYSTAL_MULTIPLIER[droid.variant] ?? 1.0;
-    earned += species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier * elapsedMinutes;
+    const droidEarned = species.baseCrystalRate * levelMultiplier(droid.level) * slot.multiplier * variantMultiplier * elapsedMinutes;
+    earned += droidEarned;
+    // Droid Memory — credit production to the droid that generated it.
+    try { require('./memory').bump(droid, 'crystalsGenerated', droidEarned); } catch (e) {}
   }
   earned *= companionBuffMultiplier(playerId);
   earned *= OFFLINE_RATE_MULTIPLIER;
@@ -700,6 +703,7 @@ function healDroid(playerId, droidId) {
 
   player.repairKits -= 1;
   droid.currentHpDamage = 0;
+  try { require('./memory').bump(droid, 'timesHealed'); } catch (e) {}
   return { droid: enrichDroid(droid), repairKits: player.repairKits };
 }
 

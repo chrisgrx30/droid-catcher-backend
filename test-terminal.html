@@ -1289,6 +1289,11 @@
       <div id="friendsList" style="margin-top:8px;"><div class="empty">No friends yet</div></div>
     </div>
 
+    <div class="panel" id="chroniclePanel" style="margin-top:16px;">
+      <div class="panel-title">Sparkfield Chronicle</div>
+      <div id="chronicleBody"><div class="empty">Deploy a pilot to start your history</div></div>
+    </div>
+
     <div class="panel" id="buffSummaryPanel" style="margin-top:16px;">
       <div class="panel-title">Your Buffs</div>
       <div id="buffSummaryGrid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;"></div>
@@ -3351,6 +3356,7 @@ async function refreshWorkshop() {
     state.ultraRiftCells = data.ultraRiftCells || 0;
     state.equippedCosmetics = data.equippedCosmetics;
     renderBuffSummary(data.buffs);
+    refreshChronicle();
     refreshBuddyPanel();
     renderOfflineProjection(data.offlineProjection);
     $('statCritChance').textContent = Math.round(data.critChance * 100) + '%';
@@ -3809,6 +3815,123 @@ function showFunkyColorPicker(droid) {
   };
 }
 
+// The Chronicle — a player's whole history in one place, plus their
+// three most accomplished droids.
+async function refreshChronicle() {
+  const el = $('chronicleBody');
+  if (!el || !state.playerId) return;
+  let d;
+  try { d = await api('GET', `/chronicle/${state.playerId}`); } catch (e) { return; }
+
+  const t = d.totals || {};
+  const stats = [
+    ['🌍', 'Sectors Discovered', d.sectorsDiscovered],
+    ['🤖', 'Droids Captured', d.droidsCaptured],
+    ['⚔️', 'Battles Won', d.battlesWon],
+    ['🌌', 'Rift Missions', t.riftMissions],
+    ['👑', 'Bosses Defeated', t.bossesDefeated],
+    ['⚡', 'Rift Storms Survived', t.riftStormsSurvived],
+    ['💎', 'Crystals Generated', Math.floor(t.crystalsGenerated || 0).toLocaleString()],
+    ['🔥', 'Veteran Droids', d.veteranDroids],
+  ];
+
+  const legends = (d.legends || []).map((l) => `
+    <div class="gift-mat-row" style="align-items:flex-start; padding:5px 0;">
+      <span class="gm-name" style="flex:1;">
+        ${l.isVeteran ? '<span style="color:var(--legendary);">★</span> ' : ''}${escapeHtml(l.speciesName)}
+        <span class="spawn-rarity ${l.rarity}" style="font-size:8px;">${l.rarity}</span>
+        <br><span style="color:var(--text-dim); font-size:8px;">
+          Lv${l.level} · ${l.history.battles || 0} battles · ${l.history.bossesDefeated || 0} bosses
+          ${l.traits.length ? ` · ${l.traits.map((x) => x.icon).join('')}` : ''}
+        </span>
+      </span>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px;">
+      ${stats.map(([icon, label, val]) => `
+        <div style="padding:7px; border:1px solid var(--line); border-radius:4px;">
+          <div style="font-size:8px; color:var(--text-dim); text-transform:uppercase;">${icon} ${label}</div>
+          <div style="font-size:14px; font-weight:700; color:#fff; margin-top:2px;">${val != null ? val : 0}</div>
+        </div>`).join('')}
+    </div>
+    <div class="gift-group-title" style="margin-top:12px;">Your Legends</div>
+    ${legends || '<div class="empty">No standout droids yet — battles and Rift runs build their history.</div>'}`;
+}
+
+// Droid Memory panel inside the stats modal. Fetched separately so the
+// modal opens instantly and history fills in a moment later, rather than
+// making every droid tap wait on a round trip.
+async function renderDroidMemory(droid) {
+  const el = $('droidMemoryBlock');
+  if (!el) return;
+  let d;
+  try { d = await api('GET', `/memory/${droid.id}`); } catch (e) { el.innerHTML = ''; return; }
+  // The modal may have been closed or switched droids while we waited.
+  const still = $('droidMemoryBlock');
+  if (!still || d.droidId !== droid.id) return;
+
+  const h = d.history || {};
+  const when = h.capturedAt ? new Date(h.capturedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+
+  const originLine = h.capturedSector || when
+    ? `<div style="font-size:9px; color:var(--text-dim); margin-top:2px;">
+         📍 ${h.capturedSector ? escapeHtml(h.capturedSector) : 'Unknown sector'}${when ? ` · ${when}` : ''}
+         ${h.capturedLat != null ? `<br><span style="opacity:0.7;">${h.capturedLat}, ${h.capturedLng}</span>` : ''}
+       </div>`
+    : '<div style="font-size:9px; color:var(--text-dim); margin-top:2px; opacity:0.7;">No origin recorded — caught before Droid Memory existed</div>';
+
+  // Only show counters that have actually moved, so a fresh droid isn't
+  // a wall of zeroes.
+  const STAT_LABELS = [
+    ['battles', '⚔️ Battles'], ['battlesWon', '🏅 Battles Won'],
+    ['bossesDefeated', '👑 Bosses Defeated'], ['droidsDefeated', '👾 Droids Defeated'],
+    ['riftMissions', '🌌 Rift Missions'], ['missionsCompleted', '🧰 Missions'],
+    ['riftStormsSurvived', '⚡ Rift Storms'], ['crystalsGenerated', '💎 Crystals Generated'],
+    ['timesHealed', '❤️ Times Healed'], ['upgrades', '🔧 Upgrades'], ['reboots', '🔄 Reboots'],
+  ];
+  const rows = STAT_LABELS
+    .filter(([k]) => (h[k] || 0) > 0)
+    .map(([k, label]) => {
+      const v = k === 'crystalsGenerated' ? Math.floor(h[k]).toLocaleString() : h[k];
+      return `<div class="gift-mat-row" style="padding:3px 0;">
+        <span class="gm-name" style="font-size:9px;">${label}</span>
+        <span style="font-size:9px; color:#fff;">${v}</span>
+      </div>`;
+    }).join('');
+
+  const earned = (d.traits || []);
+  const traitChips = earned.length
+    ? earned.map((t) => `<span title="${escapeHtml(t.effect)}" style="display:inline-block; font-size:8px; padding:3px 7px; margin:2px 2px 0 0; border-radius:10px; border:1px solid var(--legendary); color:var(--legendary);">${t.icon} ${escapeHtml(t.name)}</span>`).join('')
+    : '';
+
+  // Nearest unearned trait, so there's always something to aim at.
+  const next = (d.traitProgress || []).filter((t) => !t.earned).sort((a, b) => b.percent - a.percent)[0];
+
+  el.innerHTML = `
+    <details style="margin-top:4px; text-align:left;">
+      <summary style="cursor:pointer; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:5px 0; border-top:1px solid var(--line);">
+        Droid Memory ${d.status && d.status.isVeteran ? '<span style="color:var(--legendary);">★ Veteran</span>' : ''}
+      </summary>
+
+      <div style="font-size:9px; color:var(--text-dim); margin-top:6px;">First discovered</div>
+      ${originLine}
+      ${h.capturedByName ? `<div style="font-size:9px; color:var(--text-dim); margin-top:2px;">🤝 Captured by ${escapeHtml(h.capturedByName)}</div>` : ''}
+      ${d.tradedFrom ? `<div style="font-size:9px; color:var(--amber); margin-top:3px;">Traded — this history was earned by ${escapeHtml(d.tradedFrom)}</div>` : ''}
+
+      ${traitChips ? `<div style="margin-top:8px;"><div style="font-size:9px; color:var(--text-dim);">Traits</div>${traitChips}</div>` : ''}
+      ${next ? `<div style="font-size:8px; color:var(--text-dim); margin-top:6px;">
+          Next: ${next.icon} ${escapeHtml(next.name)} — ${next.have}/${next.need}
+          <div style="height:4px; background:var(--panel-raised); border-radius:2px; margin-top:2px; overflow:hidden;">
+            <div style="width:${next.percent}%; height:100%; background:var(--cyan);"></div>
+          </div>
+        </div>` : ''}
+
+      ${rows ? `<div style="margin-top:8px;"><div style="font-size:9px; color:var(--text-dim);">Legacy</div>${rows}</div>`
+             : '<div style="font-size:9px; color:var(--text-dim); margin-top:8px; opacity:0.7;">No history yet — take it into a battle or a Rift.</div>'}
+    </details>`;
+}
+
 function showStatsModal(droid) {
   const overlay = $('captureResultOverlay');
   const box = $('captureResultBox');
@@ -3905,7 +4028,7 @@ function showStatsModal(droid) {
     </div>
     ${lockBtn}
     ${levelStepper}
-    ${droid.caughtLat != null ? `<div style="font-size:9px; color:var(--text-dim); margin-top:8px;">📍 Caught at ${droid.caughtLat}, ${droid.caughtLng}</div>` : ''}
+    <div id="droidMemoryBlock" style="margin-top:10px;"></div>
     ${attachmentBlock}
     ${buddyBtn}
     ${healBtn}
@@ -3918,6 +4041,7 @@ function showStatsModal(droid) {
   `;
   box.querySelector('#statsModalIcon').appendChild(createDroidVisual(droid, 64));
   overlay.style.display = 'flex';
+  renderDroidMemory(droid);
   box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
 
   if (droid.isCompanion) {
@@ -5696,6 +5820,7 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('themePickerPanel', 'themepicker');
   applyPanelBackground('wardrobeMainPanel', 'wardrobe');
   applyPanelBackground('offlineProjectionPanel', 'offlineprojection');
+  applyPanelBackground('chroniclePanel', 'chronicle');
   applyPanelBackground('buffSummaryPanel', 'buffsummary');
   applyPanelBackground('friendsMainPanel', 'friends');
   applyPanelBackground('playerStats', 'pilot');
@@ -8578,7 +8703,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.15.3
+// QOL v0.16.1
 // ============================================================
 
 // ---- guild invites by player ID ----

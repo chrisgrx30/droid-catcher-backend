@@ -6,10 +6,12 @@
 
 const db = require('./db');
 const joystick = require('./joystick');
+const geo = require('./geo');
+const biomes = require('./biomes');
+const memory = require('./memory');
 const levels = require('./levels');
 const ach = require('./achievements');
 const buffs = require('./buffs');
-const geo = require('./geo');
 const workshop = require('./workshop');
 
 // ---- CAPTURE RADIUS — the one number to change ----
@@ -182,6 +184,18 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
     newDroid.caughtLat = Math.round(playerLat * 10000) / 10000;
     newDroid.caughtLng = Math.round(playerLng * 10000) / 10000;
     db.ownedDroids.set(newDroid.id, newDroid);
+    // Permanent origin record — where, when, and who caught it. Travels
+    // with the droid if it's ever traded away.
+    try {
+      const cellKey = geo.cellId(playerLat, playerLng);
+      const biome = biomes.describe(cellKey);
+      memory.recordCapture(newDroid, {
+        playerId,
+        lat: newDroid.caughtLat,
+        lng: newDroid.caughtLng,
+        sector: biome ? biome.name : null,
+      });
+    } catch (e) { /* origin is a nice-to-have; never block a capture over it */ }
     db.markDexSeen(playerId, species.id, spawn.variant);
     // Catching a wished-for droid clears it from the wish list.
     const wishesCleared = db.fulfilWishesForSpecies(playerId, species.id);

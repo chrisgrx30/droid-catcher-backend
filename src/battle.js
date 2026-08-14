@@ -21,6 +21,7 @@
 const db = require('./db.js');
 const workshop = require('./workshop.js');
 const captureModule = require('./capture.js');
+const memory = require('./memory.js');
 
 // PLACEHOLDER Titan — no real Titan design/stats were ever provided
 // (only "I have a good rarity Titan, will confirm the name later" was
@@ -811,6 +812,13 @@ function attack(battleId, playerId, opts = {}) {
   if (damage > 0) defenderDroid.currentHpDamage = (defenderDroid.currentHpDamage || 0) + damage;
   const defenderFainted = isFainted(defenderDroid);
 
+  // Droid Memory — count the kill against the attacking droid.
+  if (defenderFainted) {
+    try {
+      memory.bump(attackerDroid, battle.isTitanBattle ? 'bossesDefeated' : 'droidsDefeated');
+    } catch (e) {}
+  }
+
   if (usedSpecial && special.kind === 'stun' && !defenderFainted) {
     // Stun makes the defender lose their next turn(s).
     battle.stunnedUntilTurn = battle.stunnedUntilTurn || {};
@@ -852,6 +860,14 @@ function attack(battleId, playerId, opts = {}) {
       battle.status = 'finished';
       battle.winnerId = playerId;
       battle.updatedAt = Date.now();
+      // Every droid that took the field records the battle; the winning
+      // side also records the win.
+      try {
+        const winIds = playerId === battle.player1Id ? battle.team1Ids : battle.team2Ids;
+        const loseIds = playerId === battle.player1Id ? battle.team2Ids : battle.team1Ids;
+        (winIds || []).forEach((id) => memory.bumpMany(id, { battles: 1, battlesWon: 1 }));
+        (loseIds || []).forEach((id) => memory.bumpMany(id, { battles: 1 }));
+      } catch (e) {}
       if (battle.isTitanBattle) {
         const winner = db.players.get(playerId);
         winner.paint = (winner.paint || 0) + TITAN_REWARDS.paint;

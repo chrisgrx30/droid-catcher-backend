@@ -3122,7 +3122,7 @@ function importState(state) {
   };
   (state.players || []).forEach((p) => players.set(p.id, { ...playerDefaults, ...p }));
 
-  const droidDefaults = { level: 1, variant: 'standard', workshopSlotId: null, captureCost: 0 };
+  const droidDefaults = { level: 1, variant: 'standard', workshopSlotId: null, captureCost: 0, history: null };
   (state.ownedDroids || []).forEach((d) => ownedDroids.set(d.id, { ...droidDefaults, ...d }));
 
   (state.workshopSlots || []).forEach((s) => workshopSlots.set(s.id, s));
