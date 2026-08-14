@@ -613,7 +613,9 @@
   .badge-tabs { display:flex; gap:4px; margin-bottom:4px; }
   .badge-tab { width:auto; margin-top:0; font-size:8px; padding:5px 8px; text-transform:uppercase; }
   .badge-tab.active { background:var(--cyan); border-color:var(--cyan); color:#04181a; font-weight:700; }
-  .badge-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(52px,1fr)); gap:6px; max-height:230px; overflow-y:auto; }
+  /* width:100% + min-width:0 keeps the columns from collapsing if this
+     ever ends up inside a flex parent again. */
+  .badge-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(52px,1fr)); gap:6px; max-height:230px; overflow-y:auto; width:100%; min-width:0; }
   .badge-cell { border:1px solid var(--line); border-radius:4px; padding:4px; text-align:center; cursor:pointer; background:var(--panel-raised); }
   .badge-cell img { width:100%; height:34px; object-fit:contain; }
   .badge-cell.locked img { filter:grayscale(1); opacity:0.3; }
@@ -1242,7 +1244,11 @@
       <div class="panel-title">Pilot Level <span id="plLevelTag" style="color:var(--cyan); font-weight:400; text-transform:none;"></span></div>
       <div class="xp-bar"><div class="xp-fill" id="plXpFill"></div></div>
       <div id="plXpText" style="font-size:9px; color:var(--text-dim); margin-top:4px;">—</div>
-      <div id="plBadges" style="display:flex; gap:4px; flex-wrap:wrap; margin-top:8px;"></div>
+      <!-- Plain block, not flex. As a flex container the .badge-grid
+           inside was shrunk to its minimum width, collapsing the
+           auto-fill columns into a single stack. Re-Boot's container is
+           a plain div, which is why that one laid out correctly. -->
+      <div id="plBadges" style="margin-top:8px;"></div>
       <div id="plNextReward" style="font-size:9px; color:var(--text-dim); margin-top:8px;"></div>
     </div>
 
@@ -8572,7 +8578,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.15.2
+// QOL v0.15.3
 // ============================================================
 
 // ---- guild invites by player ID ----
