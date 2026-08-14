@@ -3141,6 +3141,10 @@ function importState(state) {
   // Tops up to PROCESSOR_SLOT_COUNT. The old version only seeded players
   // with ZERO slots, so raising the count left existing accounts short.
   ensureProcessorSlotCount();
+  // Reconstruct origins for droids caught before Droid Memory existed.
+  // Idempotent — droids that already have an origin are skipped, so this
+  // is safe to run on every load.
+  try { require('./memory').backfillOrigins(); } catch (e) {}
 
   // Recompute the id counter so newly-created rows never collide with
   // restored ones, regardless of what was in flight when the snapshot was taken.

@@ -2172,6 +2172,22 @@ const server = http.createServer(async (req, res) => {
       catch (e) { return sendJson(res, 400, { error: e.code || 'SIEGE_ERROR', message: e.message }); }
     }
 
+    // POST /forts/:id/defence { playerId, slotIndex, itemId }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/defence$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, slotIndex, itemId } = await readBody(req);
+      try { return sendJson(res, 200, fortsModule.buildDefence(playerId, fortId, Number(slotIndex), itemId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+
+    // POST /forts/:id/demolish { playerId, slotIndex }
+    if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/demolish$/)) {
+      const fortId = Number(pathname.split('/')[2]);
+      const { playerId, slotIndex } = await readBody(req);
+      try { return sendJson(res, 200, fortsModule.demolishDefence(playerId, fortId, Number(slotIndex))); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'FORT_ERROR', message: e.message }); }
+    }
+
     // POST /forts/:id/retreat { playerId }
     if (req.method === 'POST' && pathname.match(/^\/forts\/\d+\/retreat$/)) {
       const fortId = Number(pathname.split('/')[2]);

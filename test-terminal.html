@@ -3916,7 +3916,8 @@ async function renderDroidMemory(droid) {
 
       <div style="font-size:9px; color:var(--text-dim); margin-top:6px;">First discovered</div>
       ${originLine}
-      ${h.capturedByName ? `<div style="font-size:9px; color:var(--text-dim); margin-top:2px;">🤝 Captured by ${escapeHtml(h.capturedByName)}</div>` : ''}
+      ${h.capturedByName ? `<div style="font-size:9px; color:var(--text-dim); margin-top:2px;">🤝 Captured by ${escapeHtml(h.capturedByName)}${h.reconstructed ? ' <span style="opacity:0.6;">(assumed)</span>' : ''}</div>` : ''}
+      ${h.reconstructed ? '<div style="font-size:8px; color:var(--text-dim); margin-top:3px; opacity:0.75;">Origin reconstructed from older save data — battle history starts from now.</div>' : ''}
       ${d.tradedFrom ? `<div style="font-size:9px; color:var(--amber); margin-top:3px;">Traded — this history was earned by ${escapeHtml(d.tradedFrom)}</div>` : ''}
 
       ${traitChips ? `<div style="margin-top:8px;"><div style="font-size:9px; color:var(--text-dim);">Traits</div>${traitChips}</div>` : ''}
@@ -7294,8 +7295,10 @@ async function showFortStats(fortId) {
     : '<div class="empty">No upgrade slots yet</div>';
 
   box.innerHTML = `
-    <div class="mb-title" style="color:#fff;">🏰 ${escapeHtml(f.name)}</div>
-    <div class="mb-detail">${escapeHtml(f.guildName)}${f.isOwn ? ' — your guild' : ''} · Level ${f.level}/${f.maxLevel}</div>
+    <div class="mb-title" style="color:#fff;">${f.tier ? f.tier.icon : '🏰'} ${escapeHtml(f.name)}</div>
+    <div class="mb-detail">${f.tier ? `<strong style="color:var(--cyan);">${escapeHtml(f.tier.name)}</strong> · ` : ''}${escapeHtml(f.guildName)}${f.isOwn ? ' — your guild' : ''} · Level ${f.level}/${f.maxLevel}</div>
+    ${f.tier ? `<div style="font-size:9px; color:var(--text-dim); margin-top:2px;">${escapeHtml(f.tier.blurb)}</div>` : ''}
+    ${f.nextTier ? `<div style="font-size:8px; color:var(--amber); margin-top:3px;">Next: ${f.nextTier.icon} ${escapeHtml(f.nextTier.name)} at Level ${f.nextTier.atLevel}</div>` : ''}
     <div class="stat-grid">
       <div class="sg-item"><div class="sg-label">Shield</div><div class="sg-val">${f.shieldPercent}%</div></div>
       <div class="sg-item"><div class="sg-label">Droids</div><div class="sg-val">${f.activeDroids}/${f.droidSlots}</div></div>
@@ -7305,6 +7308,23 @@ async function showFortStats(fortId) {
 
     <div class="gift-group-title" style="margin-top:10px;">Garrison</div>
     <div style="text-align:left;">${garrisonRows}</div>
+
+    ${(f.defenceSlots || []).length ? `
+      <div class="gift-group-title" style="margin-top:10px;">Defences</div>
+      <div style="text-align:left;">
+        ${f.defenceSlots.map((s) => `
+          <div class="gift-mat-row">
+            <span class="gm-name">Slot ${s.index + 1}${s.item ? ` — ${s.item.icon} ${escapeHtml(s.item.name)}` : ''}
+              ${s.item ? `<br><span style="color:var(--text-dim); font-size:8px;">${escapeHtml(s.item.blurb)}</span>` : ''}</span>
+            ${f.isOwn ? (s.item
+              ? `<button class="fort-demolish" data-slot="${s.index}" style="margin-top:0; width:auto; padding:4px 8px; font-size:8px; color:var(--danger); border-color:var(--danger);">Demolish</button>`
+              : `<select class="fort-build" data-slot="${s.index}" style="width:130px; margin-top:0;">
+                   <option value="">— build —</option>
+                   ${(f.defenceCatalog || []).map((d) => `<option value="${d.id}">${d.icon} ${escapeHtml(d.name)} (${d.cost})</option>`).join('')}
+                 </select>`)
+              : `<span style="font-size:9px; color:var(--text-dim);">${s.item ? 'built' : 'empty'}</span>`}
+          </div>`).join('')}
+      </div>` : ''}
 
     <div class="gift-group-title" style="margin-top:10px;">Upgrade Slots</div>
     <div style="text-align:left;">${slotRows}</div>
@@ -7318,6 +7338,30 @@ async function showFortStats(fortId) {
     <button class="primary mb-close" style="margin-top:12px;">Close</button>`;
 
   box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+
+  box.querySelectorAll('.fort-build').forEach((sel) => {
+    sel.onchange = async () => {
+      if (!sel.value) return;
+      try {
+        await api('POST', `/forts/${fortId}/defence`, { playerId: state.playerId, slotIndex: Number(sel.dataset.slot), itemId: sel.value });
+        showGuildResultPopup(true, 'Structure built.');
+        showFortStats(fortId);
+      } catch (e) {
+        sel.value = '';
+        showGuildResultPopup(false, (e && e.message) || 'Could not build that.');
+      }
+    };
+  });
+  box.querySelectorAll('.fort-demolish').forEach((b) => {
+    b.onclick = async () => {
+      if (!confirm('Demolish this structure? The Guild Tokens spent are not refunded.')) return;
+      try {
+        await api('POST', `/forts/${fortId}/demolish`, { playerId: state.playerId, slotIndex: Number(b.dataset.slot) });
+        showGuildResultPopup(true, 'Structure demolished.');
+        showFortStats(fortId);
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not demolish that.'); }
+    };
+  });
 
   const upBtn = box.querySelector('#fortUploadBtn');
   if (upBtn) {
@@ -8703,7 +8747,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.16.1
+// QOL v0.17.0
 // ============================================================
 
 // ---- guild invites by player ID ----

@@ -229,6 +229,17 @@ function fortView(fort, viewerGuildId = null, workshop = null) {
     maxShield: fort.maxShield,
     shieldPercent: fort.maxShield ? Math.round((fort.shield / fort.maxShield) * 100) : 0,
     upgradeSlotCount: fort.upgradeSlotCount,
+    // Building identity + what this Fort can actually do.
+    tier: (() => { const t = tierFor(fort); return { tier: t.tier, name: t.name, icon: t.icon, blurb: t.blurb }; })(),
+    nextTier: (() => { const n = nextTierFor(fort); return n ? { tier: n.tier, name: n.name, icon: n.icon, atLevel: n.minLevel } : null; })(),
+    unlocks: fortUnlocks(fort),
+    defenceSlots: defenceSlotsFor(fort).map((s) => ({
+      index: s.index,
+      itemId: s.itemId,
+      item: s.itemId ? DEFENCE_BY_ID[s.itemId] : null,
+    })),
+    defenceCatalog: DEFENCE_ITEMS,
+    defenceBonuses: defenceBonuses(fort),
     upgradeSlots: (fort.upgradeSlots || []).map((sl, i) => {
       let item = null;
       if (sl && sl.itemId) {
@@ -329,6 +340,175 @@ const FORT_LEVELS = [
   { level: 13, cost: 650, reward: 'capstone',    tokenRate: 5, label: 'Double shield & 5x tokens/day' },
 ];
 const MAX_FORT_LEVEL = 13;
+
+// ---- Building tiers ----
+// The 13-level economy above stays exactly as it is — this is an
+// identity layer on top, so a Fort reads as a place you've built rather
+// than a number. Each tier also unlocks a real capability, so levelling
+// changes what the Fort DOES, not just its stats.
+const FORT_TIERS = [
+  {
+    tier: 1, minLevel: 1, name: 'Droid Outpost', icon: '🛖',
+    blurb: 'A foothold. Somewhere to garrison droids and hold ground.',
+    unlocks: [],
+  },
+  {
+    tier: 2, minLevel: 3, name: 'Repair Station', icon: '🔧',
+    blurb: 'Field repairs — garrisoned droids mend themselves over time.',
+    unlocks: ['autoRepair'],
+  },
+  {
+    tier: 3, minLevel: 5, name: 'Crystal Generator', icon: '💎',
+    blurb: 'The Fort earns crystals on its own, claimed with your daily tokens.',
+    unlocks: ['autoRepair', 'crystalYield'],
+  },
+  {
+    tier: 4, minLevel: 7, name: 'Droid Workshop', icon: '🏭',
+    blurb: 'Garrisoned droids gain mastery progress while stationed here.',
+    unlocks: ['autoRepair', 'crystalYield', 'garrisonMastery'],
+  },
+  {
+    tier: 5, minLevel: 9, name: 'Rift Scanner', icon: '🌌',
+    blurb: 'Scans the Rift — improves Rift loot for the owning guild.',
+    unlocks: ['autoRepair', 'crystalYield', 'garrisonMastery', 'riftBonus'],
+  },
+  {
+    tier: 6, minLevel: 11, name: 'Battle Arena', icon: '⚔️',
+    blurb: 'Trains defenders — garrison fights harder when the Fort is attacked.',
+    unlocks: ['autoRepair', 'crystalYield', 'garrisonMastery', 'riftBonus', 'arenaDefence'],
+  },
+  {
+    tier: 7, minLevel: 13, name: 'Fortress', icon: '🏰',
+    blurb: 'A true stronghold. Every system running at full strength.',
+    unlocks: ['autoRepair', 'crystalYield', 'garrisonMastery', 'riftBonus', 'arenaDefence', 'fortress'],
+  },
+];
+
+function tierFor(fort) {
+  const level = fort.level || 1;
+  // Highest tier whose minLevel we've reached.
+  let match = FORT_TIERS[0];
+  for (const t of FORT_TIERS) if (level >= t.minLevel) match = t;
+  return match;
+}
+
+function nextTierFor(fort) {
+  const level = fort.level || 1;
+  return FORT_TIERS.find((t) => t.minLevel > level) || null;
+}
+
+function fortUnlocks(fort) {
+  return tierFor(fort).unlocks;
+}
+
+function fortHas(fort, capability) {
+  return fortUnlocks(fort).includes(capability);
+}
+
+// ---- Defence slots ----
+// Distinct from the forge-item upgrade slots. These are built with Guild
+// Tokens and each does one clear thing, so a defended Fort is readable
+// at a glance rather than an opaque stat blob.
+const DEFENCE_ITEMS = [
+  { id: 'wall',        name: 'Wall',             icon: '🛡️', cost: 120, effect: 'shield',   value: 0.15, blurb: '+15% Fort shield' },
+  { id: 'turret',      name: 'Turret',           icon: '⚡', cost: 180, effect: 'damage',   value: 0.10, blurb: 'Garrison deals +10% damage' },
+  { id: 'guard_droid', name: 'Guard Droid',      icon: '🤖', cost: 200, effect: 'defence',  value: 0.10, blurb: 'Garrison takes 10% less damage' },
+  { id: 'rift_shield', name: 'Rift Shield',      icon: '🌌', cost: 260, effect: 'regen',    value: 0.05, blurb: 'Shield regenerates 5% per day' },
+  { id: 'crystal_gen', name: 'Crystal Generator', icon: '💎', cost: 220, effect: 'crystals', value: 250,  blurb: '+250 crystals per daily claim' },
+];
+
+const DEFENCE_BY_ID = Object.fromEntries(DEFENCE_ITEMS.map((d) => [d.id, d]));
+
+// Defence slots unlock with tier, so building up genuinely opens options.
+function defenceSlotCount(fort) {
+  return Math.max(0, tierFor(fort).tier - 1);
+}
+
+function defenceSlotsFor(fort) {
+  const count = defenceSlotCount(fort);
+  fort.defenceSlots = fort.defenceSlots || [];
+  // Grow (never shrink) so a downgrade can't silently delete a built item.
+  while (fort.defenceSlots.length < count) {
+    fort.defenceSlots.push({ index: fort.defenceSlots.length, itemId: null, builtAt: null });
+  }
+  return fort.defenceSlots.slice(0, Math.max(count, fort.defenceSlots.length));
+}
+
+// Total effect of everything built, used by the siege maths.
+function defenceBonuses(fort) {
+  const totals = { shield: 0, damage: 0, defence: 0, regen: 0, crystals: 0 };
+  (fort.defenceSlots || []).forEach((s) => {
+    const item = s.itemId ? DEFENCE_BY_ID[s.itemId] : null;
+    if (item) totals[item.effect] += item.value;
+  });
+  // Fortress tier runs everything harder.
+  if (fortHas(fort, 'fortress')) {
+    totals.shield *= 1.25;
+    totals.damage *= 1.25;
+    totals.defence *= 1.25;
+  }
+  return totals;
+}
+
+function buildDefence(playerId, fortId, slotIndex, itemId) {
+  const player = db.players.get(playerId);
+  if (!player) throw new FortError('NO_PLAYER', 'Player not found');
+  const fort = forts.get(fortId);
+  if (!fort) throw new FortError('NO_FORT', 'Fort not found');
+  if (fort.guildId !== player.guildId) throw new FortError('NOT_YOUR_FORT', 'That Fort belongs to another guild');
+  if (fort.underAttack) throw new FortError('UNDER_ATTACK', "You can't build while the Fort is under attack");
+
+  const item = DEFENCE_BY_ID[itemId];
+  if (!item) throw new FortError('NO_ITEM', 'Unknown defence structure');
+
+  defenceSlotsFor(fort); // make sure slots exist for the current tier
+  const slot = fort.defenceSlots[slotIndex];
+  if (!slot) throw new FortError('NO_SLOT', 'That defence slot is not unlocked yet — level the Fort further');
+  if (slot.itemId) throw new FortError('SLOT_FILLED', 'That slot already holds a structure — demolish it first');
+  if ((player.guildTokens || 0) < item.cost) {
+    throw new FortError('NOT_ENOUGH_TOKENS', `${item.name} costs ${item.cost} Guild Tokens — you have ${player.guildTokens || 0}`);
+  }
+
+  player.guildTokens -= item.cost;
+  slot.itemId = item.id;
+  slot.builtAt = Date.now();
+
+  // A Wall raises the shield ceiling immediately.
+  if (item.effect === 'shield') {
+    const added = Math.round(BASE_SHIELD * item.value);
+    fort.maxShield += added;
+    fort.shield = Math.min(fort.maxShield, fort.shield + added);
+  }
+  return { fort: fortView(fort, player.guildId), built: item };
+}
+
+function demolishDefence(playerId, fortId, slotIndex) {
+  const player = db.players.get(playerId);
+  if (!player) throw new FortError('NO_PLAYER', 'Player not found');
+  const fort = forts.get(fortId);
+  if (!fort) throw new FortError('NO_FORT', 'Fort not found');
+  if (fort.guildId !== player.guildId) throw new FortError('NOT_YOUR_FORT', 'That Fort belongs to another guild');
+  if (fort.underAttack) throw new FortError('UNDER_ATTACK', "You can't demolish while the Fort is under attack");
+
+  const slot = (fort.defenceSlots || [])[slotIndex];
+  if (!slot || !slot.itemId) throw new FortError('EMPTY_SLOT', 'Nothing built in that slot');
+  const item = DEFENCE_BY_ID[slot.itemId];
+
+  // Reverse a Wall's shield contribution so it can't be farmed by
+  // building and demolishing repeatedly.
+  if (item && item.effect === 'shield') {
+    // Subtract exactly what was added. Clamping to BASE_SHIELD was wrong:
+    // on a Fort whose max had been reduced (or built oddly) it would
+    // INFLATE the shield on demolition instead of lowering it.
+    const added = Math.round(BASE_SHIELD * item.value);
+    fort.maxShield = Math.max(1, fort.maxShield - added);
+    fort.shield = Math.min(fort.shield, fort.maxShield);
+  }
+  slot.itemId = null;
+  slot.builtAt = null;
+  return { fort: fortView(fort, player.guildId), demolished: item ? item.name : null };
+}
+
 
 function nextLevelFor(fort) {
   return FORT_LEVELS.find((l) => l.level === (fort.level || 1) + 1) || null;
@@ -625,6 +805,17 @@ module.exports = {
   guildFortsOf,
   FORT_LEVELS,
   MAX_FORT_LEVEL,
+  FORT_TIERS,
+  DEFENCE_ITEMS,
+  DEFENCE_BY_ID,
+  tierFor,
+  nextTierFor,
+  fortUnlocks,
+  fortHas,
+  defenceBonuses,
+  defenceSlotsFor,
+  buildDefence,
+  demolishDefence,
   nextLevelFor,
   levelUpFort,
   fitUpgrade,

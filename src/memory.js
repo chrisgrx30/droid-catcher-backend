@@ -20,6 +20,7 @@ function blankHistory() {
     capturedSector: null,
     capturedByPlayerId: null,
     capturedByName: null,
+    reconstructed: false,
 
     // Lifetime counters.
     battles: 0,
@@ -215,7 +216,52 @@ function topDroidsFor(playerId, limit = 3) {
     .slice(0, limit);
 }
 
+// ---- One-time backfill ----
+// Droids caught before Droid Memory existed already stored capturedAt
+// and (for wild catches) caughtLat/caughtLng. We can reconstruct a
+// genuine origin from those. Battle history is genuinely lost — we
+// deliberately do NOT invent counters, so a legacy droid starts at zero
+// and earns its record honestly from here.
+function backfillOrigins() {
+  // Marked on each reconstructed record so the UI can be honest that the
+  // capturer is inferred from current ownership, not actually known.
+
+  const geo = require('./geo');
+  const biomes = require('./biomes');
+  let filled = 0;
+  let coordsRecovered = 0;
+
+  for (const droid of db.ownedDroids.values()) {
+    const h = historyOf(droid);
+    if (h.capturedAt) continue; // already has an origin — leave it alone
+
+    h.capturedAt = droid.capturedAt || null;
+    h.capturedByPlayerId = droid.playerId != null ? droid.playerId : null;
+    const owner = droid.playerId != null ? db.players.get(droid.playerId) : null;
+    // Current owner is the best guess available. If it was traded before
+    // Memory existed we have no way to know the original capturer, so
+    // this is honest rather than precise.
+    h.capturedByName = owner ? owner.username : null;
+
+    if (droid.caughtLat != null && droid.caughtLng != null) {
+      h.capturedLat = droid.caughtLat;
+      h.capturedLng = droid.caughtLng;
+      try {
+        const biome = biomes.describe(geo.cellId(droid.caughtLat, droid.caughtLng));
+        h.capturedSector = biome ? biome.name : null;
+      } catch (e) { /* sector is optional */ }
+      coordsRecovered++;
+    }
+    if (h.capturedAt || h.capturedLat != null) {
+      h.reconstructed = true;
+      filled++;
+    }
+  }
+  return { filled, coordsRecovered };
+}
+
 module.exports = {
+  backfillOrigins,
   blankHistory,
   historyOf,
   recordCapture,
