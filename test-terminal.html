@@ -1589,6 +1589,12 @@
     <div id="stormBody"></div>
   </div>
 
+  <!-- Co-op party — shows invites, lobby, and the shared run -->
+  <div class="panel" id="coopPanel" style="display:none; margin-bottom:12px; border-color:var(--cyan);">
+    <div class="panel-title" style="color:var(--cyan);">👥 Co-op Rift</div>
+    <div id="coopBody"></div>
+  </div>
+
   <div id="modeRift">
   <div id="riftLaunchView">
     <div class="panel" id="riftIntroPanel">
@@ -1603,6 +1609,7 @@
       </div>
       <div id="riftHistory" style="margin-top:10px;"></div>
       <button id="btnRiftLaunch" class="primary" style="margin-top:12px;">Enter the Rift</button>
+      <button id="btnCoopInvite" class="ghost" style="margin-top:6px; font-size:10px;">👥 Invite a friend (co-op)</button>
     </div>
   </div>
 
@@ -5896,6 +5903,7 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('smugglerHistoryPanel', 'smugglerhauls');
   applyPanelBackground('liveChallengesPanel', 'challenges');
   applyPanelBackground('seasonPassesPanel', 'yourpasses');
+  applyPanelBackground('slotsBox', 'slotmachine');
   applyPanelBackground('dailySpinBox', 'dailyspin');
   applyPanelBackground('rouletteBox', 'roulette');
   applyPanelBackground('blackjackBox', 'blackjack');
@@ -8336,6 +8344,286 @@ document.querySelectorAll('.slot-spin').forEach((btn) => {
   });
 });
 
+// ---- Co-op Rift ----
+// Shares the solo Rift's map rendering, but draws BOTH players and reads
+// from /coop/* rather than /rift/*.
+let coopState = null;
+let coopTeamPicked = new Set();
+
+async function refreshCoop() {
+  const panel = $('coopPanel');
+  const el = $('coopBody');
+  if (!panel || !el || !state.playerId) return;
+
+  let d;
+  try { d = await api('GET', `/coop/${state.playerId}`); } catch (e) { panel.style.display = 'none'; return; }
+  coopState = d;
+
+  const pendingInvites = d.invites || [];
+  if (!d.inParty && !pendingInvites.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  // --- incoming invites ---
+  if (!d.inParty) {
+    el.innerHTML = pendingInvites.map((i) => `
+      <div class="trade-card">
+        <div><strong>${escapeHtml(i.fromName)}</strong> invited you into a co-op Rift.</div>
+        <div class="tc-actions">
+          <button class="primary coop-accept" data-id="${i.id}">Accept</button>
+          <button class="ghost coop-decline" data-id="${i.id}">Decline</button>
+        </div>
+      </div>`).join('');
+    el.querySelectorAll('.coop-accept').forEach((b) => {
+      b.onclick = () => guardedAction('coopacc', async () => {
+        try { await api('POST', '/coop/accept', { playerId: state.playerId, inviteId: Number(b.dataset.id) }); refreshCoop(); }
+        catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not accept.'); }
+      });
+    });
+    el.querySelectorAll('.coop-decline').forEach((b) => {
+      b.onclick = () => guardedAction('coopdec', async () => {
+        try { await api('POST', '/coop/decline', { playerId: state.playerId, inviteId: Number(b.dataset.id) }); refreshCoop(); }
+        catch (e) {}
+      });
+    });
+    return;
+  }
+
+  // --- lobby: both players pick a team ---
+  if (d.status === 'forming') {
+    const me = d.members.find((m) => m.isYou) || {};
+    el.innerHTML = `
+      <div style="font-size:10px; color:var(--text-dim);">Both pilots must choose 6 droids.</div>
+      <div style="margin-top:8px;">
+        ${d.members.map((m) => `<div class="gift-mat-row" style="padding:3px 0;">
+          <span class="gm-name">${escapeHtml(m.username)}${m.isYou ? ' (you)' : ''}</span>
+          <span style="font-size:9px; color:${m.ready ? 'var(--ok)' : 'var(--text-dim)'};">${m.ready ? '✓ ready' : 'choosing…'}</span>
+        </div>`).join('')}
+      </div>
+      ${me.ready ? '' : '<button class="primary" id="btnCoopTeam" style="margin-top:8px;">Choose Your Team</button>'}
+      ${d.isLeader ? `<button class="${d.members.every((m) => m.ready) ? 'primary' : 'ghost'}" id="btnCoopLaunch"
+          style="margin-top:6px;" ${d.members.every((m) => m.ready) ? '' : 'disabled'}>Launch Co-op Rift</button>` : ''}
+      <button class="ghost" id="btnCoopLeave" style="margin-top:6px; font-size:9px;">Leave Party</button>`;
+
+    const tb = $('btnCoopTeam');
+    if (tb) tb.onclick = () => openCoopTeamPicker();
+    const lb = $('btnCoopLaunch');
+    if (lb) lb.onclick = () => guardedAction('cooplaunch', async () => {
+      try { await api('POST', '/coop/launch', { playerId: state.playerId }); refreshCoop(); }
+      catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not launch.'); }
+    });
+    $('btnCoopLeave').onclick = () => guardedAction('coopleave', async () => {
+      if (!confirm('Leave the co-op party?')) return;
+      try { await api('POST', '/coop/abandon', { playerId: state.playerId }); refreshCoop(); }
+      catch (e) {}
+    });
+    return;
+  }
+
+  // --- active shared run ---
+  const cells = d.cells || {};
+  el.innerHTML = `
+    <div style="display:flex; gap:8px; font-size:9px; color:var(--text-dim); flex-wrap:wrap;">
+      <span>☠️ ${d.bossesDefeated}/${d.totalBosses}</span>
+      <span>✚ ${d.healingUses}/${d.maxHealing} (shared)</span>
+      <span>📦 ${d.chestsOpened}/${d.totalChests}</span>
+      <span>👣 ${d.steps}</span>
+      <span>🔹 ${cells.riftCells || 0} · 🔷 ${cells.ultraRiftCells || 0}</span>
+    </div>
+    <div style="margin-top:6px;">
+      ${(d.positions || []).map((p) => `<span class="pill" style="${p.isYou ? 'border-color:var(--cyan);color:var(--cyan);' : ''}">
+        ${p.isYou ? '🧑‍🚀' : '🧑‍🎤'} ${escapeHtml(p.username || 'pilot')} @ ${p.x},${p.y}</span>`).join('')}
+    </div>
+    <div id="coopGrid" class="rift-grid" style="margin-top:8px;"></div>
+    <div style="font-size:9px; color:var(--amber); margin-top:4px;">
+      ${d.loot ? `${(d.loot.crystals || 0).toLocaleString()}✦ shared haul` : ''}
+    </div>
+    <div class="rift-controls" style="margin-top:10px;">
+      <div class="joy-base" id="coopJoyBase"><div class="joy-knob" id="coopJoyKnob"></div></div>
+      <div class="rift-actions">
+        <button class="dp dp-mid" id="coopSearch">🔍 Search</button>
+        <button class="dp ghost" id="coopLeaveRun" style="font-size:11px;">Abandon</button>
+      </div>
+    </div>
+    <div id="coopTeam" style="margin-top:8px;"></div>`;
+
+  renderCoopGrid(d);
+
+  $('coopTeam').innerHTML = (d.myTeam || []).map((t) => `
+    <div class="gift-mat-row" style="padding:2px 0;">
+      <span class="gm-name" style="font-size:9px;">${escapeHtml(t.name)}</span>
+      <span style="font-size:9px; color:${t.hp <= 0 ? 'var(--danger)' : 'var(--text-dim)'};">${t.hp}/${t.maxHp}</span>
+    </div>`).join('');
+
+  $('coopSearch').onclick = () => guardedAction('coopinv', async () => {
+    try {
+      const r = await api('POST', '/coop/investigate', { playerId: state.playerId });
+      if (r.finished) {
+        showGuildResultPopup(true, `🌌 Extracted!\n\n${r.summary.crystals.toLocaleString()}✦ each — loot is shared.`);
+        await refreshWorkshop();
+      } else if (r.found) {
+        const f = r.found;
+        showGuildResultPopup(true, f.kind === 'chest' ? `📦 ${f.crystals.toLocaleString()}✦ and ${f.amount} ${f.material}`
+          : f.kind === 'crystal' ? `💎 ${f.crystals.toLocaleString()}✦`
+          : `✚ Team healed — ${f.usesLeft} shared charge${f.usesLeft === 1 ? '' : 's'} left`);
+      }
+      refreshCoop();
+    } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Nothing here.'); }
+  });
+
+  $('coopLeaveRun').onclick = () => guardedAction('coopabandon', async () => {
+    if (!confirm('Abandon the run? Both pilots lose the haul.')) return;
+    try { await api('POST', '/coop/abandon', { playerId: state.playerId }); refreshCoop(); }
+    catch (e) {}
+  });
+
+  initCoopJoystick();
+}
+
+// Same tile renderer as the solo Rift, but draws the partner too.
+function renderCoopGrid(d) {
+  const grid = $('coopGrid');
+  if (!grid || !d.myPosition) return;
+  const R = 7;
+  const me = d.myPosition;
+  let html = '';
+  for (let y = me.y - R; y <= me.y + R; y++) {
+    for (let x = me.x - R; x <= me.x + R; x++) {
+      const here = (d.positions || []).filter((p) => p.x === x && p.y === y);
+      let ico = '';
+      if (here.length) {
+        // Your partner is visible wherever they are in view — that's the
+        // whole point of exploring together.
+        ico = here.some((p) => p.isYou)
+          ? '<span class="rt-ico rt-player">🧑‍🚀</span>'
+          : '<span class="rt-ico" title="' + escapeHtml(here[0].username || '') + '">🧑‍🎤</span>';
+      }
+      const isExit = d.exitPos && d.exitPos.x === x && d.exitPos.y === y;
+      if (!ico && isExit) ico = '<span class="rt-ico">🚪</span>';
+      const oob = x < 0 || y < 0 || x >= 150 || y >= 150;
+      html += `<div class="rt ${oob ? 'wall' : 'floor'}">${ico}</div>`;
+    }
+  }
+  grid.style.gridTemplateColumns = `repeat(${R * 2 + 1}, 1fr)`;
+  grid.innerHTML = html;
+}
+
+function initCoopJoystick() {
+  const base = $('coopJoyBase');
+  const knob = $('coopJoyKnob');
+  if (!base || !knob || base.dataset.wired) return;
+  base.dataset.wired = '1';
+
+  const MAX_R = 34, DEADZONE = 12;
+  let dragging = false, lastDir = null, timer = null;
+
+  const centre = () => {
+    const r = base.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
+  const repeatMs = () => Math.max(60, Math.round(260 / ((state.rates && state.rates.riftSpeed) || 2)));
+
+  async function step(dir) {
+    try { await api('POST', '/coop/move', { playerId: state.playerId, dir }); refreshCoop(); }
+    catch (e) { /* walls and encounters are expected */ }
+  }
+
+  function onDown(e) { dragging = true; base.classList.add('active'); onMove(e); }
+  function onMove(e) {
+    if (!dragging) return;
+    const p = e.touches ? e.touches[0] : e;
+    const c = centre();
+    let dx = p.clientX - c.x, dy = p.clientY - c.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > MAX_R) { dx = (dx / dist) * MAX_R; dy = (dy / dist) * MAX_R; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    const dir = Math.hypot(dx, dy) < DEADZONE ? null
+      : (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    if (dir && dir !== lastDir) {
+      lastDir = dir; step(dir);
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => { if (lastDir) step(lastDir); }, repeatMs());
+    } else if (!dir) {
+      lastDir = null;
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+    if (e.cancelable) e.preventDefault();
+  }
+  function onUp() {
+    dragging = false; lastDir = null;
+    if (timer) { clearInterval(timer); timer = null; }
+    base.classList.remove('active');
+    knob.style.transform = 'translate(0,0)';
+  }
+
+  base.addEventListener('mousedown', onDown);
+  base.addEventListener('touchstart', onDown, { passive: false });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchend', onUp);
+}
+
+async function openCoopTeamPicker() {
+  // Route is /rift/candidates/:id and the field is `droids` — reusing the
+  // solo Rift's eligibility rules so co-op can't accept a droid the run
+  // would reject.
+  let cands = [];
+  try {
+    const r = await api('GET', `/rift/candidates/${state.playerId}`);
+    cands = r.droids || [];
+  } catch (e) {
+    showGuildResultPopup(false, 'Could not load your droids.');
+    return;
+  }
+  coopTeamPicked = new Set();
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const need = 6;
+
+  const draw = () => {
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">👥 Co-op Rift Team</div>
+      <div class="mb-detail">Pick ${need} droids. Your partner picks their own.</div>
+      <div style="max-height:250px; overflow-y:auto; text-align:left; margin-top:8px;">
+        ${cands.map((c) => `<div class="merge-pick ${coopTeamPicked.has(c.id) ? 'selected' : ''}" data-id="${c.id}">
+          <span class="mp-name">${escapeHtml(c.name)}</span>
+          <span style="color:var(--text-dim); font-size:9px;">Lv${c.level} · ${c.hp}/${c.maxHp}</span>
+        </div>`).join('') || '<div class="empty">No eligible droids</div>'}
+      </div>
+      <button id="coopGo" class="primary" style="margin-top:10px;" ${coopTeamPicked.size === need ? '' : 'disabled'}>Confirm (${coopTeamPicked.size}/${need})</button>
+      <button class="ghost mb-close" style="margin-top:6px;">Cancel</button>`;
+    box.querySelectorAll('.merge-pick').forEach((row) => {
+      row.onclick = () => {
+        const id = Number(row.dataset.id);
+        if (coopTeamPicked.has(id)) coopTeamPicked.delete(id);
+        else if (coopTeamPicked.size < need) coopTeamPicked.add(id);
+        draw();
+      };
+    });
+    box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+    const go = box.querySelector('#coopGo');
+    if (go) go.onclick = async () => {
+      try {
+        await api('POST', '/coop/team', { playerId: state.playerId, teamDroidIds: [...coopTeamPicked] });
+        overlay.style.display = 'none';
+        refreshCoop();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not set team.'); }
+    };
+  };
+  draw();
+  overlay.style.display = 'flex';
+}
+
+$('btnCoopInvite').onclick = async () => {
+  const id = prompt('Invite a pilot to co-op.\n\nEnter their Player ID:');
+  if (!id) return;
+  try {
+    await api('POST', '/coop/invite', { playerId: state.playerId, toPlayerId: Number(id) });
+    showGuildResultPopup(true, 'Invite sent — they have 5 minutes to accept.');
+    refreshCoop();
+  } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not send that invite.'); }
+};
+
 // ---- Rift Storms ----
 // Shared 4-player world event. Polled alongside the Rift view; the panel
 // hides entirely when there's nothing happening so it never clutters the
@@ -8423,10 +8711,10 @@ async function refreshStorm() {
   el.innerHTML = `
     <div style="font-size:12px; font-weight:700; color:${res.outcome === 'stabilised' ? '#5fd8e0' : res.outcome === 'collapsed' ? '#a04cf0' : 'var(--text-dim)'};">${escapeHtml(res.headline || 'Storm ended')}</div>
     <div style="font-size:9px; color:var(--text-dim); margin-top:3px;">
-      ${res.bossDefeated ? 'The Panther Fang was brought down.' : 'The Sovereign withdrew before it could be felled.'}
+      ${res.bossDefeated ? 'The The Sovereign was brought down.' : 'The Sovereign withdrew before it could be felled.'}
     </div>
     ${cap.captured
-      ? '<div style="margin-top:8px; color:var(--legendary); font-size:10px;">★ You claimed the Panther Fang.</div>'
+      ? '<div style="margin-top:8px; color:var(--legendary); font-size:10px;">★ You claimed the The Sovereign.</div>'
       : cap.available
         ? `<div style="font-size:9px; color:var(--text-dim); margin-top:8px;">
              You fought for <strong>${cap.mySide === 'light' ? 'Light' : cap.mySide === 'dark' ? 'Dark' : 'neither side'}</strong>${cap.onWinningSide ? ' — the winning side.' : '.'}<br>
@@ -8444,7 +8732,7 @@ async function refreshStorm() {
     try {
       const r = await api('POST', '/storm/capture', { playerId: state.playerId });
       showGuildResultPopup(r.captured, r.captured
-        ? '★ The Panther Fang is yours!'
+        ? '★ The The Sovereign is yours!'
         : 'It slipped through the Rift — your attempt failed.');
       await refreshWorkshop();
       refreshStorm();
@@ -8504,6 +8792,7 @@ async function openStormTeamPicker(stormView) {
 
 async function refreshRift() {
   refreshStorm();
+  refreshCoop();
   if (!state.playerId) return;
   try {
     const d = await api('GET', `/rift/${state.playerId}`);
@@ -9062,7 +9351,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.20.3
+// QOL v0.21.1
 // ============================================================
 
 // ---- guild invites by player ID ----
