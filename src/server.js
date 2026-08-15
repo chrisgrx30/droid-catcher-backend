@@ -15,6 +15,7 @@ const spawnsModule = require('./spawns');
 const captureModule = require('./capture');
 const joystickModule = require('./joystick');
 const memoryModule = require('./memory');
+const stormModule = require('./riftstorm');
 const levelsModule = require('./levels');
 const buffsModule = require('./buffs');
 const attachmentsModule = require('./attachments');
@@ -563,6 +564,8 @@ const server = http.createServer(async (req, res) => {
         padRam: player.padRam,
         repairKits: player.repairKits,
         energyTubes: player.energyTubes,
+        // Global rate multipliers the client needs (Rift move speed).
+        rates: db.balanceOverrides.rates,
         riftCells: player.riftCells || 0,
         ultraRiftCells: player.ultraRiftCells || 0,
         displayedBadge: player.displayedBadge,
@@ -1477,6 +1480,52 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    // GET /storm/:playerId -> current storm view
+    if (req.method === 'GET' && pathname.match(/^\/storm\/\d+$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, stormModule.viewFor(playerId));
+    }
+
+    // GET /storm/:playerId/candidates -> droids eligible for a storm team
+    if (req.method === 'GET' && pathname.match(/^\/storm\/\d+\/candidates$/)) {
+      const playerId = Number(pathname.split('/')[2]);
+      return sendJson(res, 200, { candidates: stormModule.teamCandidates(playerId) });
+    }
+
+    // POST /storm/join  { playerId, teamDroidIds }
+    if (req.method === 'POST' && pathname === '/storm/join') {
+      const { playerId, teamDroidIds } = await readBody(req);
+      try { return sendJson(res, 200, stormModule.join(playerId, teamDroidIds)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'STORM_ERROR', message: e.message }); }
+    }
+
+    // POST /storm/attack  { playerId, droidId }
+    if (req.method === 'POST' && pathname === '/storm/attack') {
+      const { playerId, droidId } = await readBody(req);
+      try { return sendJson(res, 200, stormModule.attack(playerId, droidId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'STORM_ERROR', message: e.message }); }
+    }
+
+    // POST /storm/capture  { playerId } -> attempt the Panther Fang
+    if (req.method === 'POST' && pathname === '/storm/capture') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, stormModule.captureSovereign(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'STORM_ERROR', message: e.message }); }
+    }
+
+    // POST /admin/storm  { adminCode, durationMinutes } -> trigger manually
+    if (req.method === 'POST' && pathname === '/admin/storm') {
+      const { adminCode, durationMinutes } = await readBody(req);
+      if (adminCode !== db.getAdminCode('events')) {
+        return sendJson(res, 403, { error: 'ADMIN_ONLY', message: 'Chris Admin Only — no access' });
+      }
+      try {
+        const mins = Math.min(60, Math.max(30, Number(durationMinutes) || 45));
+        const storm = stormModule.openStorm({ durationMs: mins * 60 * 1000, triggeredBy: 'admin' });
+        return sendJson(res, 200, { stormId: storm.id, endsAt: storm.endsAt, durationMinutes: mins });
+      } catch (e) { return sendJson(res, 409, { error: e.code || 'STORM_ERROR', message: e.message }); }
+    }
+
     // POST /admin/validate-code  { adminCode } -> validation only, no side effects
     if (req.method === 'POST' && pathname === '/admin/validate-code') {
       const { adminCode } = await readBody(req);
@@ -2266,6 +2315,14 @@ const server = http.createServer(async (req, res) => {
       const playerId = Number(pathname.split('/')[2]);
       try { return sendJson(res, 200, casinoModule.spinStatus(playerId)); }
       catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/casino/slots') {
+      const { playerId, amount } = await readBody(req);
+      try { return sendJson(res, 200, casinoModule.playSlots(playerId, amount)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'CASINO_ERROR', message: e.message }); }
+    }
+    if (req.method === 'GET' && pathname === '/casino/slots-info') {
+      return sendJson(res, 200, { stakes: casinoModule.SLOT_STAKES, symbols: casinoModule.SLOT_SYMBOLS });
     }
     if (req.method === 'POST' && pathname === '/casino/roulette') {
       const { playerId, betType, betValue, amount } = await readBody(req);

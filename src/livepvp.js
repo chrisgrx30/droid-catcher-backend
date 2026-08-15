@@ -356,7 +356,11 @@ function tick() {
 
 function startTicker() {
   if (ticker) return;
-  ticker = setInterval(tick, TICK_MS);
+  ticker = setInterval(() => {
+    tick();
+    // Rift Storms share this ticker rather than running a second timer.
+    try { require('./riftstorm').tick(); } catch (e) {}
+  }, TICK_MS);
   if (ticker.unref) ticker.unref(); // don't hold the process open in tests
 }
 

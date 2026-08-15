@@ -110,6 +110,17 @@ const RIFT_DROIDS = [
   { id: 'titan_charger', name: 'Titan Charger', rarity: 'rare', move: 'Rift Rush', hp: 310, attack: 39, alignment: 'dark' },
   { id: 'echo_sentinel', name: 'Echo Sentinel', rarity: 'rare', move: 'Reality Shift', hp: 255, attack: 44, alignment: 'light' },
   { id: 'singularity_core', name: 'Singularity Core', rarity: 'legendary', move: 'Quantum Storm', hp: 540, attack: 68, alignment: 'light' },
+  // --- Rift Guardians (light) / Riftborn (dark) ---
+  { id: 'aetherion', name: 'Aetherion', rarity: 'rare', move: 'Celestial Roar', hp: 285, attack: 45, alignment: 'light' },
+  { id: 'solaryx', name: 'Solaryx', rarity: 'rare', move: 'Solar Rebirth', hp: 260, attack: 48, alignment: 'light' },
+  { id: 'luminarc', name: 'Luminarc', rarity: 'rare', move: 'Radiant Charge', hp: 300, attack: 42, alignment: 'light' },
+  { id: 'abyssara', name: 'Abyssara', rarity: 'legendary', move: 'Tidal Abyss', hp: 560, attack: 66, alignment: 'light' },
+  { id: 'drakoryn', name: 'Drakoryn', rarity: 'legendary', move: 'Astral Breath', hp: 530, attack: 72, alignment: 'light' },
+  { id: 'voidfang', name: 'Voidfang', rarity: 'rare', move: 'Shadow Maul', hp: 270, attack: 47, alignment: 'dark' },
+  { id: 'gravemaw', name: 'Gravemaw', rarity: 'rare', move: 'Web Collapse', hp: 290, attack: 44, alignment: 'dark' },
+  { id: 'nexulon', name: 'Nexulon', rarity: 'rare', move: 'Void Coil', hp: 275, attack: 46, alignment: 'dark' },
+  { id: 'dreadhorn', name: 'Dreadhorn', rarity: 'legendary', move: 'Ruin Charge', hp: 580, attack: 64, alignment: 'dark' },
+  { id: 'malivex', name: 'Malivex', rarity: 'legendary', move: 'Dread Descent', hp: 540, attack: 70, alignment: 'dark' },
 ];
 const DROID_BY_ID = {};
 RIFT_DROIDS.forEach((d) => { DROID_BY_ID[d.id] = d; });
@@ -721,9 +732,11 @@ function capture(playerId, crystalsSpent = 0) {
 }
 
 function bossReward(bossId, m) {
-  const crystals = 2000 + Math.floor(Math.random() * 3000);
   const scanner = riftLootMultiplier(m.playerId);
-  crystals = Math.round(crystals * scanner);
+  // `let`, not `const` — this is scaled by the Rift Scanner bonus below.
+  // Declaring it const and then reassigning threw "Assignment to constant
+  // variable" on EVERY boss reward, which blocked the whole encounter.
+  let crystals = Math.round((2000 + Math.floor(Math.random() * 3000)) * scanner);
   m.loot.crystals += crystals;
   const mats = ['novaChips', 'paint', 'repairKits', 'augmentCores'];
   const mat = mats[Math.floor(Math.random() * mats.length)];
@@ -1003,7 +1016,17 @@ function viewFor(playerId) {
     objects,
     standingOn,
     team: m.team,
-    encounter: m.encounter,
+    // Flag whether this species is already in the player's Dex, so the
+    // encounter can show a ✅ the same way overworld spawns do.
+    encounter: m.encounter ? {
+      ...m.encounter,
+      alreadyCaught: (() => {
+        const def = DROID_BY_ID[m.encounter.defId] || BOSSES.find((b) => b.id === m.encounter.defId);
+        if (!def) return false;
+        const species = db.droidSpecies.find((s) => s.name === def.name);
+        return Boolean(species && (player.dexSeen || []).includes(species.id));
+      })(),
+    } : null,
     bossesDefeated: m.bossesDefeated.length,
     totalBosses: REQUIRED_BOSSES,
     bossList: map.bosses.map((b) => ({ id: b.id, name: b.name, move: b.move, defeated: m.bossesDefeated.includes(b.id) })),

@@ -1583,6 +1583,12 @@
     <button class="mode-btn" data-mode="smuggler">🚀 Smuggler's Run</button>
   </div>
 
+  <!-- Rift Storm banner — only visible while one is raging or unresolved -->
+  <div class="panel" id="stormPanel" style="display:none; margin-bottom:12px; border-color:var(--legendary);">
+    <div class="panel-title" style="color:var(--legendary);">⚡ RIFT STORM</div>
+    <div id="stormBody"></div>
+  </div>
+
   <div id="modeRift">
   <div id="riftLaunchView">
     <div class="panel" id="riftIntroPanel">
@@ -1712,6 +1718,24 @@
     <div style="font-size:9px; color:var(--text-dim); margin-bottom:8px;">
       Bet crystals. The house has an edge — these are a crystal sink, not a way to farm.
       The daily spin is free and always pays.
+    </div>
+
+    <div id="slotsBox" class="casino-box" style="margin-bottom:12px;">
+      <div class="cb-title">🎰 Slot Machine</div>
+      <div style="font-size:9px; color:var(--text-dim); margin-bottom:6px;">
+        Three reels. Match two for a small win, three for a big one.<br>
+        <strong style="color:var(--legendary);">7️⃣ 7️⃣ 7️⃣ — JACKPOT</strong> wins an exclusive Casino Droid.
+        Higher stakes improve the droid's rarity.
+      </div>
+      <div id="slotReels" style="display:flex; gap:8px; justify-content:center; margin:10px 0; font-size:34px;">
+        <span>🎰</span><span>🎰</span><span>🎰</span>
+      </div>
+      <div id="slotResult" style="text-align:center; font-size:10px; min-height:16px; color:var(--text-dim);"></div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <button class="slot-spin ghost" data-stake="1000" style="flex:1; font-size:9px;">Spin<br>1,000✦</button>
+        <button class="slot-spin ghost" data-stake="10000" style="flex:1; font-size:9px;">Spin<br>10,000✦</button>
+        <button class="slot-spin ghost" data-stake="50000" style="flex:1; font-size:9px;">Spin<br>50,000✦</button>
+      </div>
     </div>
 
     <div id="dailySpinBox" class="casino-box">
@@ -2528,9 +2552,68 @@ loadHomePage();
 
 let tickInterval = null;
 
+// ---- Backend location ----
+// In a browser the app is served BY the backend, so window.location.origin
+// is correct. Inside a native shell (Capacitor) the origin is
+// capacitor://localhost — the app's own bundle, not the server — so both
+// API calls AND asset URLs must point at the deployed backend instead.
+//
+// Set SPARKFIELD_API_BASE below when building for iOS/Android.
+const SPARKFIELD_API_BASE = window.SPARKFIELD_API_BASE || '';
+
+function isNativeShell() {
+  return window.location.protocol === 'capacitor:'
+      || window.location.protocol === 'file:'
+      || Boolean(window.Capacitor);
+}
+
+function apiBase() {
+  if (SPARKFIELD_API_BASE) return SPARKFIELD_API_BASE.replace(/\/$/, '');
+  if (isNativeShell()) {
+    console.error('Sparkfield: running natively with no SPARKFIELD_API_BASE set — the app cannot reach the backend.');
+    return '';
+  }
+  return window.location.origin;
+}
+
 function serverUrl() {
-  const val = $('serverUrl').value.trim();
-  return val ? val.replace(/\/$/, '') : window.location.origin;
+  const el = $('serverUrl');
+  const val = el ? el.value.trim() : '';
+  return val ? val.replace(/\/$/, '') : apiBase();
+}
+
+// Assets live on the backend, not in the app bundle (147MB of art would
+// be absurd to ship natively). Every asset URL goes through this so it
+// resolves correctly in both browser and native builds.
+// Catch-all for asset URLs written directly into markup. Rather than
+// hand-editing 30+ template strings (and every future one), this rewrites
+// any src beginning "/assets/" to point at the backend once the DOM
+// settles — and again whenever new markup is injected.
+function rewriteAssetUrls(root = document) {
+  const base = apiBase();
+  if (!base) return;
+  root.querySelectorAll('img[src^="/assets/"]').forEach((img) => {
+    img.src = base + img.getAttribute('src');
+  });
+}
+
+if (typeof window !== 'undefined' && isNativeShell()) {
+  // Native only — in the browser the relative paths are already correct.
+  document.addEventListener('DOMContentLoaded', () => {
+    rewriteAssetUrls();
+    // Panels re-render constantly, so keep watching for injected markup.
+    new MutationObserver((muts) => {
+      muts.forEach((m) => m.addedNodes.forEach((n) => {
+        if (n.nodeType === 1) rewriteAssetUrls(n);
+      }));
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+function assetUrl(path) {
+  const clean = String(path || '').replace(/^\//, '');
+  const base = apiBase();
+  return base ? `${base}/${clean}` : `/${clean}`;
 }
 
 function log(tag, body, isErr) {
@@ -3352,6 +3435,7 @@ async function refreshWorkshop() {
     state.growths = data.growths;
     state.repairKits = data.repairKits;
     state.energyTubes = data.energyTubes;
+    state.rates = data.rates || {};
     state.riftCells = data.riftCells || 0;
     state.ultraRiftCells = data.ultraRiftCells || 0;
     state.equippedCosmetics = data.equippedCosmetics;
@@ -4764,7 +4848,7 @@ function createCosmeticVisual(item, size = 40) {
       wrapper.innerHTML = `<span class="variant-tag platinum">${item.name}</span>`;
       return;
     }
-    img.src = `/assets/cosmetics/${item.id}.${COSMETIC_IMAGE_EXTENSIONS[idx]}`;
+    img.src = assetUrl(`assets/cosmetics/${item.id}.${COSMETIC_IMAGE_EXTENSIONS[idx]}`);
     idx++;
   };
   img.onerror = tryNext;
@@ -5761,8 +5845,8 @@ function applyPanelBackground(elementId, name, folder = 'misc') {
   const names = [name, ...(PANEL_BACKGROUND_ALIASES[name] || [])];
   const candidates = [];
   names.forEach((n) => {
-    candidates.push(`/assets/${folder}/${n}.png`);
-    candidates.push(`/assets/${folder}/${n}.gif`);
+    candidates.push(assetUrl(`assets/${folder}/${n}.png`));
+    candidates.push(assetUrl(`assets/${folder}/${n}.gif`));
   });
   let idx = 0;
   const tryNext = () => {
@@ -5821,6 +5905,7 @@ function applyAllPanelBackgrounds() {
   applyPanelBackground('themePickerPanel', 'themepicker');
   applyPanelBackground('wardrobeMainPanel', 'wardrobe');
   applyPanelBackground('offlineProjectionPanel', 'offlineprojection');
+  applyPanelBackground('stormPanel', 'riftstorm');
   applyPanelBackground('chroniclePanel', 'chronicle');
   applyPanelBackground('buffSummaryPanel', 'buffsummary');
   applyPanelBackground('friendsMainPanel', 'friends');
@@ -5929,7 +6014,10 @@ function createDroidVisual(species, size = 44) {
   wrapper.style.height = size + 'px';
   wrapper.style.verticalAlign = 'middle';
 
-  const baseSlug = displayName.toLowerCase().replace(/\s+/g, '');
+  // Apostrophes are stripped — "Dead Man's Hand" -> deadmanshand.png.
+  // Filenames with apostrophes are a portability hazard, so the slug
+  // drops them rather than expecting them on disk.
+  const baseSlug = displayName.toLowerCase().replace(/['’]/g, '').replace(/\s+/g, '');
   // Some art is saved without the hyphen the species name carries
   // (Corsair-X -> corsairx.png), while older files keep it
   // (Quasar-X -> quasar-x.png). Try the hyphenated form first so nothing
@@ -5945,11 +6033,11 @@ function createDroidVisual(species, size = 44) {
   const variantCandidateCount = variant ? DROID_IMAGE_EXTENSIONS.length * slugCandidates.length : 0;
   if (variant) {
     slugCandidates.forEach((slug) => {
-      DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${slug}-${variant}.${ext}`));
+      DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(assetUrl(`assets/droids/${slug}-${variant}.${ext}`)));
     });
   }
   slugCandidates.forEach((slug) => {
-    DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(`/assets/droids/${slug}.${ext}`));
+    DROID_IMAGE_EXTENSIONS.forEach((ext) => candidates.push(assetUrl(`assets/droids/${slug}.${ext}`)));
   });
 
   const img = document.createElement('img');
@@ -5990,9 +6078,13 @@ async function refreshDex() {
     // Show seen alongside caught so partial progress is visible.
     const seenCount = (data.entries || []).filter((e) => e.encountered || e.caught).length;
     $('dexProgress').textContent = `${data.totalCaught} caught · ${seenCount} seen / ${data.totalSpecies} (${data.percentComplete}%)`;
-    state.dexCaughtIds = new Set(data.entries.filter((e) => e.caught).map((e) => e.id));
+    // Event species live in eventEntries, NOT entries — building these
+    // sets from entries alone meant Summer/Superhero/Rift droids never
+    // showed the "already caught" tick in the capture minigame.
+    const allDexEntries = [...(data.entries || []), ...(data.eventEntries || [])];
+    state.dexCaughtIds = new Set(allDexEntries.filter((e) => e.caught).map((e) => e.id));
     state.dexCaughtVariants = new Set();
-    data.entries.forEach((e) => (e.variantsCaught || []).forEach((v) => state.dexCaughtVariants.add(`${e.id}:${v}`)));
+    allDexEntries.forEach((e) => (e.variantsCaught || []).forEach((v) => state.dexCaughtVariants.add(`${e.id}:${v}`)));
     renderDex(data.entries);
     renderEventDex(data.eventEntries || []);
     renderSpawns(); // refresh "already caught" pad icons on the radar with the latest dex
@@ -6225,7 +6317,7 @@ function showDexDetailModal(s) {
   box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
 }
 
-const EVENT_DECK_LABELS = { solar: '☀ Summer Dex', superhero: '🦸 Superhero Dex', apex: '⬢ Apex Dex' }; // maps collection -> display name; add more as new event collections launch
+const EVENT_DECK_LABELS = { solar: '☀ Summer Dex', superhero: '🦸 Superhero Dex', apex: '⬢ Apex Dex', rift: '🌌 Rift Dex', casino: '🎰 Casino Dex', storm: '⚡ Storm Dex' }; // maps collection -> display name; add more as new event collections launch
 const EVENT_DECK_COLORS = {
   solar: { active: 'linear-gradient(90deg,#ff9a3d,#ffcf5c)', activeText: '#3a1e00', border: '#ff9a3d' },
   superhero: { active: '#3d6bff', activeText: '#fff', border: '#3d6bff' },
@@ -6825,6 +6917,7 @@ function renderBalance() {
     { key: 'crystal', label: 'Crystal Rate', note: 'crystals per minute from farming' },
     { key: 'xp', label: 'XP Multiplier', note: 'player XP from every action' },
     { key: 'drop', label: 'Drop Rate', note: 'Paint, Nova Chips, chain materials' },
+    { key: 'riftSpeed', label: 'Rift Move Speed', note: 'joystick walk speed — 2 = double' },
   ];
   $('balRates').innerHTML = RATE_DEFS.map((r) => `
     <div class="gift-mat-row">
@@ -8194,7 +8287,223 @@ function wallTileFile(rows, x, y) {
   return 'wall';
 }
 
+// ---- Slot machine ----
+// Reels animate briefly before settling, so a spin feels like a spin
+// rather than an instant number change.
+document.querySelectorAll('.slot-spin').forEach((btn) => {
+  btn.onclick = () => guardedAction('slots', async () => {
+    const stake = Number(btn.dataset.stake);
+    const reelsEl = $('slotReels');
+    const resultEl = $('slotResult');
+    document.querySelectorAll('.slot-spin').forEach((b) => { b.disabled = true; });
+    resultEl.textContent = 'Spinning…';
+
+    const faces = ['🍒', '🔔', '💎', '⭐', '🎰', '7️⃣'];
+    let ticks = 0;
+    const anim = setInterval(() => {
+      reelsEl.innerHTML = [0, 1, 2].map(() => `<span>${faces[Math.floor(Math.random() * faces.length)]}</span>`).join('');
+      if (++ticks > 12) clearInterval(anim);
+    }, 70);
+
+    try {
+      const r = await api('POST', '/casino/slots', { playerId: state.playerId, amount: stake });
+      setTimeout(async () => {
+        clearInterval(anim);
+        reelsEl.innerHTML = r.reels.map((s) => `<span>${s.icon}</span>`).join('');
+        const parts = [];
+        if (r.kind === 'jackpot') parts.push('<strong style="color:var(--legendary);">★ JACKPOT ★</strong>');
+        else if (r.kind === 'three') parts.push('<strong style="color:#2a9d4a;">Three of a kind!</strong>');
+        else if (r.kind === 'two') parts.push('<span style="color:var(--cyan);">Pair</span>');
+        else parts.push('<span style="opacity:0.7;">No win</span>');
+        if (r.won > 0) parts.push(`+${r.won.toLocaleString()}✦`);
+        if (r.refunded > 0) parts.push(`<span style="color:var(--amber);">stake refunded by ${escapeHtml(r.dealerName || 'your dealer')}</span>`);
+        resultEl.innerHTML = parts.join(' · ');
+
+        if (r.droid) {
+          showGuildResultPopup(true,
+            `🎰 JACKPOT!\n\nYou won ${r.droid.variant !== 'standard' ? r.droid.variant.toUpperCase() + ' ' : ''}${r.droid.name} (${r.droid.rarity})!\n\nDealer boost: +${Math.round((r.droid.dealerBoost || 0) * 100)}% refund chance when set as your Dealer Droid.`);
+        }
+        await refreshWorkshop();
+        document.querySelectorAll('.slot-spin').forEach((b) => { b.disabled = false; });
+      }, 900);
+    } catch (e) {
+      clearInterval(anim);
+      reelsEl.innerHTML = '<span>🎰</span><span>🎰</span><span>🎰</span>';
+      resultEl.textContent = '';
+      document.querySelectorAll('.slot-spin').forEach((b) => { b.disabled = false; });
+      showGuildResultPopup(false, (e && e.message) || 'Could not spin.');
+    }
+  });
+});
+
+// ---- Rift Storms ----
+// Shared 4-player world event. Polled alongside the Rift view; the panel
+// hides entirely when there's nothing happening so it never clutters the
+// normal Rift screen.
+let stormTeamPicked = new Set();
+
+async function refreshStorm() {
+  const panel = $('stormPanel');
+  const el = $('stormBody');
+  if (!panel || !el || !state.playerId) return;
+
+  let d;
+  try { d = await api('GET', `/storm/${state.playerId}`); } catch (e) { panel.style.display = 'none'; return; }
+
+  // Show while active, or while a finished storm still has a capture
+  // attempt or result worth seeing.
+  const showFinished = d.status === 'finished' && d.joined &&
+    (d.capture && (d.capture.available || d.capture.attempted || d.capture.captured));
+  if (!d.active && !showFinished) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  const mins = Math.floor((d.msRemaining || 0) / 60000);
+  const secs = Math.floor(((d.msRemaining || 0) % 60000) / 1000);
+
+  if (d.active) {
+    const lp = d.lightPercent;
+    el.innerHTML = `
+      <div style="font-size:10px; color:#fff;">${escapeHtml(d.boss.name)} — ${d.boss.hp.toLocaleString()} / ${d.boss.maxHp.toLocaleString()}</div>
+      <div style="height:10px; background:var(--panel-raised); border-radius:5px; margin-top:4px; overflow:hidden;">
+        <div style="width:${d.boss.percent}%; height:100%; background:var(--danger);"></div>
+      </div>
+      <div style="font-size:9px; color:var(--text-dim); margin-top:4px;">⏳ ${mins}m ${secs}s remaining · ${d.participants.length}/${d.maxParticipants} pilots</div>
+
+      <div style="font-size:9px; color:var(--text-dim); margin-top:8px;">Light ${lp}% · ${100 - lp}% Dark</div>
+      <div style="display:flex; height:8px; border-radius:4px; overflow:hidden; margin-top:2px;">
+        <div style="width:${lp}%; background:#5fd8e0;"></div>
+        <div style="width:${100 - lp}%; background:#a04cf0;"></div>
+      </div>
+
+      <div style="margin-top:8px;">
+        ${d.participants.map((p) => `<div class="gift-mat-row" style="padding:2px 0;">
+          <span class="gm-name" style="font-size:9px;">${escapeHtml(p.username)}${p.playerId === state.playerId ? ' (you)' : ''}</span>
+          <span style="font-size:9px; color:var(--text-dim);">${(p.contribution.total || 0).toLocaleString()} dmg</span>
+        </div>`).join('')}
+      </div>
+
+      ${d.joined
+        ? `<button id="btnStormAttack" class="btn-active" style="margin-top:10px;">⚡ Strike the Sovereign</button>
+           <div style="margin-top:6px;">
+             ${(d.myTeam || []).map((t) => `<div class="gift-mat-row" style="padding:2px 0;">
+               <span class="gm-name" style="font-size:9px;">${t.side === 'light' ? '☀' : t.side === 'dark' ? '🌑' : '✦'} ${escapeHtml(t.speciesName)}</span>
+               <span style="font-size:9px; color:${t.fainted ? 'var(--danger)' : 'var(--text-dim)'};">${t.fainted ? 'FAINTED' : `${t.currentHp}/${t.hp}`}</span>
+             </div>`).join('')}
+           </div>`
+        : `<button id="btnStormJoin" class="primary" style="margin-top:10px;">Join the Storm (${d.teamSize} droids)</button>`}`;
+
+    const atk = $('btnStormAttack');
+    if (atk) atk.onclick = () => guardedAction('stormatk', async () => {
+      try {
+        const r = await api('POST', '/storm/attack', { playerId: state.playerId });
+        // Surface anything the strike turned up — chests, portals, or a
+        // storm-exclusive droid.
+        const finds = (r.log && r.log[0] && r.log[0].finds) || [];
+        const msgs = finds.map((f) =>
+          f.kind === 'chest' ? `📦 Rift Chest — ${f.crystals.toLocaleString()}✦ and ${f.riftCells} Rift Cells`
+          : f.kind === 'portal' ? `🌀 Temporary Portal — ${f.bonusDamage.toLocaleString()} bonus damage`
+          : f.kind === 'droid' ? `✨ ${f.name} (${f.rarity}) emerged from the ${f.side === 'light' ? 'Light' : 'Dark'} and joined you!`
+          : '');
+        if (msgs.filter(Boolean).length) {
+          showGuildResultPopup(true, msgs.filter(Boolean).join('\n\n'));
+          await refreshWorkshop();
+        }
+        state.storm = r; refreshStorm();
+      }
+      catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not strike.'); }
+    });
+    const join = $('btnStormJoin');
+    if (join) join.onclick = () => openStormTeamPicker(d);
+    return;
+  }
+
+  // Finished — show the outcome and the capture attempt.
+  const res = d.resolution || {};
+  const cap = d.capture || {};
+  el.innerHTML = `
+    <div style="font-size:12px; font-weight:700; color:${res.outcome === 'stabilised' ? '#5fd8e0' : res.outcome === 'collapsed' ? '#a04cf0' : 'var(--text-dim)'};">${escapeHtml(res.headline || 'Storm ended')}</div>
+    <div style="font-size:9px; color:var(--text-dim); margin-top:3px;">
+      ${res.bossDefeated ? 'The Panther Fang was brought down.' : 'The Sovereign withdrew before it could be felled.'}
+    </div>
+    ${cap.captured
+      ? '<div style="margin-top:8px; color:var(--legendary); font-size:10px;">★ You claimed the Panther Fang.</div>'
+      : cap.available
+        ? `<div style="font-size:9px; color:var(--text-dim); margin-top:8px;">
+             You fought for <strong>${cap.mySide === 'light' ? 'Light' : cap.mySide === 'dark' ? 'Dark' : 'neither side'}</strong>${cap.onWinningSide ? ' — the winning side.' : '.'}<br>
+             Capture chance: <strong>${Math.round(cap.odds * 100)}%</strong> · costs ${cap.cellCost} Ultra Rift Cell<br>
+             ${cap.capturesLeft} of ${cap.maxCaptures} still claimable.
+           </div>
+           <button id="btnStormCapture" class="primary" style="margin-top:8px;">Attempt Capture</button>`
+        : cap.attempted
+          ? `<div style="font-size:9px; color:var(--text-dim); margin-top:8px;">Your attempt failed — the Sovereign slipped away.${cap.claimedBy.length ? `<br>Claimed by: ${cap.claimedBy.map(escapeHtml).join(', ')}` : ''}</div>`
+          : ''}`;
+
+  const capBtn = $('btnStormCapture');
+  if (capBtn) capBtn.onclick = () => guardedAction('stormcap', async () => {
+    capBtn.disabled = true;
+    try {
+      const r = await api('POST', '/storm/capture', { playerId: state.playerId });
+      showGuildResultPopup(r.captured, r.captured
+        ? '★ The Panther Fang is yours!'
+        : 'It slipped through the Rift — your attempt failed.');
+      await refreshWorkshop();
+      refreshStorm();
+    } catch (e) {
+      capBtn.disabled = false;
+      showGuildResultPopup(false, (e && e.message) || 'Could not attempt the capture.');
+    }
+  });
+}
+
+async function openStormTeamPicker(stormView) {
+  let cands = [];
+  try { const r = await api('GET', `/storm/${state.playerId}/candidates`); cands = r.candidates || []; }
+  catch (e) { showGuildResultPopup(false, 'Could not load your droids.'); return; }
+
+  stormTeamPicked = new Set();
+  const overlay = $('captureResultOverlay');
+  const box = $('captureResultBox');
+  const need = stormView.teamSize;
+
+  const draw = () => {
+    box.innerHTML = `
+      <div class="mb-title" style="color:#fff;">⚡ Join the Rift Storm</div>
+      <div class="mb-detail">Pick ${need} droids. Their alignment decides which side your damage counts for.</div>
+      <div style="max-height:250px; overflow-y:auto; text-align:left; margin-top:8px;">
+        ${cands.map((c) => `<div class="merge-pick ${stormTeamPicked.has(c.id) ? 'selected' : ''}" data-id="${c.id}">
+          <span class="mp-name">${escapeHtml(c.name)}</span>
+          <span style="color:var(--text-dim); font-size:9px;">Lv${c.level} · ${c.hp}/${c.maxHp} · ATK ${c.attack}</span>
+        </div>`).join('') || '<div class="empty">No eligible droids</div>'}
+      </div>
+      <button id="stormGo" class="primary" style="margin-top:10px;" ${stormTeamPicked.size === need ? '' : 'disabled'}>Enter the Storm (${stormTeamPicked.size}/${need})</button>
+      <button class="ghost mb-close" style="margin-top:6px;">Cancel</button>`;
+
+    box.querySelectorAll('.merge-pick').forEach((row) => {
+      row.onclick = () => {
+        const id = Number(row.dataset.id);
+        if (stormTeamPicked.has(id)) stormTeamPicked.delete(id);
+        else if (stormTeamPicked.size < need) stormTeamPicked.add(id);
+        draw();
+      };
+    });
+    box.querySelector('.mb-close').onclick = () => { overlay.style.display = 'none'; };
+    const go = box.querySelector('#stormGo');
+    if (go) go.onclick = async () => {
+      try {
+        const r = await api('POST', '/storm/join', { playerId: state.playerId, teamDroidIds: [...stormTeamPicked] });
+        overlay.style.display = 'none';
+        state.storm = r;
+        showGuildResultPopup(true, '⚡ You step into the storm.');
+        refreshStorm();
+      } catch (e) { showGuildResultPopup(false, (e && e.message) || 'Could not join.'); }
+    };
+  };
+  draw();
+  overlay.style.display = 'flex';
+}
+
 async function refreshRift() {
+  refreshStorm();
   if (!state.playerId) return;
   try {
     const d = await api('GET', `/rift/${state.playerId}`);
@@ -8375,7 +8684,7 @@ function renderRiftEncounter(d) {
                onerror="this.remove(); this.parentElement.textContent='${e.kind === 'boss' ? '☠️' : '👾'}';">
         </span>
         <div style="flex:1;">
-          <div style="font-size:12px; color:#fff;">${escapeHtml(e.name)}</div>
+          <div style="font-size:12px; color:#fff;">${escapeHtml(e.name)}${e.alreadyCaught ? ' <span title="Already in your Dex" style="color:#2a9d4a;">✅</span>' : ''}</div>
           <div style="font-size:8px; color:var(--text-dim);">${e.kind === 'boss' ? 'RIFT BOSS — no escape' : e.rarity} · ${escapeHtml(e.move)}</div>
         </div>
         <span style="font-size:10px; color:var(--text-dim);">${e.hp}/${e.maxHp}</span>
@@ -8520,7 +8829,13 @@ async function refreshBuddyPanel() {
 
   const MAX_R = 34;        // how far the knob travels
   const DEADZONE = 12;     // ignore tiny wobbles
-  const REPEAT_MS = 260;   // walk speed while held
+  // Base walk speed, divided by the admin-tunable riftSpeed multiplier
+  // (default 2 = twice as fast as the original 260ms).
+  const BASE_REPEAT_MS = 260;
+  const repeatMs = () => {
+    const mult = (state.rates && state.rates.riftSpeed) || 2;
+    return Math.max(60, Math.round(BASE_REPEAT_MS / mult));
+  };
 
   let dragging = false;
   let lastDir = null;
@@ -8545,7 +8860,7 @@ async function refreshBuddyPanel() {
 
   function startRepeat() {
     if (timer) return;
-    timer = setInterval(() => { if (lastDir) riftMove(lastDir); }, REPEAT_MS);
+    timer = setInterval(() => { if (lastDir) riftMove(lastDir); }, repeatMs());
   }
 
   function stopRepeat() {
@@ -8747,7 +9062,7 @@ function showRiftSummary(sum) {
 }
 
 // ============================================================
-// QOL v0.17.1
+// QOL v0.20.3
 // ============================================================
 
 // ---- guild invites by player ID ----

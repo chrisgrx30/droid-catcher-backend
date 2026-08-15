@@ -325,21 +325,27 @@ function garrisonCandidates(playerId) {
 //                  it REPLACES the previous rate, per the spec note)
 //
 // Level 13 is the capstone: double shield AND 5x tokens.
+// Costs retuned against real token income. At the old prices a solo
+// player needed ~7,250 tokens to max one Fort AND their guild — roughly
+// TEN YEARS at 2 tokens/day. Early levels are now cheap enough to feel
+// achievable in week one, and the token rate climbs sooner so the Fort
+// starts paying for its own upgrades.
 const FORT_LEVELS = [
-  { level: 2,  cost: 100, reward: 'upgradeSlot', label: 'Fort upgrade slot x1' },
-  { level: 3,  cost: 150, reward: 'droidSlot',   label: 'New droid slot' },
-  { level: 4,  cost: 200, reward: 'shield',      value: 0.02, label: '+2% shield health' },
-  { level: 5,  cost: 250, reward: 'defender',    value: 0.02, label: '+2% defending droid stats' },
-  { level: 6,  cost: 300, reward: 'upgradeSlot', tokenRate: 2, label: 'Fort upgrade slot x1 & 2x tokens/day' },
-  { level: 7,  cost: 350, reward: 'droidSlot',   label: 'New droid slot' },
-  { level: 8,  cost: 400, reward: 'shield',      value: 0.02, label: '+2% shield health' },
-  { level: 9,  cost: 450, reward: 'defender',    value: 0.02, label: '+2% defending droid stats' },
-  { level: 10, cost: 500, reward: 'upgradeSlot', tokenRate: 3, label: 'Fort upgrade slot & 3x tokens/day' },
-  { level: 11, cost: 550, reward: 'droidSlot',   label: 'New droid slot' },
-  { level: 12, cost: 600, reward: 'shield',      value: 0.02, label: '+2% shield health' },
-  { level: 13, cost: 650, reward: 'capstone',    tokenRate: 5, label: 'Double shield & 5x tokens/day' },
+  { level: 2,  cost: 10,  reward: 'upgradeSlot', label: 'Fort upgrade slot x1' },
+  { level: 3,  cost: 15,  reward: 'droidSlot',   label: 'New droid slot' },
+  { level: 4,  cost: 25,  reward: 'shield',      value: 0.02, label: '+2% shield health' },
+  { level: 5,  cost: 35,  reward: 'defender',    value: 0.02, label: '+2% defending droid stats' },
+  { level: 6,  cost: 50,  reward: 'upgradeSlot', tokenRate: 2, label: 'Fort upgrade slot x1 & 2x tokens/day' },
+  { level: 7,  cost: 70,  reward: 'droidSlot',   label: 'New droid slot' },
+  { level: 8,  cost: 95,  reward: 'shield',      value: 0.02, label: '+2% shield health' },
+  { level: 9,  cost: 125, reward: 'defender',    value: 0.02, label: '+2% defending droid stats' },
+  { level: 10, cost: 160, reward: 'upgradeSlot', tokenRate: 3, label: 'Fort upgrade slot & 3x tokens/day' },
+  { level: 11, cost: 200, reward: 'droidSlot',   label: 'New droid slot' },
+  { level: 12, cost: 250, reward: 'shield',      value: 0.02, label: '+2% shield health' },
+  { level: 13, cost: 320, reward: 'capstone',    tokenRate: 5, label: 'Double shield & 5x tokens/day' },
 ];
 const MAX_FORT_LEVEL = 13;
+const BASE_TOKEN_RATE = 5;   // Guild Tokens per claim, before Fort multipliers
 
 // ---- Building tiers ----
 // The 13-level economy above stays exactly as it is — this is an
@@ -613,7 +619,11 @@ function claimDailyTokens(playerId) {
     if (now > fort.tokenRewardUntil) return; // window expired, needs extending
     fort.tokenClaims = fort.tokenClaims || {};
     if (fort.tokenClaims[playerId] === today) return; // already claimed today
-    const rate = fort.tokenRate || 1;
+    // Base rate raised from 1 to 5. At 1/day the entire Fort and Guild
+    // progression was a multi-year grind for anyone not in a large,
+    // highly active guild — the cost tables were never the real problem,
+    // the income was. Rate still scales to 5x at Fort 13 (25/day).
+    const rate = (fort.tokenRate || 1) * BASE_TOKEN_RATE;
     fort.tokenClaims[playerId] = today;
     granted += rate;
 

@@ -367,6 +367,34 @@ const droidSpecies = [
   // Alignments are split evenly light/dark so Apex works with the
   // existing alignment-based buffs, art tinting and marker colours
   // without any special-casing.
+  // Panther Fang — the Rift Storm world boss. Its own collection so
+  // it doesn't dilute the Apex event Dex, and cosmic-aligned because it
+  // is literally the thing Light and Dark are fighting over.
+  // --- Rift Guardians / Riftborn (10 exclusive) ---
+  { id: id(), name: 'Aetherion', alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Solaryx',   alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Luminarc',  alignment: 'light', rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Abyssara',  alignment: 'light', rarity: 'legendary', collection: 'rift', baseCaptureRate: 0.08, baseCrystalRate: 32, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Drakoryn',  alignment: 'light', rarity: 'legendary', collection: 'rift', baseCaptureRate: 0.08, baseCrystalRate: 32, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Voidfang',  alignment: 'dark',  rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Gravemaw',  alignment: 'dark',  rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Nexulon',   alignment: 'dark',  rarity: 'rare',      collection: 'rift', baseCaptureRate: 0.18, baseCrystalRate: 14, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('rare') },
+  { id: id(), name: 'Dreadhorn', alignment: 'dark',  rarity: 'legendary', collection: 'rift', baseCaptureRate: 0.08, baseCrystalRate: 32, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('legendary') },
+  { id: id(), name: 'Malivex',   alignment: 'dark',  rarity: 'legendary', collection: 'rift', baseCaptureRate: 0.08, baseCrystalRate: 32, spawnWeight: 0, eventOnly: true, riftOnly: true, ...statsFor('legendary') },
+  // --- Casino droids (10) — jackpot-only from the Spark Lounge ---
+  // Own collection so they get their own Dex tab, and they buff the
+  // Dealer Droid rather than combat, keeping them out of the power curve.
+  { id: id(), name: 'Royal Flush',     alignment: 'light', rarity: 'common',    collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 4,  spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.05, ...statsFor('common') },
+  { id: id(), name: 'Lucky Ace',       alignment: 'light', rarity: 'common',    collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 4,  spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.05, ...statsFor('common') },
+  { id: id(), name: 'Fortune Dice',    alignment: 'light', rarity: 'uncommon',  collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.12, ...statsFor('uncommon') },
+  { id: id(), name: 'Jackpot-7',       alignment: 'light', rarity: 'rare',      collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 16, spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.25, ...statsFor('rare') },
+  { id: id(), name: 'Crown Dealer',    alignment: 'light', rarity: 'legendary', collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 34, spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.50, ...statsFor('legendary') },
+  { id: id(), name: "Dead Man's Hand", alignment: 'dark',  rarity: 'common',    collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 4,  spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.05, ...statsFor('common') },
+  { id: id(), name: 'Blackjack Jack',  alignment: 'dark',  rarity: 'common',    collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 4,  spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.05, ...statsFor('common') },
+  { id: id(), name: 'Loaded Dice',     alignment: 'dark',  rarity: 'uncommon',  collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.12, ...statsFor('uncommon') },
+  { id: id(), name: 'Hellslot-7',      alignment: 'dark',  rarity: 'rare',      collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 16, spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.25, ...statsFor('rare') },
+  { id: id(), name: "Jester's Ruin",   alignment: 'dark',  rarity: 'legendary', collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 34, spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.50, ...statsFor('legendary') },
+  { id: id(), name: 'Panther Fang', alignment: 'cosmic', rarity: 'apex', collection: 'storm', baseCaptureRate: 0.02, baseCrystalRate: 150, spawnWeight: 0, isApex: true, eventOnly: true, stormBoss: true, ...statsFor('apex') },
   { id: id(), name: 'Voltrix',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
   { id: id(), name: 'Chronobot',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
   { id: id(), name: 'Gravitus',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
@@ -593,8 +621,16 @@ function ensureWorkshopSlotCount() {
 // short of the new maximum.
 const WORKSHOP_SLOT_COUNT = 12;
 
+// Foundry slots are the game's main income engine, so unlocking them
+// should be a genuine progression arc. The old linear 50*n curve totalled
+// 3,300 crystals for ALL twelve — under two days of income — which meant
+// the core economy was maxed before a player had really started.
+//
+// Geometric growth keeps the early slots quick (so new players feel
+// momentum) while the last few become real goals worth saving for.
 function slotUnlockCost(slotIndex) {
-  return 50 * slotIndex;
+  if (slotIndex <= 0) return 0;
+  return Math.round(120 * Math.pow(1.85, slotIndex - 1));
 }
 
 // ---- droid leveling (crystals -> stronger individual droid) ----
@@ -1880,7 +1916,11 @@ function getGuildLeaderboard(guildId) {
 // rising ~45% per level, so level 10 is a long-term guild goal rather
 // than a week's work.
 const GUILD_CHECKIN_COST = 1000;
-const GUILD_LEVEL_COINS = [20, 29, 42, 61, 88, 128, 185, 268, 389, 564];
+// Retuned: the old table needed 1,774 coins for max level — nearly five
+// YEARS for a solo player at 1 coin/day, and about a year even with five
+// active members. Guild levels should reward having members, not require
+// a large guild to be reachable at all.
+const GUILD_LEVEL_COINS = [5, 8, 12, 18, 26, 38, 55, 80, 115, 165];
 const MAX_GUILD_LEVEL = 10;
 
 // Spends banked coins into levels. Shared by daily check-in and the
@@ -1950,7 +1990,9 @@ function guildCheckIn(playerId) {
   player.crystalBalance -= GUILD_CHECKIN_COST;
   crystalTransactions.push({ id: id(), playerId, amount: -GUILD_CHECKIN_COST, source: 'guild_checkin', createdAt: Date.now() });
   guild.checkIns[playerId] = today;
-  guild.checkInCoins = (guild.checkInCoins || 0) + 1;
+  // 5 per check-in, matching the Fort token rate — at 1/day guild levels
+  // took ~5 years solo.
+  guild.checkInCoins = (guild.checkInCoins || 0) + 5;
   guild.level = guild.level || 0;
 
   const levelsGained = applyGuildCoinLevels(guild);
@@ -2890,6 +2932,7 @@ const balanceOverrides = {
   // Global multipliers, 1 = unchanged. Applied at the point of
   // calculation so they affect every source consistently.
   rates: {
+    riftSpeed: 2, // Rift joystick movement speed multiplier
     capture: 1,   // capture success chance
     crystal: 1,   // crystals per minute from farming
     xp: 1,        // player XP gain
@@ -2987,7 +3030,7 @@ function importState(state) {
       balanceOverrides.shopCustom = bo.shopCustom || [];
       balanceOverrides.modeCosts = bo.modeCosts || {};
       balanceOverrides.spawnDisabled = bo.spawnDisabled || [];
-      balanceOverrides.rates = Object.assign({ capture: 1, crystal: 1, xp: 1, drop: 1 }, bo.rates || {});
+      balanceOverrides.rates = Object.assign({ capture: 1, crystal: 1, xp: 1, drop: 1, riftSpeed: 2 }, bo.rates || {});
     }
   } catch (e) {}
   try { Object.assign(adminCodes, state.adminCodes || {}); } catch (e) {}

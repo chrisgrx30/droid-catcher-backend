@@ -100,12 +100,29 @@ function resolveCaptureAttempt({ playerId, spawnId, crystalsSpent, padAccuracy, 
   // Minimum cost scales with Pad Level — a deliberate crystal sink so
   // upgrading the pad doesn't just let crystals pile up unused.
   const minCost = db.scaledMinCrystalCost(species.rarity, player.padLevel);
-  if (crystalsSpent < minCost) {
+
+  // --- Bankruptcy safety net ---
+  // A player with no crystals AND no droid earning for them has no route
+  // back into the game: capturing costs crystals, and farming needs a
+  // droid. Rather than let that dead-end happen, a broke player can make
+  // free attempts on COMMON droids. It costs the economy almost nothing
+  // and guarantees there is always a way forward.
+  const hasIncome = [...db.ownedDroids.values()].some(
+    (d) => d.playerId === playerId && d.workshopSlotId
+  );
+  const isDestitute = (player.crystalBalance || 0) < minCost && !hasIncome;
+  // Covers common AND uncommon — restricting it to common alone still
+  // dead-ended players, because the droid in front of them is often
+  // uncommon and they had no crystals to try anything at all.
+  const freeAttempt = isDestitute && (species.rarity === 'common' || species.rarity === 'uncommon');
+
+  if (!freeAttempt && crystalsSpent < minCost) {
     throw new CaptureError(
       'NO_CRYSTAL_POWER',
       `The control pad needs at least ${minCost} crystals to attempt a ${species.rarity} droid`
     );
   }
+  if (freeAttempt) crystalsSpent = 0;
 
   // Only counts as a real "attempt" for cooldown purposes once it's past
   // every validation check above — nothing was actually spent or risked

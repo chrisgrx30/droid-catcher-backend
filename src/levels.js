@@ -16,9 +16,14 @@ const db = require('./db');
 
 // XP required to go from level N to N+1. Index 0 = level 0 -> 1.
 // Straight from the supplied table. Total to reach 20 is 145,200.
+// XP required for each level. The original curve totalled 145,200 which,
+// even after raising XP awards, still meant ~10 months to max. Retuned so
+// Level 20 lands around a month of SOFT play (~500 XP/day: roughly 20
+// captures plus a battle), while later levels still cost meaningfully
+// more than early ones.
 const XP_PER_LEVEL = [
-  1000, 1200, 1450, 1750, 2100, 2500, 3000, 3600, 4300, 5100,
-  6000, 7000, 8200, 9500, 11000, 12500, 14000, 15500, 17000, 18500,
+  250, 280, 310, 340, 380, 420, 470, 520, 580, 640,
+  710, 790, 870, 970, 1080, 1200, 1330, 1470, 1640, 1820,
 ];
 
 const MAX_LEVEL = XP_PER_LEVEL.length; // 20
@@ -27,14 +32,22 @@ const STARTING_LEVEL = 0;              // confirmed: players start at 0
 // Which actions grant XP, and how much. 1 XP per qualifying action as
 // specified. Passive crystal generation is deliberately absent — it
 // isn't an action and would let players idle their way to Level 20.
+// XP per action. These were all 1, which — against a 145,200 XP total
+// for 20 levels — meant roughly 16 YEARS of daily play to max out, and
+// 40 days just to reach Level 1. Values now scale with effort so the
+// track is a long-term goal rather than an unreachable one, and rarer
+// actions are worth meaningfully more than routine captures.
 const XP_ACTIONS = {
-  capture: 1,
-  hatch: 1,
-  battleWin: 1,
-  minigameComplete: 1,
-  trade: 1,
-  evolve: 1,
-  depotUse: 1,
+  capture: 20,           // the routine action — everything else is priced against this
+  hatch: 40,
+  battleWin: 60,
+  minigameComplete: 15,
+  trade: 25,
+  evolve: 150,           // rare and deliberate
+  depotUse: 10,
+  bossDefeat: 250,       // Rift / Titan bosses
+  riftComplete: 400,     // finishing a full Rift run
+  stormComplete: 500,    // surviving a Rift Storm
 };
 
 // Milestone rewards. Keyed by level.

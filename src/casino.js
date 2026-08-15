@@ -85,6 +85,15 @@ function dealerFor(player) {
   if (!droid) return { bonus: DEFAULT_DEALER, name: null };
   const species = db.droidSpecies.find((s) => s.id === droid.speciesId);
   if (!species) return { bonus: DEFAULT_DEALER, name: null };
+  // Casino droids carry an explicit dealerBoost — that IS their purpose,
+  // so it takes precedence over the generic rarity table. A legendary
+  // casino droid gives a 50% refund chance, as specced.
+  if (species.dealerBoost) {
+    return {
+      bonus: { refund: species.dealerBoost, blackjackPeek: Math.min(0.25, species.dealerBoost / 2) },
+      name: species.name,
+    };
+  }
   const named = DEALER_BONUS[species.name];
   const byRarity = legendaryDealerBonus(species);
   return { bonus: named || byRarity || DEFAULT_DEALER, name: species.name };
@@ -135,6 +144,138 @@ function dealerStatus(playerId) {
 // pays 36x.
 const ROULETTE_POCKETS = 37;
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+
+// ---- Slot machine ----
+// Three reels, crystal stakes. Normal wins pay crystals; the jackpot is
+// the ONLY way to obtain a casino droid. Higher stakes buy better odds
+// on the rarity roll, not a better chance of hitting the jackpot itself
+// — that keeps the machine honest while still rewarding a big bet.
+// Top stake is 50,000 — the casino's existing MAX_BET. Going above it
+// would be rejected by takeBet, so the tiers stay inside that ceiling
+// rather than offering a stake that always errors.
+const SLOT_STAKES = [1000, 10000, 50000];
+
+// Reel symbols. Weights are what actually decide the payout, so the
+// return-to-player stays predictable rather than emergent.
+const SLOT_SYMBOLS = [
+  { id: 'cherry',  icon: '🍒', weight: 30, three: 3,   two: 0.5 },
+  { id: 'bell',    icon: '🔔', weight: 24, three: 5,   two: 0.8 },
+  { id: 'crystal', icon: '💎', weight: 18, three: 10,  two: 1.2 },
+  { id: 'star',    icon: '⭐', weight: 12, three: 20,  two: 2 },
+  { id: 'chip',    icon: '🎰', weight: 8,  three: 50,  two: 3 },
+  // Weight 8 puts the jackpot near 1 in 1,700 spins. At weight 3 it was
+  // 1 in 31,755 — roughly 31 million crystals per droid at the low
+  // stake, which made the only source of casino droids unreachable.
+  { id: 'seven',   icon: '7️⃣', weight: 8,  three: 120, two: 4 },
+];
+const JACKPOT_SYMBOL = 'seven';
+
+function rollReel() {
+  const total = SLOT_SYMBOLS.reduce((a, s) => a + s.weight, 0);
+  let r = Math.random() * total;
+  for (const s of SLOT_SYMBOLS) {
+    r -= s.weight;
+    if (r <= 0) return s;
+  }
+  return SLOT_SYMBOLS[0];
+}
+
+// Higher stake => better rarity when the jackpot lands.
+function jackpotRarityFor(stake) {
+  const roll = Math.random();
+  if (stake >= 50000) {
+    if (roll < 0.30) return 'legendary';
+    if (roll < 0.60) return 'rare';
+    if (roll < 0.85) return 'uncommon';
+    return 'common';
+  }
+  if (stake >= 10000) {
+    if (roll < 0.12) return 'legendary';
+    if (roll < 0.35) return 'rare';
+    if (roll < 0.70) return 'uncommon';
+    return 'common';
+  }
+  if (roll < 0.03) return 'legendary';
+  if (roll < 0.15) return 'rare';
+  if (roll < 0.45) return 'uncommon';
+  return 'common';
+}
+
+// Rusty / Platinum can roll on top of the base droid.
+function jackpotVariantFor(stake) {
+  const roll = Math.random();
+  const platinumChance = stake >= 50000 ? 0.12 : stake >= 10000 ? 0.06 : 0.03;
+  const rustyChance = 0.15;
+  if (roll < platinumChance) return 'platinum';
+  if (roll < platinumChance + rustyChance) return 'rusty';
+  return 'standard';
+}
+
+function grantCasinoDroid(playerId, stake) {
+  const rarity = jackpotRarityFor(stake);
+  const pool = db.droidSpecies.filter((s) => s.collection === 'casino' && s.rarity === rarity);
+  if (!pool.length) return null;
+  const species = pool[Math.floor(Math.random() * pool.length)];
+  const variant = jackpotVariantFor(stake);
+
+  const droid = {
+    id: db.nextId(), playerId, speciesId: species.id, variant,
+    level: 1, captureCost: 0, capturedAt: Date.now(),
+    workshopSlotId: null, currentHpDamage: 0, fromCasino: true,
+  };
+  db.ownedDroids.set(droid.id, droid);
+  db.markDexSeen(playerId, species.id, variant);
+  try {
+    require('./memory').recordCapture(droid, { playerId, sector: 'The Spark Lounge' });
+  } catch (e) {}
+  return { droidId: droid.id, name: species.name, rarity: species.rarity, variant, dealerBoost: species.dealerBoost };
+}
+
+function playSlots(playerId, amount) {
+  const player = db.players.get(playerId);
+  if (!player) throw new CasinoError('NO_PLAYER', 'Player not found');
+  const stake = Math.floor(Number(amount) || 0);
+  if (!SLOT_STAKES.includes(stake)) {
+    throw new CasinoError('BAD_STAKE', `Stake must be one of ${SLOT_STAKES.join(', ')} crystals`);
+  }
+  takeBet(player, stake);
+
+  const reels = [rollReel(), rollReel(), rollReel()];
+  const [a, b, cc] = reels;
+  const allSame = a.id === b.id && b.id === cc.id;
+  const jackpot = allSame && a.id === JACKPOT_SYMBOL;
+
+  let won = 0;
+  let kind = 'lose';
+  if (allSame) {
+    won = stake * a.three;
+    kind = jackpot ? 'jackpot' : 'three';
+  } else {
+    // Any matching pair pays a small consolation.
+    const pair = a.id === b.id ? a : b.id === cc.id ? b : a.id === cc.id ? a : null;
+    if (pair) { won = Math.floor(stake * pair.two); kind = 'two'; }
+  }
+
+  // Dealer refund on a loss — this is what the casino droids buff.
+  const dealer = dealerFor(player);
+  let refunded = 0;
+  if (won === 0 && dealer.bonus.refund > 0 && Math.random() < dealer.bonus.refund) {
+    refunded = stake;
+  }
+
+  const total = won + refunded;
+  if (total > 0) payout(player, total, 'slots');
+
+  const droid = jackpot ? grantCasinoDroid(playerId, stake) : null;
+
+  return {
+    reels: reels.map((s) => ({ id: s.id, icon: s.icon })),
+    kind, stake, won, refunded,
+    dealerName: dealer.name,
+    droid,
+    crystalBalance: player.crystalBalance,
+  };
+}
 
 function playRoulette(playerId, betType, betValue, amount) {
   const player = db.players.get(playerId);
@@ -341,6 +482,9 @@ function dailySpin(playerId) {
 module.exports = {
   MIN_BET, MAX_BET, WHEEL, DAILY_SPIN_COOLDOWN_MS,
   playRoulette,
+  playSlots,
+  SLOT_STAKES,
+  SLOT_SYMBOLS,
   setDealer,
   dealerStatus,
   DEALER_BONUS,
