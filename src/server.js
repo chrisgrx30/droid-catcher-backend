@@ -16,6 +16,7 @@ const captureModule = require('./capture');
 const joystickModule = require('./joystick');
 const memoryModule = require('./memory');
 const stormModule = require('./riftstorm');
+const coopModule = require('./riftcoop');
 const levelsModule = require('./levels');
 const buffsModule = require('./buffs');
 const attachmentsModule = require('./attachments');
@@ -1506,7 +1507,7 @@ const server = http.createServer(async (req, res) => {
       catch (e) { return sendJson(res, 400, { error: e.code || 'STORM_ERROR', message: e.message }); }
     }
 
-    // POST /storm/capture  { playerId } -> attempt the Panther Fang
+    // POST /storm/capture  { playerId } -> attempt the The Sovereign
     if (req.method === 'POST' && pathname === '/storm/capture') {
       const { playerId } = await readBody(req);
       try { return sendJson(res, 200, stormModule.captureSovereign(playerId)); }
@@ -1923,6 +1924,51 @@ const server = http.createServer(async (req, res) => {
       try { return sendJson(res, 200, riftModule.investigate(playerId, { confirmEarlyExtract })); }
       catch (e) { return sendJson(res, 400, { error: e.code || 'RIFT_ERROR', message: e.message }); }
     }
+    // ---- Co-op Space Rift ----
+    if (req.method === 'GET' && pathname.match(/^\/coop\/\d+$/)) {
+      return sendJson(res, 200, coopModule.viewFor(Number(pathname.split('/')[2])));
+    }
+    if (req.method === 'POST' && pathname === '/coop/invite') {
+      const { playerId, toPlayerId } = await readBody(req);
+      try { return sendJson(res, 200, coopModule.invite(playerId, Number(toPlayerId))); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'COOP_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/coop/accept') {
+      const { playerId, inviteId } = await readBody(req);
+      try { return sendJson(res, 200, coopModule.acceptInvite(Number(inviteId), playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'COOP_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/coop/decline') {
+      const { playerId, inviteId } = await readBody(req);
+      try { return sendJson(res, 200, coopModule.declineInvite(Number(inviteId), playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'COOP_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/coop/team') {
+      const { playerId, teamDroidIds } = await readBody(req);
+      try { return sendJson(res, 200, coopModule.setTeam(playerId, teamDroidIds)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'COOP_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/coop/launch') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, coopModule.launch(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'COOP_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/coop/move') {
+      const { playerId, dir } = await readBody(req);
+      try { return sendJson(res, 200, coopModule.move(playerId, dir)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'COOP_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/coop/investigate') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, coopModule.investigate(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'COOP_ERROR', message: e.message }); }
+    }
+    if (req.method === 'POST' && pathname === '/coop/abandon') {
+      const { playerId } = await readBody(req);
+      try { return sendJson(res, 200, coopModule.abandon(playerId)); }
+      catch (e) { return sendJson(res, 400, { error: e.code || 'COOP_ERROR', message: e.message }); }
+    }
+
     if (req.method === 'POST' && pathname === '/rift/flag') {
       const { playerId } = await readBody(req);
       try { return sendJson(res, 200, riftModule.dropFlag(playerId)); }

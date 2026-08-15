@@ -26,7 +26,7 @@ const BOSS_BASE_HP = 250000;
 // gets meaningfully better odds, so the Light/Dark result matters beyond
 // loot. Up to MAX_CAPTURES players can succeed — after that the rest are
 // told it's gone rather than rolling a dice they can't win.
-const SOVEREIGN_NAME = 'Panther Fang';
+const SOVEREIGN_NAME = 'The Sovereign';
 const CAPTURE_RATE_WINNING = 0.30;
 const CAPTURE_RATE_LOSING = 0.10;
 const MAX_CAPTURES = 2;
@@ -94,7 +94,7 @@ function openStorm({ durationMs = DEFAULT_DURATION_MS, triggeredBy = 'random' } 
     startedAt: now,
     endsAt: now + durationMs,
     boss: {
-      name: 'Panther Fang',
+      name: 'The Sovereign',
       maxHp: BOSS_BASE_HP,
       hp: BOSS_BASE_HP,
     },
@@ -166,7 +166,7 @@ function attack(playerId, droidId) {
   if (!storm) throw new StormError('NO_STORM', 'There is no Rift Storm right now');
   const entry = storm.participants.find((p) => p.playerId === playerId);
   if (!entry) throw new StormError('NOT_IN', 'You are not in this storm');
-  if (storm.boss.hp <= 0) throw new StormError('BOSS_DOWN', 'The Panther Fang has already fallen');
+  if (storm.boss.hp <= 0) throw new StormError('BOSS_DOWN', 'The The Sovereign has already fallen');
 
   // If no droid is named, pick the first one still standing. Defaulting
   // to teamIds[0] blindly meant one fainted droid blocked the whole team
@@ -356,7 +356,7 @@ function captureSovereign(playerId) {
   if (!storm) throw new StormError('NO_STORM', 'There is no Rift Storm to capture from');
   if (storm.status !== 'finished') throw new StormError('NOT_OVER', 'The storm is still raging');
   if (!storm.resolution || !storm.resolution.bossDefeated) {
-    throw new StormError('NOT_DEFEATED', 'The Panther Fang escaped — it was never brought down');
+    throw new StormError('NOT_DEFEATED', 'The The Sovereign escaped — it was never brought down');
   }
 
   const entry = storm.participants.find((p) => p.playerId === playerId);
@@ -365,13 +365,13 @@ function captureSovereign(playerId) {
   storm.captureAttempts = storm.captureAttempts || {};
   if (storm.captureAttempts[playerId]) throw new StormError('ALREADY_TRIED', 'You have already made your attempt');
   if ((storm.captures || []).length >= MAX_CAPTURES) {
-    throw new StormError('GONE', 'The Panther Fang has already been claimed');
+    throw new StormError('GONE', 'The The Sovereign has already been claimed');
   }
 
   const player = db.players.get(playerId);
   if (!player) throw new StormError('NO_PLAYER', 'Player not found');
   if ((player.ultraRiftCells || 0) < CAPTURE_CELL_COST) {
-    throw new StormError('NO_ULTRA_CELL', 'You need an Ultra Rift Cell to attempt the Panther Fang');
+    throw new StormError('NO_ULTRA_CELL', 'You need an Ultra Rift Cell to attempt the The Sovereign');
   }
 
   // Which side did this player mostly fight for?
@@ -393,7 +393,7 @@ function captureSovereign(playerId) {
   }
 
   const species = db.droidSpecies.find((s) => s.name === SOVEREIGN_NAME);
-  if (!species) throw new StormError('NO_SPECIES', 'Panther Fang species is missing');
+  if (!species) throw new StormError('NO_SPECIES', 'The Sovereign species is missing');
 
   const droid = {
     id: db.nextId(),

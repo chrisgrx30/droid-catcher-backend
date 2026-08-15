@@ -367,7 +367,7 @@ const droidSpecies = [
   // Alignments are split evenly light/dark so Apex works with the
   // existing alignment-based buffs, art tinting and marker colours
   // without any special-casing.
-  // Panther Fang — the Rift Storm world boss. Its own collection so
+  // The Sovereign — the Rift Storm world boss. Its own collection so
   // it doesn't dilute the Apex event Dex, and cosmic-aligned because it
   // is literally the thing Light and Dark are fighting over.
   // --- Rift Guardians / Riftborn (10 exclusive) ---
@@ -394,7 +394,7 @@ const droidSpecies = [
   { id: id(), name: 'Loaded Dice',     alignment: 'dark',  rarity: 'uncommon',  collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 8,  spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.12, ...statsFor('uncommon') },
   { id: id(), name: 'Hellslot-7',      alignment: 'dark',  rarity: 'rare',      collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 16, spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.25, ...statsFor('rare') },
   { id: id(), name: "Jester's Ruin",   alignment: 'dark',  rarity: 'legendary', collection: 'casino', baseCaptureRate: 0, baseCrystalRate: 34, spawnWeight: 0, eventOnly: true, casinoOnly: true, dealerBoost: 0.50, ...statsFor('legendary') },
-  { id: id(), name: 'Panther Fang', alignment: 'cosmic', rarity: 'apex', collection: 'storm', baseCaptureRate: 0.02, baseCrystalRate: 150, spawnWeight: 0, isApex: true, eventOnly: true, stormBoss: true, ...statsFor('apex') },
+  { id: id(), name: 'The Sovereign', alignment: 'cosmic', rarity: 'apex', collection: 'storm', baseCaptureRate: 0.02, baseCrystalRate: 150, spawnWeight: 0, isApex: true, eventOnly: true, stormBoss: true, ...statsFor('apex') },
   { id: id(), name: 'Voltrix',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
   { id: id(), name: 'Chronobot',    alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
   { id: id(), name: 'Gravitus',     alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },

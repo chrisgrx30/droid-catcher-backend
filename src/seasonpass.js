@@ -33,18 +33,25 @@ const MAX_TIER = 35; // 35 new items = 35 tiers
 
 // XP is earned from the same actions that drive everything else, so a
 // pass rewards playing rather than a separate grind.
+// Retuned to match the player-level and guild rebalances. At the old
+// values soft play took ~54 days to finish a 35-tier pass — longer than
+// a typical season runs, so most players would never see the end of it.
+// Now a soft player completes in roughly three weeks, leaving room to
+// finish comfortably inside a month-long season.
 const PASS_XP = {
-  capture: 2,
-  rareCapture: 6,
-  hatch: 5,
-  evolve: 8,
-  battleWin: 8,
-  titanWin: 20,
-  apexWin: 40,
-  forgeSuccess: 12,
-  fortCaptured: 60,
-  depotVisit: 4,
-  dailySpin: 10,
+  capture: 5,
+  rareCapture: 15,
+  hatch: 12,
+  evolve: 25,
+  battleWin: 20,
+  titanWin: 50,
+  apexWin: 100,
+  forgeSuccess: 30,
+  fortCaptured: 150,
+  depotVisit: 10,
+  dailySpin: 25,
+  riftComplete: 80,
+  stormComplete: 120,
 };
 
 class PassError extends Error {
@@ -268,6 +275,15 @@ function grantReward(player, reward) {
       db.ownedDroids.set(d.id, d);
       db.markDexSeen(player.id, species.id, 'standard');
     }
+  } else if (reward.type === 'attachment') {
+    // Attachments live on player.attachments as a count map — granting
+    // them via `token` would create a bogus flat field instead.
+    player.attachments = player.attachments || {};
+    player.attachments[reward.itemId] = (player.attachments[reward.itemId] || 0) + (reward.amount || 1);
+  } else if (reward.type === 'forge') {
+    // Forge items go through the forge module so its own bookkeeping
+    // stays correct.
+    try { require('./forge').grant(player.id, reward.itemId, reward.amount || 1); } catch (e) {}
   } else if (reward.type === 'token') {
     player[reward.itemId] = (player[reward.itemId] || 0) + (reward.amount || 1);
   }
