@@ -567,6 +567,8 @@ const server = http.createServer(async (req, res) => {
         energyTubes: player.energyTubes,
         // Global rate multipliers the client needs (Rift move speed).
         rates: db.balanceOverrides.rates,
+        // Onboarding needs to know if the starter has been claimed.
+        hasStarterDroid: Boolean(player.hasStarterDroid),
         riftCells: player.riftCells || 0,
         ultraRiftCells: player.ultraRiftCells || 0,
         displayedBadge: player.displayedBadge,

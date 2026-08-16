@@ -425,6 +425,8 @@ const droidSpecies = [
   { id: id(), name: 'Furnace',      alignment: 'dark',  rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
   { id: id(), name: 'Tidal-X',      alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
   { id: id(), name: 'Regent',       alignment: 'light', rarity: 'apex', collection: 'apex', baseCaptureRate: 0.02, baseCrystalRate: 120, spawnWeight: 0, isApex: true, eventOnly: true, ...statsFor('apex') },
+  // --- Added by Content Editor ---
+  { id: id(), name: 'KeyDemon', alignment: 'dark', rarity: 'rare', collection: 'wildcard', baseCaptureRate: 0.2, baseCrystalRate: 8, spawnWeight: 3.5, ...statsFor('rare') },
 ];
 
 // Leafkin -> Bushy is the first (and template) evolution pair. Keyed by
